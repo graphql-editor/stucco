@@ -1,0 +1,58 @@
+on:
+  push:
+    branches:
+    - '**'
+    tags-ignore:
+    - 'v[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches:
+      - master
+name: Stucco build
+env:
+  CGO_ENABLED: 0
+jobs:
+  build:
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      matrix:
+        go-version: [1.12.x, 1.13.x]
+        platform: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - platform: ubuntu-latest
+            goos: linux
+            goarch: amd64
+          - platform: macos-latest
+            goos: darwin
+            goarch: amd64
+          - platform: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: '.exe'
+    runs-on: ${{ matrix.platform }}
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+    steps:
+    - name: setup go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: checkout
+      uses: actions/checkout@v1
+    - name: cache deps
+      uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: build all
+      run: go build ./...
+    - name: build stucco
+      run: go build -ldflags="-X github.com/graphql-editor/stucco/pkg/version.Version=${{ github.sha }}" -o bin/${{ github.sha }}/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} main.go
+    - name: test
+      env:
+        CGO_ENABLED: 1
+      run: |
+        go test ./...
+        go test -race ./...
