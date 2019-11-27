@@ -80,6 +80,9 @@ jobs:
     - name: copy latest version
       run: |
         cp -r bin/${{ steps.version.outputs.replaced }} bin/latest
+    - name: latest version tag
+      run: |
+        echo "${{ steps.version.outputs.replaced }}" > bin/latest/version
     - uses: jakejarvis/s3-sync-action@master
       with:
         args: --acl public-read --follow-symlinks
