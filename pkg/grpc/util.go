@@ -268,7 +268,7 @@ func valueToAny(pv *proto.Value) (v interface{}, err error) {
 		v = tv.B
 	case *proto.Value_A:
 		var arr []interface{}
-		if tv.A != nil && len(tv.A.GetItems()) > 0 {
+		if tv.A != nil {
 			arr = make([]interface{}, 0, len(tv.A.GetItems()))
 			for _, av := range tv.A.GetItems() {
 				v, err := valueToAny(av)
@@ -283,7 +283,7 @@ func valueToAny(pv *proto.Value) (v interface{}, err error) {
 		// There is no way to provide an output type for value decoding,
 		// so just treat all always as map. Type information is lost.
 		var m map[string]interface{}
-		if tv.O != nil && len(tv.O.GetProps()) > 0 {
+		if tv.O != nil {
 			m = make(map[string]interface{}, len(tv.O.GetProps()))
 			for k, v := range tv.O.GetProps() {
 				prop, err := valueToAny(v)
