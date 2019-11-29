@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -17,9 +17,10 @@ import (
 	"github.com/rs/cors"
 	"k8s.io/apiserver/pkg/server/httplog"
 	"k8s.io/klog"
+	"sigs.k8s.io/yaml"
 )
 
-const config = "./stucco.json"
+const config = "./stucco"
 
 func withProtocolInContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -52,24 +53,46 @@ func recoveryHandler(next http.Handler) http.Handler {
 	})
 }
 
+type decodeFunc func([]byte, interface{}) error
+
+func yamlUnmarshal(b []byte, v interface{}) error {
+	return yaml.Unmarshal(b, v)
+}
+
+var supportedExtension = map[string]decodeFunc{
+	".json": json.Unmarshal,
+	".yaml": yamlUnmarshal,
+	".yml":  yamlUnmarshal,
+}
+
 func loadConfig() (cfg router.Config, err error) {
-	st, err := os.Stat(config)
+	var decode decodeFunc
+	var st os.FileInfo
+	var configPath string
+	for k, v := range supportedExtension {
+		st, err = os.Stat(config + k)
+		if err == nil {
+			configPath = config + k
+			decode = v
+		}
+		if !os.IsNotExist(err) {
+			break
+		}
+	}
 	if err != nil || st.IsDir() {
 		if os.IsNotExist(err) {
-			err = nil
+			err = fmt.Errorf("could not find stucco config in current directory")
 			return
 		}
 		if err == nil {
-			err = errors.New("./stucco.json is a directory")
+			err = fmt.Errorf("%s is a directory", configPath)
 		}
 		return
 	}
-	f, err := os.Open(config)
-	if err != nil {
-		return
+	b, err := ioutil.ReadFile(configPath)
+	if err == nil {
+		err = decode(b, &cfg)
 	}
-	defer f.Close()
-	err = json.NewDecoder(f).Decode(&cfg)
 	return
 }
 

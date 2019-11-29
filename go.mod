@@ -16,6 +16,7 @@ require (
 	google.golang.org/grpc v1.23.1
 	k8s.io/apiserver v0.0.0-20191123100217-e01ab74ca9ea
 	k8s.io/klog v1.0.0
+	sigs.k8s.io/yaml v1.1.0
 )
 
 replace github.com/blang/semver => github.com/lfaoro/semver v1.1.1-0.20190822180624-8f0c651cedf4
