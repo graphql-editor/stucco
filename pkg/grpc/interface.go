@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
@@ -9,7 +10,8 @@ import (
 )
 
 func makeProtoInterfaceResolveTypeInfo(input driver.InterfaceResolveTypeInfo) (r *proto.InterfaceResolveTypeInfo, err error) {
-	variableValues, err := mapOfAnyToMapOfValue(input.VariableValues)
+	variables := input.VariableValues
+	variableValues, err := mapOfAnyToMapOfValue(variables)
 	if err != nil {
 		return
 	}
@@ -17,9 +19,13 @@ func makeProtoInterfaceResolveTypeInfo(input driver.InterfaceResolveTypeInfo) (r
 	if err != nil {
 		return
 	}
+	rp, err := makeProtoResponsePath(input.Path)
+	if err != nil {
+		return
+	}
 	r = &proto.InterfaceResolveTypeInfo{
 		FieldName:      input.FieldName,
-		Path:           makeProtoResponsePath(input.Path),
+		Path:           rp,
 		ReturnType:     makeProtoTypeRef(input.ReturnType),
 		ParentType:     makeProtoTypeRef(input.ParentType),
 		VariableValues: variableValues,
@@ -37,6 +43,9 @@ func makeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r 
 	if err != nil {
 		return
 	}
+	if input.Function.Name == "" {
+		return nil, fmt.Errorf("function name is required")
+	}
 	r = &proto.InterfaceResolveTypeRequest{
 		Function: &proto.Function{
 			Name: input.Function.Name,
@@ -47,40 +56,48 @@ func makeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r 
 	return
 }
 
-func (m *GRPCClient) InterfaceResolveType(input driver.InterfaceResolveTypeInput) (f driver.InterfaceResolveTypeOutput, err error) {
+// InterfaceResolveType handles type resolution for interface through GRPC
+func (m *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) (f driver.InterfaceResolveTypeOutput, err error) {
 	req, err := makeInterfaceResolveTypeRequest(input)
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 		err = nil
 		return
 	}
-	resp, err := m.client.InterfaceResolveType(context.Background(), req)
+	resp, err := m.Client.InterfaceResolveType(context.Background(), req)
+	if err == nil {
+		if t := resp.GetType(); t != nil {
+			f.Type = *makeDriverTypeRef(t)
+		}
+		if respErr := resp.GetError(); respErr != nil {
+			err = fmt.Errorf(respErr.GetMsg())
+		}
+	}
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 		err = nil
-		return
-	}
-	if r := resp.GetType(); r != nil {
-		f.Type = *makeDriverTypeRef(r)
-	}
-	if err := resp.GetError(); err != nil {
-		f.Error = &driver.Error{Message: err.GetMsg()}
 	}
 	return
 }
 
 func makeDriverInterfaceResolveTypeInfo(input *proto.InterfaceResolveTypeInfo) (i driver.InterfaceResolveTypeInfo, err error) {
-	variableValues, err := mapOfValueToMapOfAny(input.GetVariableValues())
+	variables := input.GetVariableValues()
+	variableValues, err := mapOfValueToMapOfAny(nil, variables)
 	if err != nil {
 		return
 	}
-	od, err := makeDriverOperationDefinition(input.GetOperation())
+	variables = initVariablesWithDefaults(variables, input.GetOperation())
+	od, err := makeDriverOperationDefinition(variables, input.GetOperation())
+	if err != nil {
+		return
+	}
+	rp, err := makeDriverResponsePath(variables, input.GetPath())
 	if err != nil {
 		return
 	}
 	i = driver.InterfaceResolveTypeInfo{
 		FieldName:      input.GetFieldName(),
-		Path:           makeDriverResponsePath(input.GetPath()),
+		Path:           rp,
 		ReturnType:     makeDriverTypeRef(input.GetReturnType()),
 		ParentType:     makeDriverTypeRef(input.GetParentType()),
 		VariableValues: variableValues,
@@ -90,7 +107,7 @@ func makeDriverInterfaceResolveTypeInfo(input *proto.InterfaceResolveTypeInfo) (
 }
 
 func makeInterfaceResolveTypeInput(input *proto.InterfaceResolveTypeRequest) (i driver.InterfaceResolveTypeInput, err error) {
-	val, err := valueToAny(input.GetValue())
+	val, err := valueToAny(nil, input.GetValue())
 	if err != nil {
 		return
 	}
@@ -108,24 +125,44 @@ func makeInterfaceResolveTypeInput(input *proto.InterfaceResolveTypeRequest) (i 
 	return
 }
 
-func (m *GRPCServer) InterfaceResolveType(ctx context.Context, input *proto.InterfaceResolveTypeRequest) (f *proto.InterfaceResolveTypeResponse, err error) {
+// InterfaceResolveTypeHandler interface implemented by user to handle interface type resolution
+type InterfaceResolveTypeHandler interface {
+	// Handle takes InterfaceResolveTypeInput as a type resolution input and returns
+	// type name.
+	Handle(driver.InterfaceResolveTypeInput) (string, error)
+}
+
+// InterfaceResolveTypeHandlerFunc is a convienience function wrapper implementing InterfaceResolveTypeHandler
+type InterfaceResolveTypeHandlerFunc func(driver.InterfaceResolveTypeInput) (string, error)
+
+// Handle takes InterfaceResolveTypeInput as a type resolution input and returns
+// type name.
+func (f InterfaceResolveTypeHandlerFunc) Handle(in driver.InterfaceResolveTypeInput) (string, error) {
+	return f(in)
+}
+
+func (m *Server) InterfaceResolveType(ctx context.Context, input *proto.InterfaceResolveTypeRequest) (f *proto.InterfaceResolveTypeResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			f = &proto.InterfaceResolveTypeResponse{
+				Error: &proto.Error{
+					Msg: fmt.Sprintf("%v", r),
+				},
+			}
+		}
+	}()
 	req, err := makeInterfaceResolveTypeInput(input)
+	if err == nil {
+		var resp string
+		resp, err = m.InterfaceResolveTypeHandler.Handle(req)
+		f = new(proto.InterfaceResolveTypeResponse)
+		if err == nil {
+			f.Type = &proto.TypeRef{TestTyperef: &proto.TypeRef_Name{Name: resp}}
+		}
+	}
 	if err != nil {
 		f.Error = &proto.Error{Msg: err.Error()}
 		err = nil
-		return
-	}
-	resp, err := m.Impl.InterfaceResolveType(req)
-	if err != nil {
-		f.Error = &proto.Error{Msg: err.Error()}
-		err = nil
-		return
-	}
-	f = new(proto.InterfaceResolveTypeResponse)
-	if err != nil {
-		f.Error = &proto.Error{Msg: err.Error()}
-	} else {
-		f.Type = makeProtoTypeRef(&resp.Type)
 	}
 	return
 }

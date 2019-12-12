@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
@@ -17,10 +18,13 @@ func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *proto.FieldRes
 	if err != nil {
 		return
 	}
-
+	rp, err := makeProtoResponsePath(input.Path)
+	if err != nil {
+		return
+	}
 	r = &proto.FieldResolveInfo{
 		FieldName:      input.FieldName,
-		Path:           makeProtoResponsePath(input.Path),
+		Path:           rp,
 		ReturnType:     makeProtoTypeRef(input.ReturnType),
 		ParentType:     makeProtoTypeRef(input.ParentType),
 		VariableValues: variableValues,
@@ -58,20 +62,22 @@ func makeFieldResolveRequest(input driver.FieldResolveInput) (r *proto.FieldReso
 	return
 }
 
-func (m *GRPCClient) FieldResolve(input driver.FieldResolveInput) (f driver.FieldResolveOutput, err error) {
+// FieldResolve marshals a field resolution request through GRPC to a function
+// that handles an actual resolution.
+func (m *Client) FieldResolve(input driver.FieldResolveInput) (f driver.FieldResolveOutput, err error) {
 	req, err := makeFieldResolveRequest(input)
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 		err = nil
 		return
 	}
-	resp, err := m.client.FieldResolve(context.Background(), req)
+	resp, err := m.Client.FieldResolve(context.Background(), req)
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 		err = nil
 		return
 	}
-	f.Response, err = valueToAny(resp.GetResponse())
+	f.Response, err = valueToAny(nil, resp.GetResponse())
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 	} else if rerr := resp.GetError(); rerr != nil {
@@ -81,17 +87,23 @@ func (m *GRPCClient) FieldResolve(input driver.FieldResolveInput) (f driver.Fiel
 }
 
 func makeDriverFieldResolveInfo(input *proto.FieldResolveInfo) (f driver.FieldResolveInfo, err error) {
-	variableValues, err := mapOfValueToMapOfAny(input.GetVariableValues())
+	variables := input.GetVariableValues()
+	variableValues, err := mapOfValueToMapOfAny(nil, variables)
 	if err != nil {
 		return
 	}
-	od, err := makeDriverOperationDefinition(input.GetOperation())
+	variables = initVariablesWithDefaults(variables, input.GetOperation())
+	od, err := makeDriverOperationDefinition(variables, input.GetOperation())
+	if err != nil {
+		return
+	}
+	rp, err := makeDriverResponsePath(variables, input.GetPath())
 	if err != nil {
 		return
 	}
 	f = driver.FieldResolveInfo{
 		FieldName:      input.GetFieldName(),
-		Path:           makeDriverResponsePath(input.GetPath()),
+		Path:           rp,
 		ReturnType:     makeDriverTypeRef(input.GetReturnType()),
 		ParentType:     makeDriverTypeRef(input.GetParentType()),
 		VariableValues: variableValues,
@@ -101,11 +113,15 @@ func makeDriverFieldResolveInfo(input *proto.FieldResolveInfo) (f driver.FieldRe
 }
 
 func makeFieldResolveInput(input *proto.FieldResolveRequest) (f driver.FieldResolveInput, err error) {
-	source, err := valueToAny(input.GetSource())
+	variables := initVariablesWithDefaults(
+		input.GetInfo().GetVariableValues(),
+		input.GetInfo().GetOperation(),
+	)
+	source, err := valueToAny(nil, input.GetSource())
 	if err != nil {
 		return
 	}
-	protocol, err := valueToAny(input.GetProtocol())
+	protocol, err := valueToAny(nil, input.GetProtocol())
 	if err != nil {
 		return
 	}
@@ -113,7 +129,7 @@ func makeFieldResolveInput(input *proto.FieldResolveRequest) (f driver.FieldReso
 	if err != nil {
 		return
 	}
-	args, err := mapOfValueToMapOfAny(input.GetArguments())
+	args, err := mapOfValueToMapOfAny(variables, input.GetArguments())
 	if err != nil {
 		return
 	}
@@ -129,26 +145,44 @@ func makeFieldResolveInput(input *proto.FieldResolveRequest) (f driver.FieldReso
 	return
 }
 
-func (m *GRPCServer) FieldResolve(ctx context.Context, input *proto.FieldResolveRequest) (f *proto.FieldResolveResponse, err error) {
+// FieldResolveHandler interface implemented by user to handle field resolution request.
+type FieldResolveHandler interface {
+	// Handle takes FieldResolveInput as a field resolution input and returns arbitrary
+	// user response.
+	Handle(input driver.FieldResolveInput) (interface{}, error)
+}
+
+// FieldResolveHandlerFunc is a convienience function wrapper implementing FieldResolveHandler
+type FieldResolveHandlerFunc func(input driver.FieldResolveInput) (interface{}, error)
+
+// Handle takes FieldResolveInput as a field resolution input and returns arbitrary
+func (f FieldResolveHandlerFunc) Handle(input driver.FieldResolveInput) (interface{}, error) {
+	return f(input)
+}
+
+// FieldResolve function calls user implemented handler for field resolution
+func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequest) (f *proto.FieldResolveResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			f = &proto.FieldResolveResponse{
+				Error: &proto.Error{
+					Msg: fmt.Sprintf("%v", r),
+				},
+			}
+		}
+	}()
 	req, err := makeFieldResolveInput(input)
 	if err != nil {
 		return
 	}
-	resp, err := m.Impl.FieldResolve(req)
-	if err != nil {
-		f.Error = &proto.Error{Msg: err.Error()}
-		return
-	}
+	resp, err := m.FieldResolveHandler.Handle(req)
 	f = new(proto.FieldResolveResponse)
+	if err == nil {
+		f.Response, err = anyToValue(resp)
+	}
 	if err != nil {
 		f.Error = &proto.Error{Msg: err.Error()}
-	} else {
-		v, err := anyToValue(resp.Response)
-		if err != nil {
-			f.Error = &proto.Error{Msg: err.Error()}
-		} else {
-			f.Response = v
-		}
+		err = nil
 	}
 	return
 }

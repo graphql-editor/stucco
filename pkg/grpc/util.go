@@ -4,115 +4,100 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
 	"github.com/graphql-go/graphql/language/ast"
 )
 
-func intToValue(v reflect.Value) (pv *proto.Value) {
-	iValue := &proto.Value_I{}
-	pv = &proto.Value{TestValue: iValue}
+var sliceInterfaceReflectType = reflect.SliceOf(reflect.TypeOf((*interface{})(nil)).Elem())
+var mapStringInterfaceReflectType = reflect.TypeOf((map[string]interface{})(nil))
+
+func getValue(v reflect.Value) reflect.Value {
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			return
+			return reflect.Value{}
 		}
 		v = v.Elem()
 	}
-	iValue.I = v.Int()
+	return v
+}
+
+func intToValue(v reflect.Value) (pv *proto.Value) {
+	iValue := &proto.Value_I{}
+	pv = &proto.Value{TestValue: iValue}
+	if v = getValue(v); v.IsValid() {
+		iValue.I = v.Int()
+	}
 	return
 }
 
 func uintToValue(v reflect.Value) (pv *proto.Value) {
 	uValue := &proto.Value_U{}
 	pv = &proto.Value{TestValue: uValue}
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return
-		}
-		v = v.Elem()
+	if v = getValue(v); v.IsValid() {
+		uValue.U = v.Uint()
 	}
-	uValue.U = v.Uint()
 	return
 }
 
 func floatToValue(v reflect.Value) (pv *proto.Value) {
 	fValue := &proto.Value_F{}
 	pv = &proto.Value{TestValue: fValue}
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return
-		}
-		v = v.Elem()
+	if v = getValue(v); v.IsValid() {
+		fValue.F = v.Float()
 	}
-	fValue.F = v.Float()
 	return
 }
 
 func stringToValue(v reflect.Value) (pv *proto.Value) {
 	sValue := &proto.Value_S{}
 	pv = &proto.Value{TestValue: sValue}
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return
-		}
-		v = v.Elem()
+	if v = getValue(v); v.IsValid() {
+		sValue.S = v.String()
 	}
-	sValue.S = v.String()
 	return
 }
 
 func boolToValue(v reflect.Value) (pv *proto.Value) {
 	bValue := &proto.Value_B{}
 	pv = &proto.Value{TestValue: bValue}
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return
-		}
-		v = v.Elem()
+	if v = getValue(v); v.IsValid() {
+		bValue.B = v.Bool()
 	}
-	bValue.B = v.Bool()
 	return
 }
 
 func bytesToValue(v reflect.Value) *proto.Value {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return &proto.Value{TestValue: &proto.Value_Any{}}
-		}
-		v = v.Elem()
-	}
 	protoValue := new(proto.Value)
-	bytesCopy := reflect.MakeSlice(
-		reflect.SliceOf(v.Type().Elem()),
-		v.Len(),
-		v.Len(),
-	)
-	reflect.Copy(bytesCopy, v)
-	protoValue.TestValue = &proto.Value_Any{
-		Any: bytesCopy.Interface().([]byte),
+	any := &proto.Value_Any{}
+	protoValue.TestValue = any
+	if v = getValue(v); v.IsValid() {
+		bytesCopy := reflect.MakeSlice(
+			reflect.SliceOf(v.Type().Elem()),
+			v.Len(),
+			v.Len(),
+		)
+		reflect.Copy(bytesCopy, v)
+		any.Any = bytesCopy.Interface().([]byte)
 	}
 	return protoValue
 }
 
 func sliceOrArrayToValue(v reflect.Value) (*proto.Value, error) {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return &proto.Value{TestValue: &proto.Value_A{}}, nil
-		}
-		v = v.Elem()
+	if v = getValue(v); !v.IsValid() {
+		return &proto.Value{TestValue: &proto.Value_A{}}, nil
 	}
 	if v.Type().Elem().Kind() == reflect.Uint8 {
 		return bytesToValue(v), nil
 	}
-	protoValue := new(proto.Value)
-	protoValue.TestValue = &proto.Value_A{
-		A: &proto.ArrayValue{},
+	arr := new(proto.ArrayValue)
+	protoValue := &proto.Value{
+		TestValue: &proto.Value_A{
+			A: arr,
+		},
 	}
-	if v.Len() == 0 {
-		return protoValue, nil
-	}
-	arr := protoValue.GetA()
 	arr.Items = make([]*proto.Value, 0, v.Len())
 	for i := 0; i < v.Len(); i++ {
 		item, err := anyToValueReflected(v.Index(i))
@@ -125,32 +110,22 @@ func sliceOrArrayToValue(v reflect.Value) (*proto.Value, error) {
 }
 
 func mapToValue(v reflect.Value) (*proto.Value, error) {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return &proto.Value{TestValue: &proto.Value_O{}}, nil
+	obj := new(proto.Value_O)
+	protoValue := &proto.Value{
+		TestValue: obj,
+	}
+	if v = getValue(v); v.IsValid() {
+		obj.O = new(proto.ObjectValue)
+		if v.Type().Key().Kind() != reflect.String {
+			return nil, fmt.Errorf("map key must be of string type")
 		}
-		v = v.Elem()
-	}
-	protoValue := new(proto.Value)
-	if v.Type().Key().Kind() != reflect.String {
-		return nil, fmt.Errorf("map key must be of string type")
-	}
-	protoValue.TestValue = &proto.Value_O{
-		O: &proto.ObjectValue{},
-	}
-	if v.Len() == 0 {
-		return protoValue, nil
-	}
-	obj := protoValue.GetO()
-	obj.Props = make(map[string]*proto.Value)
-	for _, k := range v.MapKeys() {
-		if v, err := anyToValueReflected(v.MapIndex(k)); err == nil {
-			if v == nil {
-				v = new(proto.Value)
+		obj.O.Props = make(map[string]*proto.Value)
+		for _, k := range v.MapKeys() {
+			v, err := anyToValueReflected(v.MapIndex(k))
+			if err != nil {
+				return nil, err
 			}
-			obj.Props[k.String()] = v
-		} else if err != nil {
-			return nil, err
+			obj.O.Props[k.String()] = v
 		}
 	}
 	return protoValue, nil
@@ -161,21 +136,43 @@ type ValueMarshaler interface {
 	MarshalValue() (*proto.Value, error)
 }
 
+type variable string
+
+var variableType = reflect.TypeOf(variable(""))
+
 var marshalerInterface = reflect.TypeOf((*ValueMarshaler)(nil)).Elem()
 
 func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
+	if !v.IsValid() {
+		// Zero value, possibly nil
+		return new(proto.Value), nil
+	}
 	// short path for ValueMarshaler interface
 	if v.Type().Implements(marshalerInterface) {
 		return v.Interface().(ValueMarshaler).MarshalValue()
 	}
-	t := v.Type()
-	if t.Kind() == reflect.Interface {
+	if v.Type().Kind() == reflect.Interface {
 		if v.IsNil() {
 			// empty value
 			return new(proto.Value), nil
 		}
 		v = v.Elem()
-		t = v.Type()
+	}
+	// Flatten GraphQL value types to an actual value
+	v, err := flattenValue(v)
+	if err != nil {
+		return nil, err
+	}
+	if !v.IsValid() {
+		return new(proto.Value), nil
+	}
+	t := v.Type()
+	if t == variableType {
+		return &proto.Value{
+			TestValue: &proto.Value_Variable{
+				Variable: v.String(),
+			},
+		}, nil
 	}
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -196,40 +193,29 @@ func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 	case reflect.Bool:
 		protoValue = boolToValue(v)
 	case reflect.Slice, reflect.Array:
-		var err error
 		protoValue, err = sliceOrArrayToValue(v)
-		if err != nil {
-			return nil, err
-		}
 	case reflect.Map:
-		var err error
 		protoValue, err = mapToValue(v)
-		if err != nil {
-			return nil, err
-		}
 	case reflect.Struct:
-		var err error
 		protoValue, err = structToValue(v)
-		if err != nil {
-			return nil, err
-		}
 	default:
+		fmt.Printf("%v\n", v.Interface())
 		return nil, fmt.Errorf("kind %s not supported", v.Kind())
 	}
-	return protoValue, nil
+	return protoValue, err
 }
 
 func anyToValue(v interface{}) (*proto.Value, error) {
-	return anyToValueReflected(reflect.ValueOf(flattenValue(v)))
+	return anyToValueReflected(reflect.ValueOf(v))
 }
 
-func mapOfValueToMapOfAny(m map[string]*proto.Value) (many map[string]interface{}, err error) {
+func mapOfValueToMapOfAny(variables map[string]*proto.Value, m map[string]*proto.Value) (many map[string]interface{}, err error) {
 	if len(m) == 0 {
 		return
 	}
 	many = make(map[string]interface{}, len(m))
 	for k, v := range m {
-		many[k], err = valueToAny(v)
+		many[k], err = valueToAny(variables, v)
 		if err != nil {
 			return
 		}
@@ -251,7 +237,7 @@ func mapOfAnyToMapOfValue(m map[string]interface{}) (mval map[string]*proto.Valu
 	return
 }
 
-func valueToAny(pv *proto.Value) (v interface{}, err error) {
+func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface{}, err error) {
 	if pv == nil || pv.GetTestValue() == nil {
 		return
 	}
@@ -271,7 +257,7 @@ func valueToAny(pv *proto.Value) (v interface{}, err error) {
 		if tv.A != nil {
 			arr = make([]interface{}, 0, len(tv.A.GetItems()))
 			for _, av := range tv.A.GetItems() {
-				v, err := valueToAny(av)
+				v, err := valueToAny(variables, av)
 				if err != nil {
 					return nil, err
 				}
@@ -286,18 +272,22 @@ func valueToAny(pv *proto.Value) (v interface{}, err error) {
 		if tv.O != nil {
 			m = make(map[string]interface{}, len(tv.O.GetProps()))
 			for k, v := range tv.O.GetProps() {
-				prop, err := valueToAny(v)
+				prop, err := valueToAny(variables, v)
 				if err != nil {
 					return nil, err
 				}
-				if prop != nil {
-					m[k] = prop
-				}
+				m[k] = prop
 			}
 		}
 		v = m
 	case *proto.Value_Any:
 		v = tv.Any
+	case *proto.Value_Variable:
+		if variables != nil {
+			if variableValue, ok := variables[tv.Variable]; ok {
+				v, err = valueToAny(variables, variableValue)
+			}
+		}
 	}
 	return
 }
@@ -323,7 +313,7 @@ func makeProtoVariableDefinition(v types.VariableDefinition) (vd *proto.Variable
 }
 
 func makeDriverVariableDefinition(v *proto.VariableDefinition) (vd types.VariableDefinition, err error) {
-	dv, err := valueToAny(v.GetDefaultValue())
+	dv, err := valueToAny(nil, v.GetDefaultValue())
 	if err != nil {
 		return
 	}
@@ -349,6 +339,7 @@ func makeProtoVariableDefinitions(v []types.VariableDefinition) (vd []*proto.Var
 }
 
 func makeDriverVariableDefinitions(v []*proto.VariableDefinition) (vd []types.VariableDefinition, err error) {
+	vd = make([]types.VariableDefinition, 0, len(v))
 	for _, vv := range v {
 		var lv types.VariableDefinition
 		lv, err = makeDriverVariableDefinition(vv)
@@ -373,8 +364,8 @@ func makeProtoDirective(v types.Directive) (dd *proto.Directive, err error) {
 	return
 }
 
-func makeDriverDirective(v *proto.Directive) (d types.Directive, err error) {
-	args, err := mapOfValueToMapOfAny(v.GetArguments())
+func makeDriverDirective(variables map[string]*proto.Value, v *proto.Directive) (d types.Directive, err error) {
+	args, err := mapOfValueToMapOfAny(variables, v.GetArguments())
 	if err != nil {
 		return
 	}
@@ -386,6 +377,9 @@ func makeDriverDirective(v *proto.Directive) (d types.Directive, err error) {
 }
 
 func makeProtoDirectives(v types.Directives) (dd []*proto.Directive, err error) {
+	if v == nil {
+		return nil, nil
+	}
 	r := make([]*proto.Directive, 0, len(v))
 	for _, dir := range v {
 		var d *proto.Directive
@@ -399,10 +393,10 @@ func makeProtoDirectives(v types.Directives) (dd []*proto.Directive, err error) 
 	return
 }
 
-func makeDriverDirectives(v []*proto.Directive) (dd types.Directives, err error) {
+func makeDriverDirectives(variables map[string]*proto.Value, v []*proto.Directive) (dd types.Directives, err error) {
 	for _, dir := range v {
 		var tdir types.Directive
-		tdir, err = makeDriverDirective(dir)
+		tdir, err = makeDriverDirective(variables, dir)
 		if err != nil {
 			dd = nil
 			return
@@ -437,11 +431,11 @@ func makeProtoFragmentDefinition(v *types.FragmentDefinition) (fd *proto.Fragmen
 	return
 }
 
-func makeDriverFragmentDefinition(v *proto.FragmentDefinition) (fd *types.FragmentDefinition, err error) {
+func makeDriverFragmentDefinition(variables map[string]*proto.Value, v *proto.FragmentDefinition) (fd *types.FragmentDefinition, err error) {
 	if v == nil {
 		return
 	}
-	dirs, err := makeDriverDirectives(v.GetDirectives())
+	dirs, err := makeDriverDirectives(variables, v.GetDirectives())
 	if err != nil {
 		return
 	}
@@ -449,7 +443,7 @@ func makeDriverFragmentDefinition(v *proto.FragmentDefinition) (fd *types.Fragme
 	if err != nil {
 		return
 	}
-	selectionSet, err := makeDriverSelectionSet(v.GetSelectionSet())
+	selectionSet, err := makeDriverSelectionSet(variables, v.GetSelectionSet())
 	if err != nil {
 		return
 	}
@@ -489,20 +483,20 @@ func makeProtoSelection(v types.Selection) (s *proto.Selection, err error) {
 	return
 }
 
-func makeDriverSelection(v *proto.Selection) (s types.Selection, err error) {
-	args, err := mapOfValueToMapOfAny(v.GetArguments())
+func makeDriverSelection(variables map[string]*proto.Value, v *proto.Selection) (s types.Selection, err error) {
+	args, err := mapOfValueToMapOfAny(variables, v.GetArguments())
 	if err != nil {
 		return
 	}
-	dirs, err := makeDriverDirectives(v.GetDirectives())
+	dirs, err := makeDriverDirectives(variables, v.GetDirectives())
 	if err != nil {
 		return
 	}
-	fd, err := makeDriverFragmentDefinition(v.GetDefinition())
+	fd, err := makeDriverFragmentDefinition(variables, v.GetDefinition())
 	if err != nil {
 		return
 	}
-	selectionSet, err := makeDriverSelectionSet(v.GetSelectionSet())
+	selectionSet, err := makeDriverSelectionSet(variables, v.GetSelectionSet())
 	if err != nil {
 		return
 	}
@@ -517,6 +511,9 @@ func makeDriverSelection(v *proto.Selection) (s types.Selection, err error) {
 }
 
 func makeProtoSelectionSet(v types.Selections) (ss []*proto.Selection, err error) {
+	if v == nil {
+		return nil, nil
+	}
 	r := make([]*proto.Selection, 0, len(v))
 	for _, sel := range v {
 		var s *proto.Selection
@@ -530,10 +527,10 @@ func makeProtoSelectionSet(v types.Selections) (ss []*proto.Selection, err error
 	return
 }
 
-func makeDriverSelectionSet(v []*proto.Selection) (ss types.Selections, err error) {
+func makeDriverSelectionSet(variables map[string]*proto.Value, v []*proto.Selection) (ss types.Selections, err error) {
 	for _, sel := range v {
 		var s types.Selection
-		s, err = makeDriverSelection(sel)
+		s, err = makeDriverSelection(variables, sel)
 		if err != nil {
 			return
 		}
@@ -543,6 +540,9 @@ func makeDriverSelectionSet(v []*proto.Selection) (ss types.Selections, err erro
 }
 
 func makeProtoOperationDefinition(v *types.OperationDefinition) (o *proto.OperationDefinition, err error) {
+	if v == nil {
+		return nil, nil
+	}
 	vd, err := makeProtoVariableDefinitions(v.VariableDefinitions)
 	if err != nil {
 		return
@@ -566,16 +566,19 @@ func makeProtoOperationDefinition(v *types.OperationDefinition) (o *proto.Operat
 	return
 }
 
-func makeDriverOperationDefinition(v *proto.OperationDefinition) (od *types.OperationDefinition, err error) {
+func makeDriverOperationDefinition(variables map[string]*proto.Value, v *proto.OperationDefinition) (od *types.OperationDefinition, err error) {
+	if v == nil {
+		return
+	}
 	variableDefinitions, err := makeDriverVariableDefinitions(v.GetVariableDefinitions())
 	if err != nil {
 		return
 	}
-	dirs, err := makeDriverDirectives(v.GetDirectives())
+	dirs, err := makeDriverDirectives(variables, v.GetDirectives())
 	if err != nil {
 		return
 	}
-	selectionSet, err := makeDriverSelectionSet(v.GetSelectionSet())
+	selectionSet, err := makeDriverSelectionSet(variables, v.GetSelectionSet())
 	if err != nil {
 		return
 	}
@@ -631,62 +634,118 @@ func mustMakeDriverTypeRef(v *proto.TypeRef) types.TypeRef {
 	return types.TypeRef{Name: v.GetName()}
 }
 
-func makeProtoResponsePath(v *types.ResponsePath) *proto.ResponsePath {
+func makeProtoResponsePath(v *types.ResponsePath) (*proto.ResponsePath, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
-	return &proto.ResponsePath{
-		Key:  v.Key,
-		Prev: makeProtoResponsePath(v.Prev),
+	prev, err := makeProtoResponsePath(v.Prev)
+	var k *proto.Value
+	if err == nil {
+		k, err = anyToValue(v.Key)
 	}
+	var rp *proto.ResponsePath
+	if err == nil {
+		rp = &proto.ResponsePath{
+			Prev: prev,
+			Key:  k,
+		}
+	}
+	return rp, err
 }
 
-func makeDriverResponsePath(v *proto.ResponsePath) *types.ResponsePath {
+func makeDriverResponsePath(variables map[string]*proto.Value, v *proto.ResponsePath) (*types.ResponsePath, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
-	return &types.ResponsePath{
-		Key:  v.GetKey(),
-		Prev: makeDriverResponsePath(v.GetPrev()),
+	k, err := valueToAny(variables, v.GetKey())
+	var rp *types.ResponsePath
+	if err == nil {
+		prev, err := makeDriverResponsePath(variables, v.GetPrev())
+		if err == nil {
+			rp = &types.ResponsePath{
+				Key:  k,
+				Prev: prev,
+			}
+		}
 	}
+	return rp, err
 }
 
-func flattenValue(v interface{}) interface{} {
-	switch astValue := v.(type) {
-	case *ast.Variable:
-		return astValue.Name.Value
-	case *ast.IntValue, *ast.FloatValue, *ast.StringValue, *ast.BooleanValue, *ast.EnumValue:
-		return astValue.(ast.Value).GetValue()
-	case *ast.ListValue:
-		arr := make([]interface{}, len(astValue.Values))
-		for i := 0; i < len(arr); i++ {
-			arr[i] = flattenValue(astValue.Values[i])
-		}
-		return arr
-	case *ast.ObjectValue:
-		obj := make(map[string]interface{})
-		for _, f := range astValue.Fields {
-			obj[f.Name.Value] = flattenValue(f.Value)
-		}
-		return obj
-	case []*ast.ObjectField:
-		// Handle list of object fields like a map
-		obj := make(map[string]interface{})
-		for _, f := range astValue {
-			obj[f.Name.Value] = flattenValue(f.Value)
-		}
-		return obj
-	case ast.Value:
-		return astValue.GetValue()
+var (
+	valueInterface         = reflect.TypeOf((*ast.Value)(nil)).Elem()
+	astVariableType        = reflect.TypeOf((*ast.Variable)(nil))
+	astIntValueType        = reflect.TypeOf((*ast.IntValue)(nil))
+	astFloatValueType      = reflect.TypeOf((*ast.FloatValue)(nil))
+	astBooleanValueType    = reflect.TypeOf((*ast.BooleanValue)(nil))
+	astStringValueType     = reflect.TypeOf((*ast.StringValue)(nil))
+	astEnumValueType       = reflect.TypeOf((*ast.EnumValue)(nil))
+	astListValueType       = reflect.TypeOf((*ast.ListValue)(nil))
+	astObjectValueType     = reflect.TypeOf((*ast.ObjectValue)(nil))
+	astObjectFieldListType = reflect.TypeOf([]*ast.ObjectField{})
+)
+
+func flattenValue(v reflect.Value) (rv reflect.Value, err error) {
+	rv = v
+	if !v.IsValid() {
+		return
 	}
-	rv := reflect.ValueOf(v)
-	switch rv.Kind() {
-	case reflect.Slice, reflect.Array:
-		arr := make([]interface{}, rv.Len())
-		for i := 0; i < rv.Len(); i++ {
-			arr[i] = flattenValue(rv.Index(i).Interface())
+	if v.Kind() == reflect.Interface {
+		if v.IsNil() {
+			return
 		}
-		return arr
+		v = v.Elem()
 	}
-	return v
+	if v.Type().Implements(valueInterface) || v.Type() == astObjectFieldListType {
+		switch v.Type() {
+		case astVariableType:
+			rv = v.Elem().FieldByName("Name").Elem().FieldByName("Value").Convert(variableType)
+		case astIntValueType:
+			var i int64
+			i, err = strconv.ParseInt(v.Elem().FieldByName("Value").String(), 10, 32)
+			if err == nil {
+				rv = reflect.ValueOf(i)
+			}
+		case astFloatValueType:
+			var f float64
+			f, err = strconv.ParseFloat(v.Elem().FieldByName("Value").String(), 64)
+			if err == nil {
+				rv = reflect.ValueOf(f)
+			}
+		case astBooleanValueType, astStringValueType, astEnumValueType:
+			rv = v.Elem().FieldByName("Value")
+		case astListValueType:
+			rv = v.Elem().FieldByName("Values")
+		case astObjectValueType:
+			// Handle list of object fields like a map
+			v = v.Elem().FieldByName("Fields")
+			fallthrough
+		case astObjectFieldListType:
+			rv = reflect.MakeMap(mapStringInterfaceReflectType)
+			for i := 0; i < v.Len(); i++ {
+				f := v.Index(i).Elem()
+				rv.SetMapIndex(
+					f.FieldByName("Name").Elem().FieldByName("Value"),
+					f.FieldByName("Value"),
+				)
+			}
+		default:
+			rv = v.MethodByName("GetValue").Call([]reflect.Value{})[0]
+		}
+	}
+	return
+}
+
+func initVariablesWithDefaults(variables map[string]*proto.Value, opDef *proto.OperationDefinition) map[string]*proto.Value {
+	nv := make(map[string]*proto.Value)
+	if opDef != nil {
+		varDefs := opDef.VariableDefinitions
+		for _, vd := range varDefs {
+			if v, ok := variables[vd.Variable.Name]; ok {
+				nv[vd.Variable.Name] = v
+			} else {
+				nv[vd.Variable.Name] = vd.DefaultValue
+			}
+		}
+	}
+	return nv
 }

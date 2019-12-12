@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
@@ -17,9 +18,13 @@ func makeUnionResolveTypeInfo(input driver.UnionResolveTypeInfo) (r *proto.Union
 	if err != nil {
 		return
 	}
+	rp, err := makeProtoResponsePath(input.Path)
+	if err != nil {
+		return
+	}
 	r = &proto.UnionResolveTypeInfo{
 		FieldName:      input.FieldName,
-		Path:           makeProtoResponsePath(input.Path),
+		Path:           rp,
 		ReturnType:     makeProtoTypeRef(input.ReturnType),
 		ParentType:     makeProtoTypeRef(input.ParentType),
 		VariableValues: variableValues,
@@ -37,6 +42,9 @@ func makeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.U
 	if err != nil {
 		return
 	}
+	if input.Function.Name == "" {
+		return nil, fmt.Errorf("function name is required")
+	}
 	r = &proto.UnionResolveTypeRequest{
 		Function: &proto.Function{
 			Name: input.Function.Name,
@@ -47,14 +55,14 @@ func makeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.U
 	return
 }
 
-func (m *GRPCClient) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput, err error) {
+func (m *Client) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput, err error) {
 	req, err := makeUnionResolveTypeRequest(input)
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 		err = nil
 		return
 	}
-	resp, err := m.client.UnionResolveType(context.Background(), req)
+	resp, err := m.Client.UnionResolveType(context.Background(), req)
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
 		err = nil
@@ -72,17 +80,23 @@ func (m *GRPCClient) UnionResolveType(input driver.UnionResolveTypeInput) (f dri
 }
 
 func makeDriverUnionResolveTypeInfo(input *proto.UnionResolveTypeInfo) (u driver.UnionResolveTypeInfo, err error) {
-	variableValues, err := mapOfValueToMapOfAny(input.GetVariableValues())
+	variables := input.GetVariableValues()
+	variableValues, err := mapOfValueToMapOfAny(nil, variables)
 	if err != nil {
 		return
 	}
-	od, err := makeDriverOperationDefinition(input.GetOperation())
+	variables = initVariablesWithDefaults(variables, input.GetOperation())
+	od, err := makeDriverOperationDefinition(variables, input.GetOperation())
+	if err != nil {
+		return
+	}
+	rp, err := makeDriverResponsePath(variables, input.GetPath())
 	if err != nil {
 		return
 	}
 	u = driver.UnionResolveTypeInfo{
 		FieldName:      input.GetFieldName(),
-		Path:           makeDriverResponsePath(input.GetPath()),
+		Path:           rp,
 		ReturnType:     makeDriverTypeRef(input.GetReturnType()),
 		ParentType:     makeDriverTypeRef(input.GetParentType()),
 		VariableValues: variableValues,
@@ -92,7 +106,7 @@ func makeDriverUnionResolveTypeInfo(input *proto.UnionResolveTypeInfo) (u driver
 }
 
 func makeUnionResolveTypeInput(input *proto.UnionResolveTypeRequest) (u driver.UnionResolveTypeInput, err error) {
-	val, err := valueToAny(input.GetValue())
+	val, err := valueToAny(nil, input.GetValue())
 	if err != nil {
 		return
 	}
@@ -110,17 +124,44 @@ func makeUnionResolveTypeInput(input *proto.UnionResolveTypeRequest) (u driver.U
 	return
 }
 
-func (m *GRPCServer) UnionResolveType(ctx context.Context, input *proto.UnionResolveTypeRequest) (f *proto.UnionResolveTypeResponse, err error) {
+// UnionResolveTypeHandler union implemented by user to handle union type resolution
+type UnionResolveTypeHandler interface {
+	// Handle takes UnionResolveTypeInput as a type resolution input and returns
+	// type name.
+	Handle(driver.UnionResolveTypeInput) (string, error)
+}
+
+// UnionResolveTypeHandlerFunc is a convienience function wrapper implementing UnionResolveTypeHandler
+type UnionResolveTypeHandlerFunc func(driver.UnionResolveTypeInput) (string, error)
+
+// Handle takes UnionResolveTypeInput as a type resolution input and returns
+// type name.
+func (f UnionResolveTypeHandlerFunc) Handle(in driver.UnionResolveTypeInput) (string, error) {
+	return f(in)
+}
+
+func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolveTypeRequest) (f *proto.UnionResolveTypeResponse, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			f = &proto.UnionResolveTypeResponse{
+				Error: &proto.Error{
+					Msg: fmt.Sprintf("%v", r),
+				},
+			}
+		}
+	}()
 	req, err := makeUnionResolveTypeInput(input)
-	if err != nil {
-		return
+	if err == nil {
+		var resp string
+		resp, err = m.UnionResolveTypeHandler.Handle(req)
+		f = new(proto.UnionResolveTypeResponse)
+		if err == nil {
+			f.Type = &proto.TypeRef{TestTyperef: &proto.TypeRef_Name{Name: resp}}
+		}
 	}
-	resp, err := m.Impl.UnionResolveType(req)
-	f = new(proto.UnionResolveTypeResponse)
 	if err != nil {
 		f.Error = &proto.Error{Msg: err.Error()}
-	} else {
-		f.Type = makeProtoTypeRef(&resp.Type)
+		err = nil
 	}
 	return
 }

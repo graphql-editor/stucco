@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/grpc"
 	"github.com/hashicorp/go-plugin"
+	"k8s.io/klog"
 )
+
+const defaultRunnersCount = 64
 
 type driverShim interface {
 	FieldResolve(driver.FieldResolveInput) (driver.FieldResolveOutput, error)
@@ -33,6 +35,20 @@ type driverClient struct {
 	driverShim
 	plugin *Plugin
 }
+
+// Client interface used to establish connection with plugin
+type Client interface {
+	Client() (plugin.ClientProtocol, error)
+	Kill()
+}
+
+// DefaultPluginClient creates a default plugin client
+func DefaultPluginClient(cfg *plugin.ClientConfig) Client {
+	return plugin.NewClient(cfg)
+}
+
+// NewPluginClient creates new client for plugin
+var NewPluginClient = DefaultPluginClient
 
 func (d driverClient) SetSecrets(in driver.SetSecretsInput) (driver.SetSecretsOutput, error) {
 	return d.plugin.SetSecrets(in)
@@ -88,23 +104,34 @@ func (r pluginRunner) do(p *Plugin, payload *pluginPayload) {
 	}()
 }
 
+// Plugin implements Driver interface by running an executable available on local
+// fs. All user defined operations will be forwarded to plugin through GRPC protocol.
 type Plugin struct {
 	cmd          string
 	getRunner    chan pluginRunner
 	runners      []pluginRunner
-	client       *plugin.Client
+	client       Client
 	runnersCount uint8
 	lock         sync.RWMutex
 	secrets      driver.Secrets
+}
+
+func (p *Plugin) getRunnersCount() uint8 {
+	runnersCount := p.runnersCount
+	if runnersCount == 0 {
+		runnersCount = defaultRunnersCount
+	}
+	return runnersCount
 }
 
 func (p *Plugin) createRunners() {
 	if p.runners != nil {
 		return
 	}
-	p.runners = make([]pluginRunner, p.runnersCount)
-	p.getRunner = make(chan pluginRunner, p.runnersCount)
-	for i := uint8(0); i < p.runnersCount; i++ {
+	runnersCount := p.getRunnersCount()
+	p.runners = make([]pluginRunner, runnersCount)
+	p.getRunner = make(chan pluginRunner, runnersCount)
+	for i := uint8(0); i < runnersCount; i++ {
 		runner := make(pluginRunner)
 		go func() {
 			for payload := range runner {
@@ -140,6 +167,9 @@ func (p *Plugin) getDriver() (driver.Driver, error) {
 	return driverClient{driver, p}, nil
 }
 
+// ExecCommand creates new plugin command
+var ExecCommand = exec.Command
+
 func (p *Plugin) start() error {
 	p.lock.RLock()
 	if p.runners == nil {
@@ -147,18 +177,18 @@ func (p *Plugin) start() error {
 		p.lock.Lock()
 		defer p.lock.Unlock()
 		if p.runners == nil {
-			cmd := exec.Command(p.cmd)
+			cmd := ExecCommand(p.cmd)
 			for k, v := range p.secrets {
 				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 			}
-			p.client = plugin.NewClient(&plugin.ClientConfig{
+			p.client = NewPluginClient(&plugin.ClientConfig{
 				HandshakeConfig: p.handshake(),
 				Plugins: map[string]plugin.Plugin{
-					"driver_grpc": &grpc.DriverGRPCPlugin{},
+					"driver_grpc": &GRPC{},
 				},
 				Cmd:              cmd,
 				AllowedProtocols: []plugin.Protocol{plugin.ProtocolGRPC},
-				Logger:           newLogger("plugin"),
+				Logger:           NewLogger("plugin"),
 			})
 			d, err := p.getClientShim()
 			if err != nil {
@@ -200,6 +230,7 @@ func (p *Plugin) do(data interface{}) (interface{}, error) {
 	return resp.data, resp.err
 }
 
+// SetSecrets sets user provided secrets for plugin using environment variables
 func (p *Plugin) SetSecrets(in driver.SetSecretsInput) (driver.SetSecretsOutput, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
@@ -211,6 +242,8 @@ func (p *Plugin) SetSecrets(in driver.SetSecretsInput) (driver.SetSecretsOutput,
 	}
 	return driver.SetSecretsOutput{}, nil
 }
+
+// FieldResolve uses plugin to resolve a field on type
 func (p *Plugin) FieldResolve(in driver.FieldResolveInput) (driver.FieldResolveOutput, error) {
 	resp, err := p.do(in)
 	if err != nil {
@@ -218,6 +251,8 @@ func (p *Plugin) FieldResolve(in driver.FieldResolveInput) (driver.FieldResolveO
 	}
 	return resp.(driver.FieldResolveOutput), nil
 }
+
+// InterfaceResolveType uses plugin to find interface type for user input
 func (p *Plugin) InterfaceResolveType(in driver.InterfaceResolveTypeInput) (driver.InterfaceResolveTypeOutput, error) {
 	resp, err := p.do(in)
 	if err != nil {
@@ -225,6 +260,8 @@ func (p *Plugin) InterfaceResolveType(in driver.InterfaceResolveTypeInput) (driv
 	}
 	return resp.(driver.InterfaceResolveTypeOutput), nil
 }
+
+// ScalarParse uses plugin to parse scalar
 func (p *Plugin) ScalarParse(in driver.ScalarParseInput) (driver.ScalarParseOutput, error) {
 	resp, err := p.do(in)
 	if err != nil {
@@ -232,6 +269,8 @@ func (p *Plugin) ScalarParse(in driver.ScalarParseInput) (driver.ScalarParseOutp
 	}
 	return resp.(driver.ScalarParseOutput), nil
 }
+
+// ScalarSerialize uses plugin to serialize scalar
 func (p *Plugin) ScalarSerialize(in driver.ScalarSerializeInput) (driver.ScalarSerializeOutput, error) {
 	resp, err := p.do(in)
 	if err != nil {
@@ -239,6 +278,8 @@ func (p *Plugin) ScalarSerialize(in driver.ScalarSerializeInput) (driver.ScalarS
 	}
 	return resp.(driver.ScalarSerializeOutput), nil
 }
+
+// UnionResolveType uses plugin to find union type for user input
 func (p *Plugin) UnionResolveType(in driver.UnionResolveTypeInput) (driver.UnionResolveTypeOutput, error) {
 	resp, err := p.do(in)
 	if err != nil {
@@ -246,6 +287,8 @@ func (p *Plugin) UnionResolveType(in driver.UnionResolveTypeInput) (driver.Union
 	}
 	return resp.(driver.UnionResolveTypeOutput), nil
 }
+
+// Stream data through grpc plugin
 func (p *Plugin) Stream(in driver.StreamInput) (driver.StreamOutput, error) {
 	resp, err := p.do(in)
 	if err != nil {
@@ -254,10 +297,33 @@ func (p *Plugin) Stream(in driver.StreamInput) (driver.StreamOutput, error) {
 	return resp.(driver.StreamOutput), nil
 }
 
-func checkFile(fn string) bool {
-	if fn == "" {
-		return false
+// Close plugin and stop all runners
+func (p *Plugin) Close() (err error) {
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	if p.client == nil {
+		return
 	}
+	clean := make(chan struct{})
+	go func() {
+		defer close(clean)
+		// wait for all runners
+		for i := uint8(0); i < p.getRunnersCount(); i++ {
+			<-p.getRunner
+		}
+	}()
+	t := time.NewTimer(10 * time.Second)
+	select {
+	case <-clean:
+		t.Stop()
+	case <-t.C:
+		err = fmt.Errorf("could not finish all tasks")
+	}
+	p.client.Kill()
+	return
+}
+
+func checkFile(fn string) bool {
 	if !strings.HasPrefix(filepath.Base(fn), "stucco-") {
 		return false
 	}
@@ -269,11 +335,14 @@ func checkFile(fn string) bool {
 	return !m.IsDir() && m&0111 != 0
 }
 
+// ExecCommandContext used to check to create command for checking plugin config
+var ExecCommandContext = exec.CommandContext
+
 func checkPlugin(fn string) ([]driver.Config, error) {
 	var cfgs []driver.Config
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(
+	cmd := ExecCommandContext(
 		ctx,
 		fn,
 		"config",
@@ -295,43 +364,41 @@ func cleanup(p []*Plugin) func() {
 			}
 			wg.Add(1)
 			go func(plug *Plugin) {
-				plug.lock.Lock()
-				defer plug.lock.Unlock()
-				if plug.client == nil {
-					return
+				defer wg.Done()
+				if err := plug.Close(); err != nil {
+					klog.Error(err)
 				}
-				clean := make(chan struct{})
-				go func() {
-					// wait for all runners
-					for i := uint8(0); i < plug.runnersCount; i++ {
-						<-plug.getRunner
-					}
-					clean <- struct{}{}
-				}()
-				t := time.NewTimer(10 * time.Second)
-				select {
-				case <-clean:
-					t.Stop()
-				case <-t.C:
-					fmt.Println("could not finish all tasks")
-				}
-				plug.client.Kill()
-				wg.Done()
 			}(plug)
 		}
 		wg.Wait()
 	}
 }
 
+// Config is a plugin configuration
 type Config struct {
+	// defines how many concurrent clients for request can be open at once
 	Runners uint8
+	// Cmd is an executable path to plugin
+	Cmd string
 }
 
-func LoadDriverPlugins(cfg Config) func() {
-	runnersCount := cfg.Runners
-	if runnersCount == 0 {
-		runnersCount = 64
+// NewPlugin creates new plugin ready to be used.
+// Plugin must be closed after usage
+func NewPlugin(cfg Config) *Plugin {
+	return &Plugin{
+		runnersCount: cfg.Runners,
+		cmd:          cfg.Cmd,
+		secrets:      driver.Secrets{},
 	}
+}
+
+// LoadDriverPlugins searches environment PATH for files matching
+// stucco-<plugin-name> executables and adds them as handlers for
+// specific runtimes.
+// Plugin must atleast be runnable with only binary name
+// and if argument config is provided, plugin is expected to list
+// supported runtimes in JSON and exit.
+func LoadDriverPlugins(cfg Config) func() {
 	plugins := []*Plugin{}
 	for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
 		if dir == "" {
@@ -350,11 +417,9 @@ func LoadDriverPlugins(cfg Config) func() {
 			if err != nil {
 				continue
 			}
-			plug := &Plugin{
-				cmd:          path,
-				runnersCount: runnersCount,
-				secrets:      driver.Secrets{},
-			}
+			plugCfg := cfg
+			plugCfg.Cmd = path
+			plug := NewPlugin(plugCfg)
 			for _, cfg := range cfgs {
 				driver.Register(cfg, plug)
 			}

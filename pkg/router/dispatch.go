@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/language/ast"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/parser"
 	"github.com/graphql-editor/stucco/pkg/types"
+	"github.com/graphql-go/graphql"
+	"github.com/graphql-go/graphql/language/ast"
 )
 
 type protocolKey int
@@ -16,108 +16,269 @@ type protocolKey int
 // ProtocolKey used to pass extra data from protocol used for comunication
 const ProtocolKey protocolKey = 0
 
-type driDispatch struct {
+// TypeMap contains defined GraphQL types
+type TypeMap interface {
+	Type(name string) graphql.Type
+}
+
+// Dispatch executes a resolution through a driver
+type Dispatch struct {
 	driver.Driver
-	r *Router
+	TypeMap TypeMap
 }
 
-func flattenArgValue(av ast.Value) interface{} {
-	switch astValue := av.(type) {
-	case *ast.Variable:
-		return astValue.Name.Value
-	case *ast.IntValue, *ast.FloatValue, *ast.StringValue, *ast.BooleanValue, *ast.EnumValue:
-		return av.GetValue()
-	case *ast.ListValue:
-		arr := make([]interface{}, len(astValue.Values))
-		for i := 0; i < len(arr); i++ {
-			arr[i] = flattenArgValue(astValue.Values[i])
-		}
-		return arr
-	case *ast.ObjectValue:
-		obj := make(map[string]interface{})
-		for _, f := range astValue.Fields {
-			obj[f.Name.Value] = flattenArgValue(f.Value)
-		}
-		return obj
+func assertTypeRef(t *types.TypeRef) types.TypeRef {
+	if t == nil {
+		panic("assertion failed, TypeRef cannot be null here")
 	}
-	return av.GetValue()
-}
-func flattenArgObjectField(aof []*ast.ObjectField) interface{} {
-	aa := make(map[string]interface{})
-	for _, f := range aof {
-		aa[f.Name.Value] = flattenArgValue(f.Value)
-	}
-	return aa
+	return *t
 }
 
-func (dri driDispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
+func makeTypeRefFromNamed(named *ast.Named) *types.TypeRef {
+	if named == nil {
+		return nil
+	}
+	return &types.TypeRef{Name: named.Name.Value}
+}
+
+func mustMakeTypeRefFromNamed(named *ast.Named) types.TypeRef {
+	return assertTypeRef(makeTypeRefFromNamed(named))
+}
+
+func makeTypeRefFromType(t graphql.Type) *types.TypeRef {
+	if t == nil {
+		return nil
+	}
+	switch tt := t.(type) {
+	case *graphql.NonNull:
+		return &types.TypeRef{
+			NonNull: makeTypeRefFromType(tt.OfType),
+		}
+	case *graphql.List:
+		return &types.TypeRef{
+			List: makeTypeRefFromType(tt.OfType),
+		}
+	}
+	return &types.TypeRef{Name: t.Name()}
+}
+
+func mustMakeTypeRefFromType(t graphql.Type) types.TypeRef {
+	return assertTypeRef(makeTypeRefFromType(t))
+}
+
+func newResposnePath(p *graphql.ResponsePath) *types.ResponsePath {
+	if p == nil || p.Key == nil {
+		return nil
+	}
+	return &types.ResponsePath{
+		Prev: newResposnePath(p.Prev),
+		Key:  p.Key,
+	}
+}
+
+func makeArguments(args []*ast.Argument) types.Arguments {
+	if len(args) == 0 {
+		return nil
+	}
+	o := make(types.Arguments)
+	for _, arg := range args {
+		o[arg.Name.Value] = arg.Value
+	}
+	return o
+}
+
+func makeVariableDefinition(v *ast.VariableDefinition) types.VariableDefinition {
+	if v == nil {
+		return types.VariableDefinition{}
+	}
+	return types.VariableDefinition{
+		Variable: types.Variable{
+			Name: v.Variable.Name.Value,
+		},
+		DefaultValue: v.DefaultValue,
+	}
+}
+
+func makeVariableDefintions(v []*ast.VariableDefinition) []types.VariableDefinition {
+	if len(v) == 0 {
+		return nil
+	}
+	r := make([]types.VariableDefinition, 0, len(v))
+	for _, vv := range v {
+		r = append(r, makeVariableDefinition(vv))
+	}
+	return r
+}
+
+func makeDirective(dir *ast.Directive) (d types.Directive) {
+	if dir == nil {
+		return
+	}
+	d.Name = dir.Name.Value
+	d.Arguments = makeArguments(dir.Arguments)
+	return
+}
+
+func makeDirectives(dirs []*ast.Directive) types.Directives {
+	if len(dirs) == 0 {
+		return nil
+	}
+	o := make(types.Directives, 0, len(dirs))
+	for _, dir := range dirs {
+		o = append(o, makeDirective(dir))
+	}
+	return o
+}
+
+func makeSelection(sel ast.Selection, fragments map[string]ast.Definition) (s types.Selection) {
+	switch st := sel.(type) {
+	case *ast.Field:
+		s = types.Selection{
+			Name:         st.Name.Value,
+			Arguments:    makeArguments(st.Arguments),
+			Directives:   makeDirectives(st.Directives),
+			SelectionSet: makeSelections(st.SelectionSet, fragments),
+		}
+	case *ast.FragmentSpread:
+		fdef := fragments[st.Name.Value].(*ast.FragmentDefinition)
+		s = types.Selection{
+			Directives: makeDirectives(st.Directives),
+			Definition: &types.FragmentDefinition{
+				TypeCondition:       mustMakeTypeRefFromNamed(fdef.TypeCondition),
+				SelectionSet:        makeSelections(fdef.SelectionSet, fragments),
+				Directives:          makeDirectives(fdef.Directives),
+				VariableDefinitions: makeVariableDefintions(fdef.VariableDefinitions),
+			},
+		}
+	case *ast.InlineFragment:
+		s = types.Selection{
+			Directives: makeDirectives(st.Directives),
+			Definition: &types.FragmentDefinition{
+				TypeCondition: mustMakeTypeRefFromNamed(st.TypeCondition),
+				SelectionSet:  makeSelections(st.SelectionSet, fragments),
+			},
+		}
+	}
+	return
+}
+
+func makeSelections(selectionSet *ast.SelectionSet, fragments map[string]ast.Definition) types.Selections {
+	if selectionSet == nil {
+		return nil
+	}
+	selections := make(types.Selections, 0, len(selectionSet.Selections))
+	for _, sel := range selectionSet.Selections {
+		selections = append(selections, makeSelection(sel, fragments))
+	}
+	return selections
+}
+
+func makeOperationDefinition(odef *ast.OperationDefinition, fragments map[string]ast.Definition) *types.OperationDefinition {
+	if odef == nil {
+		return nil
+	}
+	name := ""
+	if odef.Name != nil {
+		name = odef.Name.Value
+	}
+	return &types.OperationDefinition{
+		Operation:           odef.Operation,
+		Name:                name,
+		Directives:          makeDirectives(odef.Directives),
+		VariableDefinitions: makeVariableDefintions(odef.VariableDefinitions),
+		SelectionSet:        makeSelections(odef.SelectionSet, fragments),
+	}
+}
+
+func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
+	info := driver.FieldResolveInfo{
+		FieldName:      params.FieldName,
+		ReturnType:     makeTypeRefFromType(params.ReturnType),
+		ParentType:     makeTypeRefFromType(params.ParentType),
+		VariableValues: params.VariableValues,
+		Path:           newResposnePath(params.Path),
+	}
+	odef, ok := params.Operation.(*ast.OperationDefinition)
+	if ok {
+		info.Operation = makeOperationDefinition(odef, params.Fragments)
+	}
+	return info
+}
+
+// FieldResolve creates a function that calls implementation of field resolution through driver
+func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
 	return func(params graphql.ResolveParams) (interface{}, error) {
-		info, err := buildFieldInfoParams(params.Info)
-		if err != nil {
-			return nil, err
-		}
-		args := params.Args
-		for k, v := range args {
-			switch vt := v.(type) {
-			case []*ast.ObjectField:
-				args[k] = flattenArgObjectField(vt)
-			case ast.Value:
-				args[k] = flattenArgValue(vt)
-			}
-		}
-		out, err := dri.Driver.FieldResolve(driver.FieldResolveInput{
+		info := buildFieldInfoParams(params.Info)
+		input := driver.FieldResolveInput{
 			Function:  rs.Resolve,
 			Source:    params.Source,
-			Arguments: types.Arguments(args),
+			Arguments: types.Arguments(params.Args),
 			Info:      info,
-			Protocol:  params.Context.Value(ProtocolKey),
-		})
-		if err != nil || out.Error != nil {
-			if err == nil {
-				err = errors.New(out.Error.Message)
-			}
-			return nil, err
 		}
-		return out.Response, nil
+		if params.Context != nil {
+			input.Protocol = params.Context.Value(ProtocolKey)
+		}
+		out, err := d.Driver.FieldResolve(input)
+		var i interface{}
+		if err == nil {
+			if out.Error != nil {
+				err = errors.New(out.Error.Message)
+			} else {
+				i = out.Response
+			}
+		}
+		return i, err
 	}
 }
 
-func (dri driDispatch) InterfaceResolveType(i InterfaceConfig) func(params graphql.ResolveTypeParams) *graphql.Object {
+func buildInterfaceInfoParams(params graphql.ResolveInfo) driver.InterfaceResolveTypeInfo {
+	info := driver.InterfaceResolveTypeInfo{
+		FieldName:      params.FieldName,
+		ReturnType:     makeTypeRefFromType(params.ReturnType),
+		ParentType:     makeTypeRefFromType(params.ParentType),
+		VariableValues: params.VariableValues,
+	}
+	path := newResposnePath(params.Path)
+	info.Path = path
+	odef, ok := params.Operation.(*ast.OperationDefinition)
+	if ok {
+		info.Operation = makeOperationDefinition(odef, params.Fragments)
+	}
+	return info
+}
+
+// InterfaceResolveType creates a function that calls implementation of interface type resolution
+func (d Dispatch) InterfaceResolveType(i InterfaceConfig) func(params graphql.ResolveTypeParams) *graphql.Object {
 	return func(params graphql.ResolveTypeParams) *graphql.Object {
-		iinfo, err := buildInterfaceInfoParams(params.Info)
-		if err != nil {
-			// Errors here panic so that graphql-go picks them up
-			// in recovery, no other choice
-			panic(err)
-		}
 		input := driver.InterfaceResolveTypeInput{
 			Function: i.ResolveType,
 			Value:    params.Value,
-			Info:     iinfo,
+			Info:     buildInterfaceInfoParams(params.Info),
 		}
-		out, err := dri.Driver.InterfaceResolveType(input)
-		if err != nil || out.Error != nil || out.Type.Name == "" {
-			if err == nil {
-				if out.Error != nil {
-					err = errors.New(out.Error.Message)
-				} else {
-					err = errors.New("missing type name in type resolution")
-				}
+		out, err := d.Driver.InterfaceResolveType(input)
+		if err == nil && out.Error != nil {
+			err = fmt.Errorf(out.Error.Message)
+		}
+		var t *graphql.Object
+		if err == nil {
+			var ok bool
+			t, ok = d.TypeMap.Type(out.Type.Name).(*graphql.Object)
+			if !ok || t == nil {
+				err = fmt.Errorf("\"out.Type.Name\" is not a valid type name")
 			}
-			panic(err)
 		}
-		t, ok := dri.r.Schema.Type(out.Type.Name).(*graphql.Object)
-		if !ok {
-			panic(fmt.Errorf("type %s is not an object", out.Type.Name))
+		if err != nil {
+			panic(err)
 		}
 		return t
 	}
 }
 
-func (dri driDispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
+// ScalarFunctions creates parse and serialize scalar functions that call implementation of scalar and parse through driver
+func (d Dispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 	return parser.ScalarFunctions{
 		Parse: func(v interface{}) interface{} {
-			out, err := dri.Driver.ScalarParse(driver.ScalarParseInput{
+			out, err := d.Driver.ScalarParse(driver.ScalarParseInput{
 				Function: s.Parse,
 				Value:    v,
 			})
@@ -134,7 +295,7 @@ func (dri driDispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 			return out.Response
 		},
 		Serialize: func(v interface{}) interface{} {
-			out, err := dri.Driver.ScalarSerialize(driver.ScalarSerializeInput{
+			out, err := d.Driver.ScalarSerialize(driver.ScalarSerializeInput{
 				Function: s.Serialize,
 				Value:    v,
 			})
@@ -153,33 +314,44 @@ func (dri driDispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 	}
 }
 
-func (dri driDispatch) UnionResolveType(u UnionConfig) func(params graphql.ResolveTypeParams) *graphql.Object {
+func buildUnionInfoParams(params graphql.ResolveInfo) driver.UnionResolveTypeInfo {
+	info := driver.UnionResolveTypeInfo{
+		FieldName:      params.FieldName,
+		ReturnType:     makeTypeRefFromType(params.ReturnType),
+		ParentType:     makeTypeRefFromType(params.ParentType),
+		VariableValues: params.VariableValues,
+	}
+	path := newResposnePath(params.Path)
+	info.Path = path
+	odef, ok := params.Operation.(*ast.OperationDefinition)
+	if ok {
+		info.Operation = makeOperationDefinition(odef, params.Fragments)
+	}
+	return info
+}
+
+// UnionResolveType creates a function that calls union resolution using driver
+func (d Dispatch) UnionResolveType(u UnionConfig) func(params graphql.ResolveTypeParams) *graphql.Object {
 	return func(params graphql.ResolveTypeParams) *graphql.Object {
-		uinfo, err := buildUnionInfoParams(params.Info)
-		if err != nil {
-			// Errors here panic so that graphql-go picks them up
-			// in recovery, no other choice
-			panic(err)
-		}
 		input := driver.UnionResolveTypeInput{
 			Function: u.ResolveType,
 			Value:    params.Value,
-			Info:     uinfo,
+			Info:     buildUnionInfoParams(params.Info),
 		}
-		out, err := dri.Driver.UnionResolveType(input)
-		if err != nil || out.Error != nil || out.Type.Name == "" {
-			if err == nil {
-				if out.Error != nil {
-					err = errors.New(out.Error.Message)
-				} else {
-					err = errors.New("missing type name in type resolution")
-				}
+		out, err := d.Driver.UnionResolveType(input)
+		if err == nil && out.Error != nil {
+			err = fmt.Errorf(out.Error.Message)
+		}
+		var t *graphql.Object
+		if err == nil {
+			var ok bool
+			t, ok = d.TypeMap.Type(out.Type.Name).(*graphql.Object)
+			if !ok || t == nil {
+				err = fmt.Errorf("\"out.Type.Name\" is not a valid type name")
 			}
-			panic(err)
 		}
-		t, ok := dri.r.Schema.Type(out.Type.Name).(*graphql.Object)
-		if !ok {
-			panic(fmt.Errorf("type %s is not an object", out.Type.Name))
+		if err != nil {
+			panic(err)
 		}
 		return t
 	}

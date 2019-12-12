@@ -1,3 +1,6 @@
+/*Package driver is an interface that must be implemented by concrete driver implementations
+of runners.
+*/
 package driver
 
 // Driver is an interface that must be defined by an implementation

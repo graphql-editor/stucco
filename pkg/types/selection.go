@@ -1,5 +1,6 @@
 package types
 
+// FragmentDefinition is a fragment definition from client schema
 type FragmentDefinition struct {
 	Directives          Directives           `json:"directives,omitempty"`
 	TypeCondition       TypeRef              `json:"typeCondition"`
@@ -7,6 +8,7 @@ type FragmentDefinition struct {
 	VariableDefinitions []VariableDefinition `json:"variableDefinitions,omitempty"`
 }
 
+// Selection is a represents a field or fragment requested by client
 type Selection struct {
 	Name         string              `json:"name,omitempty"`
 	Arguments    Arguments           `json:"arguments,omitempty"`
@@ -15,4 +17,5 @@ type Selection struct {
 	Definition   *FragmentDefinition `json:"definition,omitempty"`
 }
 
+// Selections list of selections
 type Selections []Selection

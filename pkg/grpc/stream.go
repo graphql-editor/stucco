@@ -1,8 +1,6 @@
 package grpc
 
 import (
-	"errors"
-
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
 )
@@ -30,7 +28,7 @@ func (g *grpcDriverStreamReader) Next() bool {
 func (g *grpcDriverStreamReader) Read() driver.StreamMessage {
 	var m driver.StreamMessage
 	var err error
-	m.Response, err = valueToAny(g.last.GetResponse())
+	m.Response, err = valueToAny(nil, g.last.GetResponse())
 	if err != nil {
 		m.Error = &driver.Error{Message: err.Error()}
 	} else if serr := g.last.GetError(); serr != nil {
@@ -42,13 +40,25 @@ func (g *grpcDriverStreamReader) Read() driver.StreamMessage {
 // Close is no-op
 func (g *grpcDriverStreamReader) Close() {}
 
-func (m *GRPCClient) Stream(input driver.StreamInput) (s driver.StreamOutput, err error) {
+// Stream TODO: client side stream requests
+func (m *Client) Stream(input driver.StreamInput) (s driver.StreamOutput, err error) {
 	return
 }
 
-func (m *GRPCServer) Stream(s *proto.StreamRequest, ss proto.Driver_StreamServer) error {
-	if m.Handler != nil {
-		return m.Handler(s, ss)
-	}
-	return errors.New("GRPC plugin does not support stream requests")
+// StreamHandler interface must be implemented by user to handle stream requests from subscriptions
+type StreamHandler interface {
+	// Handle handles subscription streaming requests
+	Handle(*proto.StreamRequest, proto.Driver_StreamServer) error
+}
+
+// StreamHandlerFunc is a convienience wrapper implementing StreamHandler interface
+type StreamHandlerFunc func(*proto.StreamRequest, proto.Driver_StreamServer) error
+
+// Handle handles subscription streaming requests
+func (f StreamHandlerFunc) Handle(s *proto.StreamRequest, ss proto.Driver_StreamServer) error {
+	return f(s, ss)
+}
+
+func (m *Server) Stream(s *proto.StreamRequest, ss proto.Driver_StreamServer) error {
+	return m.StreamHandler.Handle(s, ss)
 }

@@ -19,6 +19,7 @@ message Value {
       ObjectValue o = 6;
       ArrayValue a = 7;
       bytes any = 8;
+      string variable = 9;
     }
 }
 
@@ -39,7 +40,7 @@ message TypeRef {
 }
 
 message ResponsePath {
-	string key = 1;
+	Value key = 1;
 	ResponsePath prev = 2;
 }
 

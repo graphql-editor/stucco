@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -163,6 +164,23 @@ func generateProto() error {
 	return gbtb.CommandJob("protoc", "-I", ".", "driver.proto", "--go_out=plugins=grpc:.")()
 }
 
+func coverage() error {
+
+	args := []string{"-coverprofile=coverage.out", "./"}
+	filepath.Walk("./pkg", func(path string, fi os.FileInfo, err error) error {
+		if err != nil ||
+			path == "./pkg" ||
+			!fi.IsDir() ||
+			filepath.Base(path) == "proto" ||
+			strings.HasSuffix(filepath.Base(path), "test") {
+			return err
+		}
+		args = append(args, "./"+path)
+		return nil
+	})
+	return gbtb.Go("test", args...)()
+}
+
 func main() {
 	gbtb.MustRun(
 		&gbtb.Task{
@@ -180,6 +198,10 @@ func main() {
 		&gbtb.Task{
 			Name: "generate-proto",
 			Job:  generateProto,
+		},
+		&gbtb.Task{
+			Name: "coverage",
+			Job:  coverage,
 		},
 	)
 }

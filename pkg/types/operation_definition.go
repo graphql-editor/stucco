@@ -1,5 +1,6 @@
 package types
 
+// OperationDefinition represents operation defined in user schema
 type OperationDefinition struct {
 	Operation           string               `json:"operation"`
 	Name                string               `json:"name"`

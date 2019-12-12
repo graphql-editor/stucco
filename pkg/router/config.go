@@ -15,6 +15,18 @@ var (
 	}
 )
 
+// SetDefaultEnvironment for router
+func SetDefaultEnvironment(e Environment) {
+	e.Merge(defaultEnvironment)
+	defaultEnvironment = e
+}
+
+// DefaultEnvironment return default environment
+func DefaultEnvironment() Environment {
+	return defaultEnvironment
+}
+
+// Environment runtime environment for a function
 type Environment struct {
 	Provider string `json:"provider,omitempty"`
 	Runtime  string `json:"runtime,omitempty"`
@@ -40,40 +52,45 @@ func newEnvironment(base *Environment, defaultEnv Environment) *Environment {
 	return dst
 }
 
+// ResolverConfig defines function configuration for field resolver
 type ResolverConfig struct {
 	Environment *Environment   `json:"environment,omitempty"`
 	Resolve     types.Function `json:"resolve"`
 }
 
+// ScalarConfig defines parse and serialize function configurations for scalar
 type ScalarConfig struct {
 	Environment *Environment   `json:"environment,omitempty"`
 	Parse       types.Function `json:"parse"`
 	Serialize   types.Function `json:"serialize"`
 }
 
+// InterfaceConfig defines function configuration for interface type resolution
 type InterfaceConfig struct {
 	Environment *Environment   `json:"environment,omitempty"`
 	ResolveType types.Function `json:"resolveType"`
 }
 
+// UnionConfig defines function configuration for union type resolution
 type UnionConfig struct {
 	Environment *Environment   `json:"environment,omitempty"`
 	ResolveType types.Function `json:"resolveType"`
 }
 
+// SecretsConfig defines a secret configuration for router
 type SecretsConfig struct {
 	Secrets map[string]string `json:"secrets,omitempty"`
 }
 
+// Config is a router configuration mapping defined endpoints with thier runtime config
 type Config struct {
-	RuntimeEnvironment *Environment               `json:"-"`           // RuntimeEnvironment is a default environment set by runtime
-	Environment        Environment                `json:"environment"` // Environment is a default config of a router
-	Interfaces         map[string]InterfaceConfig `json:"interfaces"`  // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
-	Resolvers          map[string]ResolverConfig  `json:"resolvers"`   // Resolvers is a map of FaaS function configs used in resolution
-	Scalars            map[string]ScalarConfig    `json:"scalars"`     // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
-	Schema             string                     `json:"schema"`      // String with GraphQL schema or an URL to the schema
-	Unions             map[string]UnionConfig     `json:"unions"`      // Unions is a map of FaaS function configs used in determining concrete type of an union
-	Secrets            SecretsConfig              `json:"secrets"`     // Secrets is a map of references to secrets
+	Environment Environment                `json:"environment"` // Environment is a default config of a router
+	Interfaces  map[string]InterfaceConfig `json:"interfaces"`  // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
+	Resolvers   map[string]ResolverConfig  `json:"resolvers"`   // Resolvers is a map of FaaS function configs used in resolution
+	Scalars     map[string]ScalarConfig    `json:"scalars"`     // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
+	Schema      string                     `json:"schema"`      // String with GraphQL schema or an URL to the schema
+	Unions      map[string]UnionConfig     `json:"unions"`      // Unions is a map of FaaS function configs used in determining concrete type of an union
+	Secrets     SecretsConfig              `json:"secrets"`     // Secrets is a map of references to secrets
 }
 
 func (c Config) httpSchema() (string, error) {
