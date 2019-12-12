@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"bytes"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-hclog"
@@ -29,13 +30,7 @@ type klogLogger struct {
 }
 
 func (k *klogLogger) clean(lv hclog.Level) string {
-	bs := k.Bytes()
-	if len(bs) < k.trimTimeFormat+_trimLevel[lv]+2 {
-		// badly formatted log
-		// return it without doing anything
-		return string(bs)
-	}
-	return string(bs)[k.trimTimeFormat+_trimLevel[lv]+2:]
+	return strings.Join(strings.Split(string(k.Bytes()), " ")[2:], " ")
 }
 
 // Trace writes an error log to klog
