@@ -331,8 +331,7 @@ func checkFile(fn string) bool {
 	if err != nil {
 		return false
 	}
-	m := st.Mode()
-	return !m.IsDir() && m&0111 != 0
+	return !st.IsDir() && isExecutable(st)
 }
 
 // ExecCommandContext used to check to create command for checking plugin config
