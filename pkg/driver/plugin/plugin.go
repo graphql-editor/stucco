@@ -27,8 +27,8 @@ type driverShim interface {
 	ScalarSerialize(driver.ScalarSerializeInput) (driver.ScalarSerializeOutput, error)
 	UnionResolveType(driver.UnionResolveTypeInput) (driver.UnionResolveTypeOutput, error)
 	Stream(driver.StreamInput) (driver.StreamOutput, error)
-	Stdout(name string) error
-	Stderr(name string) error
+	Stdout(ctx context.Context, name string) error
+	Stderr(ctx context.Context, name string) error
 }
 
 type driverClient struct {
@@ -194,12 +194,17 @@ func (p *Plugin) start() error {
 			if err != nil {
 				return err
 			}
-			if err := d.Stdout("plugin." + filepath.Base(cmd.Path)); err != nil {
-				return err
-			}
-			if err := d.Stderr("plugin." + filepath.Base(cmd.Path)); err != nil {
-				return err
-			}
+			ctx := context.Background()
+			go func() {
+				if err := d.Stdout(ctx, "plugin."+filepath.Base(cmd.Path)); err != nil {
+					klog.Error(err)
+				}
+			}()
+			go func() {
+				if err := d.Stderr(ctx, "plugin."+filepath.Base(cmd.Path)); err != nil {
+					klog.Error(err)
+				}
+			}()
 			p.createRunners()
 		}
 	} else {

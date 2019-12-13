@@ -99,12 +99,12 @@ func (m *grpcClientMock) Stream(in driver.StreamInput) (driver.StreamOutput, err
 	return called.Get(0).(driver.StreamOutput), called.Error(1)
 }
 
-func (m *grpcClientMock) Stdout(name string) error {
-	return m.Called(name).Error(0)
+func (m *grpcClientMock) Stdout(ctx context.Context, name string) error {
+	return m.Called(ctx, name).Error(0)
 }
 
-func (m *grpcClientMock) Stderr(name string) error {
-	return m.Called(name).Error(0)
+func (m *grpcClientMock) Stderr(ctx context.Context, name string) error {
+	return m.Called(ctx, name).Error(0)
 }
 
 func setupPluginDriverTests(t *testing.T) (*grpcClientMock, func(*testing.T)) {
@@ -114,8 +114,8 @@ func setupPluginDriverTests(t *testing.T) (*grpcClientMock, func(*testing.T)) {
 	pluginClientProtocolMock := new(pluginClientProtocolMock)
 	pluginClientMock := new(pluginClientMock)
 	grpcClientMock := new(grpcClientMock)
-	grpcClientMock.On("Stdout", mock.AnythingOfType("string")).Return(nil)
-	grpcClientMock.On("Stderr", mock.AnythingOfType("string")).Return(nil)
+	grpcClientMock.On("Stdout", mock.Anything, mock.AnythingOfType("string")).Return(nil)
+	grpcClientMock.On("Stderr", mock.Anything, mock.AnythingOfType("string")).Return(nil)
 	plugin.NewPluginClient = newPluginClientMock.NewPlugin
 	execCommandMock.On("Command", "fake-plugin-command").Return(
 		func(string, ...string) *exec.Cmd {
