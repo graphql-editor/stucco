@@ -22,6 +22,10 @@ func TestLoadDriverPluginsCallsConfig(t *testing.T) {
 	f, _ := os.Create("stucco-fake-plugin.exe")
 	f.Close()
 
+	// fake script
+	f, _ = os.Create("stucco-fake-plugin.cmd")
+	f.Close()
+
 	// fake bad plugin does not cause an error
 	f, _ = os.Create("stucco-fake-bad-plugin.exe")
 	f.Close()
@@ -36,6 +40,7 @@ func TestLoadDriverPluginsCallsConfig(t *testing.T) {
 		plugin.ExecCommandContext = exec.CommandContext
 		os.Setenv("PATH", oldPath)
 		os.Remove("stucco-fake-plugin.exe")
+		os.Remove("stucco-fake-plugin.cmd")
 		os.Remove("stucco-fake-bad-plugin.exe")
 		os.Remove("stucco-not-plugin")
 		os.Remove("stucco-dir.exe")
@@ -44,6 +49,12 @@ func TestLoadDriverPluginsCallsConfig(t *testing.T) {
 		"CommandContext",
 		mock.Anything,
 		"stucco-fake-plugin.exe",
+		"config",
+	).Return(fakeExecCommandContext)
+	execMock.On(
+		"CommandContext",
+		mock.Anything,
+		"stucco-fake-plugin.cmd",
 		"config",
 	).Return(fakeExecCommandContext)
 	execMock.On(
@@ -59,6 +70,13 @@ func TestLoadDriverPluginsCallsConfig(t *testing.T) {
 		"CommandContext",
 		mock.Anything,
 		"stucco-fake-plugin.exe",
+		"config",
+	)
+	execMock.AssertCalled(
+		t,
+		"CommandContext",
+		mock.Anything,
+		"stucco-fake-plugin.cmd",
 		"config",
 	)
 	execMock.AssertCalled(

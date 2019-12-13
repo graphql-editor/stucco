@@ -7,6 +7,17 @@ import (
 	"strings"
 )
 
+var extecutableExtensions = []string{
+	".exe",
+	".cmd",
+	".bat",
+}
+
 func isExecutable(fi os.FileInfo) bool {
-	return strings.HasSuffix(fi.Name(), ".exe")
+	for _, ext := range extecutableExtensions {
+		if strings.HasSuffix(fi.Name(), ext) {
+			return true
+		}
+	}
+	return false
 }
