@@ -3,9 +3,9 @@ package parser
 import (
 	"errors"
 
+	"github.com/graphql-editor/stucco/pkg/utils"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
-	"github.com/graphql-editor/stucco/pkg/utils"
 )
 
 func makeFieldArgs(p *Parser, fd *ast.FieldDefinition) (args graphql.FieldConfigArgument, err error) {
@@ -18,6 +18,9 @@ func makeFieldArgs(p *Parser, fd *ast.FieldDefinition) (args graphql.FieldConfig
 			}
 			args[arg.Name.Value] = &graphql.ArgumentConfig{
 				Type: t,
+			}
+			if arg.DefaultValue != nil {
+				args[arg.Name.Value].DefaultValue = arg.DefaultValue.GetValue()
 			}
 			setDescription(&args[arg.Name.Value].Description, arg)
 		}

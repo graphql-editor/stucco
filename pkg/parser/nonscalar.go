@@ -23,15 +23,27 @@ func customDefinition(p *Parser, d ast.Definition) (gt graphql.Type, err error) 
 	// Prevent recursion
 	switch t := d.(type) {
 	case *ast.ScalarDefinition:
-		sc := graphql.ScalarConfig{
-			Name: t.Name.Value,
+		serialize := func(v interface{}) interface{} {
+			return v
+		}
+		parseValue := func(v interface{}) interface{} {
+			return v
 		}
 		if fn, ok := p.Scalars[t.Name.Value]; ok {
-			sc.Serialize = fn.Serialize
-			sc.ParseValue = fn.Parse
-			sc.ParseLiteral = func(v ast.Value) interface{} {
-				return fn.Parse(v.GetValue())
+			if fn.Serialize != nil {
+				serialize = fn.Serialize
 			}
+			if fn.Parse != nil {
+				parseValue = fn.Parse
+			}
+		}
+		sc := graphql.ScalarConfig{
+			Name:       t.Name.Value,
+			ParseValue: parseValue,
+			ParseLiteral: func(v ast.Value) interface{} {
+				return parseValue(v.GetValue())
+			},
+			Serialize: serialize,
 		}
 		setDescription(&sc.Description, t)
 		st := graphql.NewScalar(sc)
