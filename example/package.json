@@ -1,0 +1,23 @@
+{
+  "name": "stucco-example",
+  "version": "1.0.0",
+  "description": "Example of using stucco with NodeJS",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "stucco"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/graphql-editor/stucco.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/graphql-editor/stucco/issues"
+  },
+  "homepage": "https://github.com/graphql-editor/stucco#readme",
+  "dependencies": {
+    "stucco-js": "^0.2.1"
+  }
+}

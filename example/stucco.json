@@ -1,0 +1,86 @@
+{
+	"resolvers": {
+		"Human.friends": {
+			"resolve": {
+				"name": "function.friends"
+			}
+		},
+		"Human.friendsConnection": {
+			"resolve": {
+				"name": "function.friendsConnection"
+			}
+		},
+		"Human.starships": {
+			"resolve": {
+				"name": "function.starships"
+			}
+		},
+		"Droid.friends": {
+			"resolve": {
+				"name": "function.friends"
+			}
+		},
+		"Droid.friendsConnection": {
+			"resolve": {
+				"name": "function.friendsConnection"
+			}
+		},
+		"Query.hero": {
+			"resolve": {
+				"name": "function.hero"
+			}
+		},
+		"Query.reviews": {
+			"resolve": {
+				"name": "function.reviews"
+			}
+		},
+		"Query.search": {
+			"resolve": {
+				"name": "function.search"
+			}
+		},
+		"Query.character": {
+			"resolve": {
+				"name": "function.character"
+			}
+		},
+		"Query.droid": {
+			"resolve": {
+				"name": "function.droid"
+			}
+		},
+		"Query.human": {
+			"resolve": {
+				"name": "function.human"
+			}
+		},
+		"Query.starship": {
+			"resolve": {
+				"name": "function.starship"
+			}
+		},
+		"Mutation.createReview": {
+			"resolve": {
+				"name": "function.createReview"
+			}
+		}
+	},
+	"interfaces": {
+		"Character": {
+			"resolveType": {
+				"name": "function.Character"
+			}
+		}
+	},
+	"scalars": {
+		"Time": {
+			"Parse": {
+				"name": "function.TimeParse"
+			},
+			"Serialize": {
+				"name": "function.TimeSerialize"
+			}
+		}
+	}
+}

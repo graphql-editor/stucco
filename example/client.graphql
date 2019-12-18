@@ -1,0 +1,41 @@
+{
+  character(id: "r2_d2") {
+    id
+    name
+    friends{
+      name
+    }
+    friendsConnection {
+      friends {
+        name
+      }
+      pageInfo {
+        startCursor
+        endCursor
+        hasNextPage
+      }
+    }
+    appearsIn
+    ... on Human {
+      starships {
+        name
+      }
+    }
+    ... on Droid {
+      primaryFunction
+    }
+  }
+  search(text:"X-Wing") {
+    __typename
+    ... on Starship {
+      name
+      length
+    }
+    ... on Human {
+      name
+    }
+    ... on Droid {
+      name
+    }
+  }
+}
