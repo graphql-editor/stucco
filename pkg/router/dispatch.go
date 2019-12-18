@@ -1,8 +1,9 @@
 package router
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/parser"
@@ -222,10 +223,13 @@ func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolvePar
 		var i interface{}
 		if err == nil {
 			if out.Error != nil {
-				err = errors.New(out.Error.Message)
+				err = fmt.Errorf(out.Error.Message)
 			} else {
 				i = out.Response
 			}
+		}
+		if err != nil {
+			err = errors.Wrap(err, rs.Resolve.Name)
 		}
 		return i, err
 	}
@@ -268,6 +272,7 @@ func (d Dispatch) InterfaceResolveType(i InterfaceConfig) func(params graphql.Re
 			}
 		}
 		if err != nil {
+			err = errors.Wrap(err, i.ResolveType.Name)
 			panic(err)
 		}
 		return t
@@ -284,10 +289,11 @@ func (d Dispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 			})
 			if err == nil {
 				if out.Error != nil {
-					err = errors.New(out.Error.Message)
+					err = fmt.Errorf(out.Error.Message)
 				}
 			}
 			if err != nil {
+				err = errors.Wrap(err, s.Parse.Name)
 				// panic on error as there is no other way to
 				// pass error from parse function to graphql-go
 				panic(err)
@@ -301,10 +307,11 @@ func (d Dispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 			})
 			if err == nil {
 				if out.Error != nil {
-					err = errors.New(out.Error.Message)
+					err = fmt.Errorf(out.Error.Message)
 				}
 			}
 			if err != nil {
+				err = errors.Wrap(err, s.Parse.Name)
 				// panic on error as there is no other way to
 				// pass error from parse function to graphql-go
 				panic(err)
@@ -351,6 +358,7 @@ func (d Dispatch) UnionResolveType(u UnionConfig) func(params graphql.ResolveTyp
 			}
 		}
 		if err != nil {
+			err = errors.Wrap(err, u.ResolveType.Name)
 			panic(err)
 		}
 		return t

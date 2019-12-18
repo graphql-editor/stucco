@@ -11,6 +11,7 @@ require (
 	github.com/graphql-go/handler v0.2.3
 	github.com/hashicorp/go-hclog v0.0.0-20180709165350-ff2cf002a8dd
 	github.com/hashicorp/go-plugin v1.0.1
+	github.com/pkg/errors v0.8.1
 	github.com/rs/cors v1.7.0
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
