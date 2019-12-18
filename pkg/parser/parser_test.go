@@ -645,7 +645,7 @@ func schemaEqual(t *testing.T, expected graphql.Schema, actual graphql.Schema) {
 	}
 }
 
-const starwarsSchemaString = `# The query type, represents all of the entry points into our object graph
+const starwarsSchemaString = `"""The query type, represents all of the entry points into our object graph"""
 type Query {
     hero(episode: Episode = NEWHOPE): Character
     reviews(episode: Episode!, since: Time): [Review!]!
