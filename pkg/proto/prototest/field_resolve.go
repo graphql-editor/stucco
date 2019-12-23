@@ -7,7 +7,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
 	"github.com/graphql-go/graphql/language/ast"
-	"github.com/stretchr/testify/assert"
 )
 
 // FieldResolveClientTest is basic struct for testing clients implementing proto
@@ -782,7 +781,6 @@ type FieldResolveServerTest struct {
 	HandlerResponse interface{}
 	HandlerError    error
 	Expected        *proto.FieldResolveResponse
-	ExpectedErr     assert.ErrorAssertionFunc
 }
 
 // FieldResolveServerTestData is a data for testing field resolution of proto servers
@@ -924,7 +922,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 					},
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "PassesCorrectInfoObject",
@@ -1152,7 +1149,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 					},
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "HandlesIndexResponse",
@@ -1202,7 +1198,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 					},
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "ServerReturnsVariableValue",
@@ -1306,7 +1301,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 					},
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }

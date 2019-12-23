@@ -123,7 +123,8 @@ func (r *Router) parseSchema(c Config) error {
 }
 
 func (r *Router) setDriverSecrets(dri driver.Driver) error {
-	secrets, err := dri.SetSecrets(driver.SetSecretsInput{
+	var err error
+	secrets := dri.SetSecrets(driver.SetSecretsInput{
 		Secrets: r.Secrets.Secrets,
 	})
 	if err == nil && secrets.Error != nil {

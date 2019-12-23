@@ -64,24 +64,21 @@ func makeFieldResolveRequest(input driver.FieldResolveInput) (r *proto.FieldReso
 
 // FieldResolve marshals a field resolution request through GRPC to a function
 // that handles an actual resolution.
-func (m *Client) FieldResolve(input driver.FieldResolveInput) (f driver.FieldResolveOutput, err error) {
+func (m *Client) FieldResolve(input driver.FieldResolveInput) (f driver.FieldResolveOutput) {
 	req, err := makeFieldResolveRequest(input)
-	if err != nil {
-		f.Error = &driver.Error{Message: err.Error()}
-		err = nil
-		return
+	if err == nil {
+		var resp *proto.FieldResolveResponse
+		resp, err = m.Client.FieldResolve(context.Background(), req)
+		if err == nil {
+			f.Response, err = valueToAny(nil, resp.GetResponse())
+		}
+		if resp.GetError() != nil {
+			err = fmt.Errorf(resp.GetError().GetMsg())
+		}
 	}
-	resp, err := m.Client.FieldResolve(context.Background(), req)
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
-		err = nil
 		return
-	}
-	f.Response, err = valueToAny(nil, resp.GetResponse())
-	if err != nil {
-		f.Error = &driver.Error{Message: err.Error()}
-	} else if rerr := resp.GetError(); rerr != nil {
-		f.Error = &driver.Error{Message: rerr.GetMsg()}
 	}
 	return
 }
@@ -161,7 +158,7 @@ func (f FieldResolveHandlerFunc) Handle(input driver.FieldResolveInput) (interfa
 }
 
 // FieldResolve function calls user implemented handler for field resolution
-func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequest) (f *proto.FieldResolveResponse, err error) {
+func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequest) (f *proto.FieldResolveResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
 			f = &proto.FieldResolveResponse{
@@ -172,17 +169,18 @@ func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequ
 		}
 	}()
 	req, err := makeFieldResolveInput(input)
-	if err != nil {
-		return
-	}
-	resp, err := m.FieldResolveHandler.Handle(req)
-	f = new(proto.FieldResolveResponse)
 	if err == nil {
-		f.Response, err = anyToValue(resp)
+		f = new(proto.FieldResolveResponse)
+		var resp interface{}
+		resp, err = m.FieldResolveHandler.Handle(req)
+		if err == nil {
+			f.Response, err = anyToValue(resp)
+		}
 	}
 	if err != nil {
-		f.Error = &proto.Error{Msg: err.Error()}
-		err = nil
+		f.Error = &proto.Error{
+			Msg: err.Error(),
+		}
 	}
 	return
 }

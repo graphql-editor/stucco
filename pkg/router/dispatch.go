@@ -219,7 +219,8 @@ func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolvePar
 		if params.Context != nil {
 			input.Protocol = params.Context.Value(ProtocolKey)
 		}
-		out, err := d.Driver.FieldResolve(input)
+		var err error
+		out := d.Driver.FieldResolve(input)
 		var i interface{}
 		if err == nil {
 			if out.Error != nil {
@@ -259,8 +260,9 @@ func (d Dispatch) InterfaceResolveType(i InterfaceConfig) func(params graphql.Re
 			Value:    params.Value,
 			Info:     buildInterfaceInfoParams(params.Info),
 		}
-		out, err := d.Driver.InterfaceResolveType(input)
-		if err == nil && out.Error != nil {
+		var err error
+		out := d.Driver.InterfaceResolveType(input)
+		if out.Error != nil {
 			err = fmt.Errorf(out.Error.Message)
 		}
 		var t *graphql.Object
@@ -283,7 +285,8 @@ func (d Dispatch) InterfaceResolveType(i InterfaceConfig) func(params graphql.Re
 func (d Dispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 	return parser.ScalarFunctions{
 		Parse: func(v interface{}) interface{} {
-			out, err := d.Driver.ScalarParse(driver.ScalarParseInput{
+			var err error
+			out := d.Driver.ScalarParse(driver.ScalarParseInput{
 				Function: s.Parse,
 				Value:    v,
 			})
@@ -301,7 +304,8 @@ func (d Dispatch) ScalarFunctions(s ScalarConfig) parser.ScalarFunctions {
 			return out.Response
 		},
 		Serialize: func(v interface{}) interface{} {
-			out, err := d.Driver.ScalarSerialize(driver.ScalarSerializeInput{
+			var err error
+			out := d.Driver.ScalarSerialize(driver.ScalarSerializeInput{
 				Function: s.Serialize,
 				Value:    v,
 			})
@@ -345,7 +349,8 @@ func (d Dispatch) UnionResolveType(u UnionConfig) func(params graphql.ResolveTyp
 			Value:    params.Value,
 			Info:     buildUnionInfoParams(params.Info),
 		}
-		out, err := d.Driver.UnionResolveType(input)
+		var err error
+		out := d.Driver.UnionResolveType(input)
 		if err == nil && out.Error != nil {
 			err = fmt.Errorf(out.Error.Message)
 		}

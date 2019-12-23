@@ -7,7 +7,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 // UnionResolveTypeClientTest is basic struct for testing clients implementing proto
@@ -18,7 +17,6 @@ type UnionResolveTypeClientTest struct {
 	ProtoResponse *proto.UnionResolveTypeResponse
 	ProtoError    error
 	Expected      driver.UnionResolveTypeOutput
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // UnionResolveTypeClientTestData is a data for testing union resolution of proto clients
@@ -48,7 +46,6 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Name: "SomeType",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "ErrorOnMissingFunction",
@@ -58,7 +55,6 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Message: "function name is required",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "PassthroughError",
@@ -80,7 +76,6 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Message: "proto error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "PassthroughUserError",
@@ -106,7 +101,6 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Message: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }
@@ -128,7 +122,6 @@ type UnionResolveTypeServerTest struct {
 	HandlerOutput string
 	HandlerError  error
 	Expected      *proto.UnionResolveTypeResponse
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // UnionResolveTypeServerTestData is a data for testing union resolution of proto servers
@@ -144,7 +137,6 @@ func UnionResolveTypeServerTestData() []UnionResolveTypeServerTest {
 					TestTyperef: &proto.TypeRef_Name{Name: "SomeType"},
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title:        "ReturnsUserError",
@@ -156,7 +148,6 @@ func UnionResolveTypeServerTestData() []UnionResolveTypeServerTest {
 					Msg: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }

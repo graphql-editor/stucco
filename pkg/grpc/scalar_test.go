@@ -21,8 +21,7 @@ func TestClientScalarParse(t *testing.T) {
 		client := grpc.Client{
 			Client: driverClientMock,
 		}
-		out, err := client.ScalarParse(tt.Input)
-		tt.ExpectedErr(t, err)
+		out := client.ScalarParse(tt.Input)
 		assert.Equal(t, tt.Expected, out)
 	})
 }
@@ -38,8 +37,7 @@ func TestClientScalarSerialize(t *testing.T) {
 		client := grpc.Client{
 			Client: driverClientMock,
 		}
-		out, err := client.ScalarSerialize(tt.Input)
-		tt.ExpectedErr(t, err)
+		out := client.ScalarSerialize(tt.Input)
 		assert.Equal(t, tt.Expected, out)
 	})
 }
@@ -55,7 +53,7 @@ func TestServerScalarParse(t *testing.T) {
 			ScalarParseHandler: scalarParseMock,
 		}
 		out, err := srv.ScalarParse(context.Background(), tt.Input)
-		tt.ExpectedErr(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, tt.Expected, out)
 	})
 	t.Run("RecoversFromPanic", func(t *testing.T) {
@@ -78,7 +76,7 @@ func TestServerScalarSerialize(t *testing.T) {
 			ScalarSerializeHandler: scalarSerializeMock,
 		}
 		out, err := srv.ScalarSerialize(context.Background(), tt.Input)
-		tt.ExpectedErr(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, tt.Expected, out)
 	})
 	t.Run("RecoversFromPanic", func(t *testing.T) {

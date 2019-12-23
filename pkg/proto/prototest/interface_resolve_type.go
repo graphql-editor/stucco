@@ -7,7 +7,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 // InterfaceResolveTypeClientTest is basic struct for testing clients implementing proto
@@ -18,7 +17,6 @@ type InterfaceResolveTypeClientTest struct {
 	ProtoResponse *proto.InterfaceResolveTypeResponse
 	ProtoError    error
 	Expected      driver.InterfaceResolveTypeOutput
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // InterfaceResolveTypeClientTestData is a data for testing interface resolution of proto clients
@@ -48,7 +46,6 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Name: "SomeType",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "ErrorOnMissingFunction",
@@ -58,7 +55,6 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Message: "function name is required",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "PassthroughError",
@@ -80,7 +76,6 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Message: "proto error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "PassthroughUserError",
@@ -106,7 +101,6 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Message: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }
@@ -128,7 +122,6 @@ type InterfaceResolveTypeServerTest struct {
 	HandlerOutput string
 	HandlerError  error
 	Expected      *proto.InterfaceResolveTypeResponse
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // InterfaceResolveTypeServerTestData is a data for testing interface resolution of proto servers
@@ -144,7 +137,6 @@ func InterfaceResolveTypeServerTestData() []InterfaceResolveTypeServerTest {
 					TestTyperef: &proto.TypeRef_Name{Name: "SomeType"},
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title:        "ReturnsUserError",
@@ -156,7 +148,6 @@ func InterfaceResolveTypeServerTestData() []InterfaceResolveTypeServerTest {
 					Msg: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }

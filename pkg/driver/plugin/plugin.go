@@ -21,12 +21,12 @@ import (
 const defaultRunnersCount = 64
 
 type driverShim interface {
-	FieldResolve(driver.FieldResolveInput) (driver.FieldResolveOutput, error)
-	InterfaceResolveType(driver.InterfaceResolveTypeInput) (driver.InterfaceResolveTypeOutput, error)
-	ScalarParse(driver.ScalarParseInput) (driver.ScalarParseOutput, error)
-	ScalarSerialize(driver.ScalarSerializeInput) (driver.ScalarSerializeOutput, error)
-	UnionResolveType(driver.UnionResolveTypeInput) (driver.UnionResolveTypeOutput, error)
-	Stream(driver.StreamInput) (driver.StreamOutput, error)
+	FieldResolve(driver.FieldResolveInput) driver.FieldResolveOutput
+	InterfaceResolveType(driver.InterfaceResolveTypeInput) driver.InterfaceResolveTypeOutput
+	ScalarParse(driver.ScalarParseInput) driver.ScalarParseOutput
+	ScalarSerialize(driver.ScalarSerializeInput) driver.ScalarSerializeOutput
+	UnionResolveType(driver.UnionResolveTypeInput) driver.UnionResolveTypeOutput
+	Stream(driver.StreamInput) driver.StreamOutput
 	Stdout(ctx context.Context, name string) error
 	Stderr(ctx context.Context, name string) error
 }
@@ -50,7 +50,7 @@ func DefaultPluginClient(cfg *plugin.ClientConfig) Client {
 // NewPluginClient creates new client for plugin
 var NewPluginClient = DefaultPluginClient
 
-func (d driverClient) SetSecrets(in driver.SetSecretsInput) (driver.SetSecretsOutput, error) {
+func (d driverClient) SetSecrets(in driver.SetSecretsInput) driver.SetSecretsOutput {
 	return d.plugin.SetSecrets(in)
 }
 
@@ -82,17 +82,17 @@ func (r pluginRunner) do(p *Plugin, payload *pluginPayload) {
 	var resp interface{}
 	switch data := payload.data.(type) {
 	case driver.FieldResolveInput:
-		resp, err = dri.FieldResolve(data)
+		resp = dri.FieldResolve(data)
 	case driver.InterfaceResolveTypeInput:
-		resp, err = dri.InterfaceResolveType(data)
+		resp = dri.InterfaceResolveType(data)
 	case driver.ScalarParseInput:
-		resp, err = dri.ScalarParse(data)
+		resp = dri.ScalarParse(data)
 	case driver.ScalarSerializeInput:
-		resp, err = dri.ScalarSerialize(data)
+		resp = dri.ScalarSerialize(data)
 	case driver.UnionResolveTypeInput:
-		resp, err = dri.UnionResolveType(data)
+		resp = dri.UnionResolveType(data)
 	case driver.StreamInput:
-		resp, err = dri.Stream(data)
+		resp = dri.Stream(data)
 	default:
 		err = errors.New("unknown input")
 	}
@@ -236,70 +236,98 @@ func (p *Plugin) do(data interface{}) (interface{}, error) {
 }
 
 // SetSecrets sets user provided secrets for plugin using environment variables
-func (p *Plugin) SetSecrets(in driver.SetSecretsInput) (driver.SetSecretsOutput, error) {
+func (p *Plugin) SetSecrets(in driver.SetSecretsInput) driver.SetSecretsOutput {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	if p.client != nil {
-		return driver.SetSecretsOutput{}, errors.New("cannot change secrets on running client")
+		return driver.SetSecretsOutput{
+			Error: &driver.Error{
+				Message: "cannot change secrets on running client",
+			},
+		}
 	}
 	for k, sec := range in.Secrets {
 		p.secrets[k] = sec
 	}
-	return driver.SetSecretsOutput{}, nil
+	return driver.SetSecretsOutput{}
 }
 
 // FieldResolve uses plugin to resolve a field on type
-func (p *Plugin) FieldResolve(in driver.FieldResolveInput) (driver.FieldResolveOutput, error) {
+func (p *Plugin) FieldResolve(in driver.FieldResolveInput) driver.FieldResolveOutput {
 	resp, err := p.do(in)
 	if err != nil {
-		return driver.FieldResolveOutput{}, err
+		return driver.FieldResolveOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
 	}
-	return resp.(driver.FieldResolveOutput), nil
+	return resp.(driver.FieldResolveOutput)
 }
 
 // InterfaceResolveType uses plugin to find interface type for user input
-func (p *Plugin) InterfaceResolveType(in driver.InterfaceResolveTypeInput) (driver.InterfaceResolveTypeOutput, error) {
+func (p *Plugin) InterfaceResolveType(in driver.InterfaceResolveTypeInput) driver.InterfaceResolveTypeOutput {
 	resp, err := p.do(in)
 	if err != nil {
-		return driver.InterfaceResolveTypeOutput{}, err
+		return driver.InterfaceResolveTypeOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
 	}
-	return resp.(driver.InterfaceResolveTypeOutput), nil
+	return resp.(driver.InterfaceResolveTypeOutput)
 }
 
 // ScalarParse uses plugin to parse scalar
-func (p *Plugin) ScalarParse(in driver.ScalarParseInput) (driver.ScalarParseOutput, error) {
+func (p *Plugin) ScalarParse(in driver.ScalarParseInput) driver.ScalarParseOutput {
 	resp, err := p.do(in)
 	if err != nil {
-		return driver.ScalarParseOutput{}, err
+		return driver.ScalarParseOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
 	}
-	return resp.(driver.ScalarParseOutput), nil
+	return resp.(driver.ScalarParseOutput)
 }
 
 // ScalarSerialize uses plugin to serialize scalar
-func (p *Plugin) ScalarSerialize(in driver.ScalarSerializeInput) (driver.ScalarSerializeOutput, error) {
+func (p *Plugin) ScalarSerialize(in driver.ScalarSerializeInput) driver.ScalarSerializeOutput {
 	resp, err := p.do(in)
 	if err != nil {
-		return driver.ScalarSerializeOutput{}, err
+		return driver.ScalarSerializeOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
 	}
-	return resp.(driver.ScalarSerializeOutput), nil
+	return resp.(driver.ScalarSerializeOutput)
 }
 
 // UnionResolveType uses plugin to find union type for user input
-func (p *Plugin) UnionResolveType(in driver.UnionResolveTypeInput) (driver.UnionResolveTypeOutput, error) {
+func (p *Plugin) UnionResolveType(in driver.UnionResolveTypeInput) driver.UnionResolveTypeOutput {
 	resp, err := p.do(in)
 	if err != nil {
-		return driver.UnionResolveTypeOutput{}, err
+		return driver.UnionResolveTypeOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
 	}
-	return resp.(driver.UnionResolveTypeOutput), nil
+	return resp.(driver.UnionResolveTypeOutput)
 }
 
 // Stream data through grpc plugin
-func (p *Plugin) Stream(in driver.StreamInput) (driver.StreamOutput, error) {
+func (p *Plugin) Stream(in driver.StreamInput) driver.StreamOutput {
 	resp, err := p.do(in)
 	if err != nil {
-		return driver.StreamOutput{}, err
+		return driver.StreamOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
 	}
-	return resp.(driver.StreamOutput), nil
+	return resp.(driver.StreamOutput)
 }
 
 // Close plugin and stop all runners

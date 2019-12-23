@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
+	"github.com/graphql-editor/stucco/pkg/driver/drivertest"
 	"github.com/graphql-editor/stucco/pkg/driver/plugin"
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/stretchr/testify/assert"
@@ -66,37 +67,7 @@ func (m *pluginClientProtocolMock) Ping() error {
 }
 
 type grpcClientMock struct {
-	mock.Mock
-}
-
-func (m *grpcClientMock) FieldResolve(in driver.FieldResolveInput) (driver.FieldResolveOutput, error) {
-	called := m.Called(in)
-	return called.Get(0).(driver.FieldResolveOutput), called.Error(1)
-}
-
-func (m *grpcClientMock) InterfaceResolveType(in driver.InterfaceResolveTypeInput) (driver.InterfaceResolveTypeOutput, error) {
-	called := m.Called(in)
-	return called.Get(0).(driver.InterfaceResolveTypeOutput), called.Error(1)
-}
-
-func (m *grpcClientMock) ScalarParse(in driver.ScalarParseInput) (driver.ScalarParseOutput, error) {
-	called := m.Called(in)
-	return called.Get(0).(driver.ScalarParseOutput), called.Error(1)
-}
-
-func (m *grpcClientMock) ScalarSerialize(in driver.ScalarSerializeInput) (driver.ScalarSerializeOutput, error) {
-	called := m.Called(in)
-	return called.Get(0).(driver.ScalarSerializeOutput), called.Error(1)
-}
-
-func (m *grpcClientMock) UnionResolveType(in driver.UnionResolveTypeInput) (driver.UnionResolveTypeOutput, error) {
-	called := m.Called(in)
-	return called.Get(0).(driver.UnionResolveTypeOutput), called.Error(1)
-}
-
-func (m *grpcClientMock) Stream(in driver.StreamInput) (driver.StreamOutput, error) {
-	called := m.Called(in)
-	return called.Get(0).(driver.StreamOutput), called.Error(1)
+	drivertest.MockDriver
 }
 
 func (m *grpcClientMock) Stdout(ctx context.Context, name string) error {
@@ -143,24 +114,25 @@ func TestPluginFieldResolve(t *testing.T) {
 		in     driver.FieldResolveInput
 		out    driver.FieldResolveOutput
 		outErr error
-		err    assert.ErrorAssertionFunc
 	}{
 		{
 			in:  driver.FieldResolveInput{},
 			out: driver.FieldResolveOutput{},
-			err: assert.NoError,
 		},
 		{
-			in:     driver.FieldResolveInput{},
+			in: driver.FieldResolveInput{},
+			out: driver.FieldResolveOutput{
+				Error: &driver.Error{
+					Message: "",
+				},
+			},
 			outErr: errors.New(""),
-			err:    assert.Error,
 		},
 	}
 	for _, tt := range data {
 		grpcClientMock.On("FieldResolve", tt.in).Return(tt.out, tt.outErr).Once()
-		out, err := plug.FieldResolve(tt.in)
+		out := plug.FieldResolve(tt.in)
 		assert.Equal(t, tt.out, out)
-		tt.err(t, err)
 	}
 	grpcClientMock.AssertNumberOfCalls(t, "FieldResolve", len(data))
 }
@@ -176,24 +148,25 @@ func TestPluginInterfaceResolveType(t *testing.T) {
 		in     driver.InterfaceResolveTypeInput
 		out    driver.InterfaceResolveTypeOutput
 		outErr error
-		err    assert.ErrorAssertionFunc
 	}{
 		{
 			in:  driver.InterfaceResolveTypeInput{},
 			out: driver.InterfaceResolveTypeOutput{},
-			err: assert.NoError,
 		},
 		{
-			in:     driver.InterfaceResolveTypeInput{},
+			in: driver.InterfaceResolveTypeInput{},
+			out: driver.InterfaceResolveTypeOutput{
+				Error: &driver.Error{
+					Message: "",
+				},
+			},
 			outErr: errors.New(""),
-			err:    assert.Error,
 		},
 	}
 	for _, tt := range data {
 		grpcClientMock.On("InterfaceResolveType", tt.in).Return(tt.out, tt.outErr).Once()
-		out, err := plug.InterfaceResolveType(tt.in)
+		out := plug.InterfaceResolveType(tt.in)
 		assert.Equal(t, tt.out, out)
-		tt.err(t, err)
 	}
 	grpcClientMock.AssertNumberOfCalls(t, "InterfaceResolveType", len(data))
 }
@@ -209,24 +182,25 @@ func TestPluginScalarParse(t *testing.T) {
 		in     driver.ScalarParseInput
 		out    driver.ScalarParseOutput
 		outErr error
-		err    assert.ErrorAssertionFunc
 	}{
 		{
 			in:  driver.ScalarParseInput{},
 			out: driver.ScalarParseOutput{},
-			err: assert.NoError,
 		},
 		{
-			in:     driver.ScalarParseInput{},
+			in: driver.ScalarParseInput{},
+			out: driver.ScalarParseOutput{
+				Error: &driver.Error{
+					Message: "",
+				},
+			},
 			outErr: errors.New(""),
-			err:    assert.Error,
 		},
 	}
 	for _, tt := range data {
 		grpcClientMock.On("ScalarParse", tt.in).Return(tt.out, tt.outErr).Once()
-		out, err := plug.ScalarParse(tt.in)
+		out := plug.ScalarParse(tt.in)
 		assert.Equal(t, tt.out, out)
-		tt.err(t, err)
 	}
 	grpcClientMock.AssertNumberOfCalls(t, "ScalarParse", len(data))
 }
@@ -242,24 +216,25 @@ func TestPluginScalarSerialize(t *testing.T) {
 		in     driver.ScalarSerializeInput
 		out    driver.ScalarSerializeOutput
 		outErr error
-		err    assert.ErrorAssertionFunc
 	}{
 		{
 			in:  driver.ScalarSerializeInput{},
 			out: driver.ScalarSerializeOutput{},
-			err: assert.NoError,
 		},
 		{
-			in:     driver.ScalarSerializeInput{},
+			in: driver.ScalarSerializeInput{},
+			out: driver.ScalarSerializeOutput{
+				Error: &driver.Error{
+					Message: "",
+				},
+			},
 			outErr: errors.New(""),
-			err:    assert.Error,
 		},
 	}
 	for _, tt := range data {
 		grpcClientMock.On("ScalarSerialize", tt.in).Return(tt.out, tt.outErr).Once()
-		out, err := plug.ScalarSerialize(tt.in)
+		out := plug.ScalarSerialize(tt.in)
 		assert.Equal(t, tt.out, out)
-		tt.err(t, err)
 	}
 	grpcClientMock.AssertNumberOfCalls(t, "ScalarSerialize", len(data))
 }
@@ -275,24 +250,25 @@ func TestPluginUnionResolveType(t *testing.T) {
 		in     driver.UnionResolveTypeInput
 		out    driver.UnionResolveTypeOutput
 		outErr error
-		err    assert.ErrorAssertionFunc
 	}{
 		{
 			in:  driver.UnionResolveTypeInput{},
 			out: driver.UnionResolveTypeOutput{},
-			err: assert.NoError,
 		},
 		{
-			in:     driver.UnionResolveTypeInput{},
+			in: driver.UnionResolveTypeInput{},
+			out: driver.UnionResolveTypeOutput{
+				Error: &driver.Error{
+					Message: "",
+				},
+			},
 			outErr: errors.New(""),
-			err:    assert.Error,
 		},
 	}
 	for _, tt := range data {
 		grpcClientMock.On("UnionResolveType", tt.in).Return(tt.out, tt.outErr).Once()
-		out, err := plug.UnionResolveType(tt.in)
+		out := plug.UnionResolveType(tt.in)
 		assert.Equal(t, tt.out, out)
-		tt.err(t, err)
 	}
 	grpcClientMock.AssertNumberOfCalls(t, "UnionResolveType", len(data))
 }
@@ -308,19 +284,19 @@ func TestPluginSecrets(t *testing.T) {
 		Cmd: "fake-plugin-command",
 	})
 	defer plug.Close()
-	_, err := plug.SetSecrets(driver.SetSecretsInput{
+	out := plug.SetSecrets(driver.SetSecretsInput{
 		Secrets: driver.Secrets{
 			"SECRET_VAR": "value",
 		},
 	})
-	assert.NoError(t, err)
+	assert.Nil(t, out.Error)
 	plug.FieldResolve(driver.FieldResolveInput{})
-	_, err = plug.SetSecrets(driver.SetSecretsInput{
+	out = plug.SetSecrets(driver.SetSecretsInput{
 		Secrets: driver.Secrets{
 			"SECRET_VAR": "value",
 		},
 	})
-	assert.Error(t, err)
+	assert.NotNil(t, out.Error)
 }
 
 func TestPluginStream(t *testing.T) {
@@ -334,24 +310,25 @@ func TestPluginStream(t *testing.T) {
 		in     driver.StreamInput
 		out    driver.StreamOutput
 		outErr error
-		err    assert.ErrorAssertionFunc
 	}{
 		{
 			in:  driver.StreamInput{},
 			out: driver.StreamOutput{},
-			err: assert.NoError,
 		},
 		{
-			in:     driver.StreamInput{},
+			in: driver.StreamInput{},
+			out: driver.StreamOutput{
+				Error: &driver.Error{
+					Message: "",
+				},
+			},
 			outErr: errors.New(""),
-			err:    assert.Error,
 		},
 	}
 	for _, tt := range data {
 		grpcClientMock.On("Stream", tt.in).Return(tt.out, tt.outErr).Once()
-		out, err := plug.Stream(tt.in)
+		out := plug.Stream(tt.in)
 		assert.Equal(t, tt.out, out)
-		tt.err(t, err)
 	}
 	grpcClientMock.AssertNumberOfCalls(t, "Stream", len(data))
 }

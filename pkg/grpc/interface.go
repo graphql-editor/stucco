@@ -57,24 +57,22 @@ func makeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r 
 }
 
 // InterfaceResolveType handles type resolution for interface through GRPC
-func (m *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) (f driver.InterfaceResolveTypeOutput, err error) {
+func (m *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) (i driver.InterfaceResolveTypeOutput) {
 	req, err := makeInterfaceResolveTypeRequest(input)
-	if err != nil {
-		f.Error = &driver.Error{Message: err.Error()}
-		err = nil
-		return
-	}
-	resp, err := m.Client.InterfaceResolveType(context.Background(), req)
 	if err == nil {
-		if t := resp.GetType(); t != nil {
-			f.Type = *makeDriverTypeRef(t)
-		}
-		if respErr := resp.GetError(); respErr != nil {
-			err = fmt.Errorf(respErr.GetMsg())
+		var resp *proto.InterfaceResolveTypeResponse
+		resp, err = m.Client.InterfaceResolveType(context.Background(), req)
+		if err == nil {
+			if t := resp.GetType(); t != nil {
+				i.Type = *makeDriverTypeRef(t)
+			}
+			if respErr := resp.GetError(); respErr != nil {
+				err = fmt.Errorf(respErr.GetMsg())
+			}
 		}
 	}
 	if err != nil {
-		f.Error = &driver.Error{Message: err.Error()}
+		i.Error = &driver.Error{Message: err.Error()}
 		err = nil
 	}
 	return
@@ -141,7 +139,7 @@ func (f InterfaceResolveTypeHandlerFunc) Handle(in driver.InterfaceResolveTypeIn
 	return f(in)
 }
 
-func (m *Server) InterfaceResolveType(ctx context.Context, input *proto.InterfaceResolveTypeRequest) (f *proto.InterfaceResolveTypeResponse, err error) {
+func (m *Server) InterfaceResolveType(ctx context.Context, input *proto.InterfaceResolveTypeRequest) (f *proto.InterfaceResolveTypeResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
 			f = &proto.InterfaceResolveTypeResponse{
@@ -162,7 +160,6 @@ func (m *Server) InterfaceResolveType(ctx context.Context, input *proto.Interfac
 	}
 	if err != nil {
 		f.Error = &proto.Error{Msg: err.Error()}
-		err = nil
 	}
 	return
 }

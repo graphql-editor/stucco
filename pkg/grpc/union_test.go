@@ -21,8 +21,7 @@ func TestClientUnionResolveType(t *testing.T) {
 		client := grpc.Client{
 			Client: driverClientMock,
 		}
-		out, err := client.UnionResolveType(tt.Input)
-		tt.ExpectedErr(t, err)
+		out := client.UnionResolveType(tt.Input)
 		assert.Equal(t, tt.Expected, out)
 	})
 }
@@ -35,7 +34,7 @@ func TestServerUnionResolveType(t *testing.T) {
 			UnionResolveTypeHandler: unionResolveTypeMock,
 		}
 		out, err := srv.UnionResolveType(context.Background(), tt.Input)
-		tt.ExpectedErr(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, tt.Expected, out)
 	})
 	t.Run("RecoversFromPanic", func(t *testing.T) {

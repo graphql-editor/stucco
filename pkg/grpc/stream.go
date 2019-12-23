@@ -41,8 +41,12 @@ func (g *grpcDriverStreamReader) Read() driver.StreamMessage {
 func (g *grpcDriverStreamReader) Close() {}
 
 // Stream TODO: client side stream requests
-func (m *Client) Stream(input driver.StreamInput) (s driver.StreamOutput, err error) {
-	return
+func (m *Client) Stream(input driver.StreamInput) (s driver.StreamOutput) {
+	return driver.StreamOutput{
+		Error: &driver.Error{
+			Message: "Streaming not yet implemented",
+		},
+	}
 }
 
 // StreamHandler interface must be implemented by user to handle stream requests from subscriptions

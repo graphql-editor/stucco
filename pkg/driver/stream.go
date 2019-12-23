@@ -36,5 +36,6 @@ type StreamInput struct {
 }
 
 type StreamOutput struct {
+	Error  *Error
 	Reader StreamReader
 }

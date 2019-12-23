@@ -21,8 +21,7 @@ func TestClientFieldResolve(t *testing.T) {
 		client := grpc.Client{
 			Client: driverClientMock,
 		}
-		out, err := client.FieldResolve(tt.Input)
-		assert.NoError(t, err)
+		out := client.FieldResolve(tt.Input)
 		assert.Equal(t, tt.Expected, out)
 		driverClientMock.AssertCalled(t, "FieldResolve", mock.Anything, tt.ProtoRequest)
 	})
@@ -36,7 +35,7 @@ func TestServerFieldResolve(t *testing.T) {
 			FieldResolveHandler: fieldResolveMock,
 		}
 		resp, err := srv.FieldResolve(context.Background(), tt.Input)
-		tt.ExpectedErr(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, tt.Expected, resp)
 		fieldResolveMock.AssertCalled(t, "Handle", tt.HandlerInput)
 	})

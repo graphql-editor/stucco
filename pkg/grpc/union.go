@@ -55,26 +55,22 @@ func makeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.U
 	return
 }
 
-func (m *Client) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput, err error) {
+func (m *Client) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput) {
 	req, err := makeUnionResolveTypeRequest(input)
-	if err != nil {
-		f.Error = &driver.Error{Message: err.Error()}
-		err = nil
-		return
-	}
-	resp, err := m.Client.UnionResolveType(context.Background(), req)
-	if err != nil {
-		f.Error = &driver.Error{Message: err.Error()}
-		err = nil
-		return
-	}
-	if r := resp.GetType(); r != nil {
-		f.Type = *makeDriverTypeRef(r)
-	}
-	if err := resp.GetError(); err != nil {
-		f.Error = &driver.Error{
-			Message: err.Msg,
+	if err == nil {
+		var resp *proto.UnionResolveTypeResponse
+		resp, err = m.Client.UnionResolveType(context.Background(), req)
+		if err == nil {
+			if r := resp.GetType(); r != nil {
+				f.Type = *makeDriverTypeRef(r)
+			}
+			if rerr := resp.GetError(); rerr != nil {
+				err = fmt.Errorf(rerr.GetMsg())
+			}
 		}
+	}
+	if err != nil {
+		f.Error = &driver.Error{Message: err.Error()}
 	}
 	return
 }
@@ -140,7 +136,7 @@ func (f UnionResolveTypeHandlerFunc) Handle(in driver.UnionResolveTypeInput) (st
 	return f(in)
 }
 
-func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolveTypeRequest) (f *proto.UnionResolveTypeResponse, err error) {
+func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolveTypeRequest) (f *proto.UnionResolveTypeResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
 			f = &proto.UnionResolveTypeResponse{
@@ -161,7 +157,6 @@ func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolve
 	}
 	if err != nil {
 		f.Error = &proto.Error{Msg: err.Error()}
-		err = nil
 	}
 	return
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
-	"github.com/stretchr/testify/assert"
 )
 
 // ScalarParseClientTest is basic struct for testing clients implementing proto
@@ -18,7 +17,6 @@ type ScalarParseClientTest struct {
 	ProtoResponse *proto.ScalarParseResponse
 	ProtoError    error
 	Expected      driver.ScalarParseOutput
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // ScalarParseClientTestData is a data for testing scalar resolution of proto clients
@@ -42,8 +40,7 @@ func ScalarParseClientTestData() []ScalarParseClientTest {
 					S: "scalar",
 				},
 			}},
-			Expected:    driver.ScalarParseOutput{Response: "scalar"},
-			ExpectedErr: assert.NoError,
+			Expected: driver.ScalarParseOutput{Response: "scalar"},
 		},
 		{
 			Title: "ReturnsUserError",
@@ -68,7 +65,6 @@ func ScalarParseClientTestData() []ScalarParseClientTest {
 					Message: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }
@@ -90,7 +86,6 @@ type ScalarParseServerTest struct {
 	HandlerOutput interface{}
 	HandlerError  error
 	Expected      *proto.ScalarParseResponse
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // ScalarParseServerTestData is a data for testing scalar resolution of proto servers
@@ -115,7 +110,6 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 					S: "scalar",
 				},
 			}},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "ReturnsUserError",
@@ -136,7 +130,6 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 					Msg: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }
@@ -158,7 +151,6 @@ type ScalarSerializeClientTest struct {
 	ProtoResponse *proto.ScalarSerializeResponse
 	ProtoError    error
 	Expected      driver.ScalarSerializeOutput
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // ScalarSerializeClientTestData is a data for testing scalar resolution of proto clients
@@ -182,8 +174,7 @@ func ScalarSerializeClientTestData() []ScalarSerializeClientTest {
 					S: "scalar",
 				},
 			}},
-			Expected:    driver.ScalarSerializeOutput{Response: "scalar"},
-			ExpectedErr: assert.NoError,
+			Expected: driver.ScalarSerializeOutput{Response: "scalar"},
 		},
 		{
 			Title: "ReturnsUserError",
@@ -208,7 +199,6 @@ func ScalarSerializeClientTestData() []ScalarSerializeClientTest {
 					Message: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }
@@ -230,7 +220,6 @@ type ScalarSerializeServerTest struct {
 	HandlerOutput interface{}
 	HandlerError  error
 	Expected      *proto.ScalarSerializeResponse
-	ExpectedErr   assert.ErrorAssertionFunc
 }
 
 // ScalarSerializeServerTestData is a data for testing scalar resolution of proto servers
@@ -255,7 +244,6 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 					S: "scalar",
 				},
 			}},
-			ExpectedErr: assert.NoError,
 		},
 		{
 			Title: "ReturnsUserError",
@@ -276,7 +264,6 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 					Msg: "user error",
 				},
 			},
-			ExpectedErr: assert.NoError,
 		},
 	}
 }
