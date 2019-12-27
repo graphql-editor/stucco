@@ -46,9 +46,8 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						Name: "SomeType",
 					},
 					Operation: &types.OperationDefinition{
-						Operation:           "query",
-						Name:                "getFieldOfFieldPrev",
-						VariableDefinitions: []types.VariableDefinition{},
+						Operation: "query",
+						Name:      "getFieldOfFieldPrev",
 						Directives: types.Directives{
 							types.Directive{
 								Name: "@somedir",
@@ -184,9 +183,8 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						},
 					},
 					Operation: &proto.OperationDefinition{
-						Operation:           "query",
-						Name:                "getFieldOfFieldPrev",
-						VariableDefinitions: []*proto.VariableDefinition{},
+						Operation: "query",
+						Name:      "getFieldOfFieldPrev",
 						Directives: []*proto.Directive{
 							&proto.Directive{
 								Name: "@somedir",
@@ -323,8 +321,16 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						},
 					},
 				},
-				Protocol: new(proto.Value),
-				Source:   new(proto.Value),
+				Source: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Protocol: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
 			},
 			ProtoResponse: &proto.FieldResolveResponse{
 				Response: &proto.Value{
@@ -384,8 +390,7 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Info:     &proto.FieldResolveInfo{},
-				Protocol: new(proto.Value),
+				Info: &proto.FieldResolveInfo{},
 				Source: &proto.Value{
 					TestValue: &proto.Value_O{
 						O: &proto.ObjectValue{
@@ -489,12 +494,14 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 									},
 								},
 								"nilSlicePtrValue": &proto.Value{
-									TestValue: &proto.Value_A{},
+									TestValue: &proto.Value_Nil{
+										Nil: true,
+									},
 								},
 								"emptySlice": &proto.Value{
 									TestValue: &proto.Value_A{
 										A: &proto.ArrayValue{
-											Items: make([]*proto.Value, 0),
+											Items: nil,
 										},
 									},
 								},
@@ -563,18 +570,29 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 									},
 								},
 								"nilMapPtrValue": &proto.Value{
-									TestValue: &proto.Value_O{},
+									TestValue: &proto.Value_Nil{
+										Nil: true,
+									},
 								},
 								"emptyMap": &proto.Value{
 									TestValue: &proto.Value_O{
 										O: &proto.ObjectValue{
-											Props: make(map[string]*proto.Value),
+											Props: nil,
 										},
 									},
 								},
-								"emptyIsMarshaled": new(proto.Value),
+								"emptyIsMarshaled": &proto.Value{
+									TestValue: &proto.Value_Nil{
+										Nil: true,
+									},
+								},
 							},
 						},
+					},
+				},
+				Protocol: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
 					},
 				},
 			},
@@ -619,8 +637,7 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Info:     &proto.FieldResolveInfo{},
-				Protocol: new(proto.Value),
+				Info: &proto.FieldResolveInfo{},
 				Source: &proto.Value{
 					TestValue: &proto.Value_O{
 						O: &proto.ObjectValue{
@@ -637,6 +654,11 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 								},
 							},
 						},
+					},
+				},
+				Protocol: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
 					},
 				},
 			},
@@ -663,9 +685,17 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Info:     &proto.FieldResolveInfo{},
-				Protocol: new(proto.Value),
-				Source:   new(proto.Value),
+				Info: &proto.FieldResolveInfo{},
+				Source: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Protocol: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
 			},
 			ProtoResponse: &proto.FieldResolveResponse{
 				Response: &proto.Value{
@@ -738,7 +768,11 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"emptyIsMarshaled": new(proto.Value),
+								"emptyIsMarshaled": &proto.Value{
+									TestValue: &proto.Value_Nil{
+										Nil: true,
+									},
+								},
 							},
 						},
 					},
@@ -792,8 +826,7 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Info:     &proto.FieldResolveInfo{},
-				Protocol: new(proto.Value),
+				Info: &proto.FieldResolveInfo{},
 				Source: &proto.Value{
 					TestValue: &proto.Value_O{
 						O: &proto.ObjectValue{
@@ -841,13 +874,10 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 										},
 									},
 								},
-								"nilSliceValue": &proto.Value{
-									TestValue: &proto.Value_A{},
-								},
 								"emptySlice": &proto.Value{
 									TestValue: &proto.Value_A{
 										A: &proto.ArrayValue{
-											Items: make([]*proto.Value, 0),
+											Items: nil,
 										},
 									},
 								},
@@ -874,17 +904,18 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 										},
 									},
 								},
-								"nilMapValue": &proto.Value{
-									TestValue: &proto.Value_O{},
-								},
 								"emptyMap": &proto.Value{
 									TestValue: &proto.Value_O{
 										O: &proto.ObjectValue{
-											Props: make(map[string]*proto.Value),
+											Props: nil,
 										},
 									},
 								},
-								"emptyIsMarshaled": new(proto.Value),
+								"emptyIsMarshaled": &proto.Value{
+									TestValue: &proto.Value_Nil{
+										Nil: true,
+									},
+								},
 							},
 						},
 					},
@@ -896,21 +927,19 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				},
 				Info: driver.FieldResolveInfo{},
 				Source: map[string]interface{}{
-					"intValue":      int64(1),
-					"uintValue":     uint64(1),
-					"floatValue":    float64(1.0),
-					"stringValue":   "string",
-					"boolValue":     true,
-					"sliceValue":    []interface{}{int64(1), "string"},
-					"nilSliceValue": ([]interface{})(nil),
-					"emptySlice":    []interface{}{},
-					"bytesValue":    []byte("somebytes"),
+					"intValue":    int64(1),
+					"uintValue":   uint64(1),
+					"floatValue":  float64(1.0),
+					"stringValue": "string",
+					"boolValue":   true,
+					"sliceValue":  []interface{}{int64(1), "string"},
+					"emptySlice":  ([]interface{})(nil),
+					"bytesValue":  []byte("somebytes"),
 					"mapValue": map[string]interface{}{
 						"intValue":    int64(1),
 						"stringValue": "string",
 					},
-					"nilMapValue":      (map[string]interface{})(nil),
-					"emptyMap":         map[string]interface{}{},
+					"emptyMap":         (map[string]interface{})(nil),
 					"emptyIsMarshaled": nil,
 				},
 			},
@@ -964,9 +993,8 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 						},
 					},
 					Operation: &proto.OperationDefinition{
-						Operation:           "query",
-						Name:                "getFieldOfFieldPrev",
-						VariableDefinitions: []*proto.VariableDefinition{},
+						Operation: "query",
+						Name:      "getFieldOfFieldPrev",
 						Directives: []*proto.Directive{
 							&proto.Directive{
 								Name: "@somedir",
@@ -1052,8 +1080,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 						},
 					},
 				},
-				Protocol: new(proto.Value),
-				Source:   new(proto.Value),
 			},
 			HandlerInput: driver.FieldResolveInput{
 				Function: types.Function{
@@ -1078,9 +1104,8 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 						Name: "SomeType",
 					},
 					Operation: &types.OperationDefinition{
-						Operation:           "query",
-						Name:                "getFieldOfFieldPrev",
-						VariableDefinitions: []types.VariableDefinition{},
+						Operation: "query",
+						Name:      "getFieldOfFieldPrev",
 						Directives: types.Directives{
 							types.Directive{
 								Name: "@somedir",
@@ -1173,8 +1198,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 						},
 					},
 				},
-				Protocol: new(proto.Value),
-				Source:   new(proto.Value),
 			},
 			HandlerInput: driver.FieldResolveInput{
 				Function: types.Function{
@@ -1255,8 +1278,6 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 						},
 					},
 				},
-				Protocol: new(proto.Value),
-				Source:   new(proto.Value),
 			},
 			HandlerInput: driver.FieldResolveInput{
 				Function: types.Function{

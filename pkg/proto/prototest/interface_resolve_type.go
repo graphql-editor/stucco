@@ -33,8 +33,12 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Value: new(proto.Value),
-				Info:  &proto.InterfaceResolveTypeInfo{},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Info: &proto.InterfaceResolveTypeInfo{},
 			},
 			ProtoResponse: &proto.InterfaceResolveTypeResponse{
 				Type: &proto.TypeRef{
@@ -67,8 +71,12 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Value: new(proto.Value),
-				Info:  &proto.InterfaceResolveTypeInfo{},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Info: &proto.InterfaceResolveTypeInfo{},
 			},
 			ProtoError: fmt.Errorf("proto error"),
 			Expected: driver.InterfaceResolveTypeOutput{
@@ -88,8 +96,12 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Value: new(proto.Value),
-				Info:  &proto.InterfaceResolveTypeInfo{},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Info: &proto.InterfaceResolveTypeInfo{},
 			},
 			ProtoResponse: &proto.InterfaceResolveTypeResponse{
 				Error: &proto.Error{

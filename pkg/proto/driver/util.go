@@ -1,4 +1,4 @@
-package grpc
+package protodriver
 
 import (
 	"errors"
@@ -11,8 +11,56 @@ import (
 	"github.com/graphql-go/graphql/language/ast"
 )
 
-var sliceInterfaceReflectType = reflect.SliceOf(reflect.TypeOf((*interface{})(nil)).Elem())
-var mapStringInterfaceReflectType = reflect.TypeOf((map[string]interface{})(nil))
+var (
+	sliceInterfaceReflectType     = reflect.SliceOf(reflect.TypeOf((*interface{})(nil)).Elem())
+	mapStringInterfaceReflectType = reflect.TypeOf((map[string]interface{})(nil))
+	nilValue                      = &proto.Value{
+		TestValue: &proto.Value_Nil{
+			Nil: true,
+		},
+	}
+)
+
+func valueForType(t reflect.Type) *proto.Value {
+	var pv *proto.Value
+	switch t.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		pv = &proto.Value{
+			TestValue: &proto.Value_I{},
+		}
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		pv = &proto.Value{
+			TestValue: &proto.Value_U{},
+		}
+	case reflect.Float32, reflect.Float64:
+		pv = &proto.Value{
+			TestValue: &proto.Value_F{},
+		}
+	case reflect.String:
+		pv = &proto.Value{
+			TestValue: &proto.Value_S{},
+		}
+	case reflect.Bool:
+		pv = &proto.Value{
+			TestValue: &proto.Value_B{},
+		}
+	case reflect.Slice, reflect.Array:
+		if t.Elem().Kind() == reflect.Uint8 {
+			pv = &proto.Value{
+				TestValue: &proto.Value_Any{},
+			}
+		} else {
+			pv = &proto.Value{
+				TestValue: &proto.Value_A{},
+			}
+		}
+	case reflect.Map, reflect.Struct:
+		pv = &proto.Value{
+			TestValue: &proto.Value_O{},
+		}
+	}
+	return pv
+}
 
 func getValue(v reflect.Value) reflect.Value {
 	if v.Kind() == reflect.Ptr {
@@ -24,111 +72,73 @@ func getValue(v reflect.Value) reflect.Value {
 	return v
 }
 
-func intToValue(v reflect.Value) (pv *proto.Value) {
-	iValue := &proto.Value_I{}
-	pv = &proto.Value{TestValue: iValue}
-	if v = getValue(v); v.IsValid() {
-		iValue.I = v.Int()
-	}
-	return
+func intToValue(v reflect.Value, pv *proto.Value) {
+	pv.TestValue.(*proto.Value_I).I = v.Int()
 }
 
-func uintToValue(v reflect.Value) (pv *proto.Value) {
-	uValue := &proto.Value_U{}
-	pv = &proto.Value{TestValue: uValue}
-	if v = getValue(v); v.IsValid() {
-		uValue.U = v.Uint()
-	}
-	return
+func uintToValue(v reflect.Value, pv *proto.Value) {
+	pv.TestValue.(*proto.Value_U).U = v.Uint()
 }
 
-func floatToValue(v reflect.Value) (pv *proto.Value) {
-	fValue := &proto.Value_F{}
-	pv = &proto.Value{TestValue: fValue}
-	if v = getValue(v); v.IsValid() {
-		fValue.F = v.Float()
-	}
-	return
+func floatToValue(v reflect.Value, pv *proto.Value) {
+	pv.TestValue.(*proto.Value_F).F = v.Float()
 }
 
-func stringToValue(v reflect.Value) (pv *proto.Value) {
-	sValue := &proto.Value_S{}
-	pv = &proto.Value{TestValue: sValue}
-	if v = getValue(v); v.IsValid() {
-		sValue.S = v.String()
-	}
-	return
+func stringToValue(v reflect.Value, pv *proto.Value) {
+	pv.TestValue.(*proto.Value_S).S = v.String()
 }
 
-func boolToValue(v reflect.Value) (pv *proto.Value) {
-	bValue := &proto.Value_B{}
-	pv = &proto.Value{TestValue: bValue}
-	if v = getValue(v); v.IsValid() {
-		bValue.B = v.Bool()
-	}
-	return
+func boolToValue(v reflect.Value, pv *proto.Value) {
+	pv.TestValue.(*proto.Value_B).B = v.Bool()
 }
 
-func bytesToValue(v reflect.Value) *proto.Value {
-	protoValue := new(proto.Value)
-	any := &proto.Value_Any{}
-	protoValue.TestValue = any
-	if v = getValue(v); v.IsValid() {
-		bytesCopy := reflect.MakeSlice(
-			reflect.SliceOf(v.Type().Elem()),
-			v.Len(),
-			v.Len(),
-		)
-		reflect.Copy(bytesCopy, v)
-		any.Any = bytesCopy.Interface().([]byte)
-	}
-	return protoValue
+func bytesToValue(v reflect.Value, pv *proto.Value) {
+	bytesCopy := reflect.MakeSlice(
+		reflect.SliceOf(v.Type().Elem()),
+		v.Len(),
+		v.Len(),
+	)
+	reflect.Copy(bytesCopy, v)
+	pv.TestValue.(*proto.Value_Any).Any = bytesCopy.Interface().([]byte)
 }
 
-func sliceOrArrayToValue(v reflect.Value) (*proto.Value, error) {
-	if v = getValue(v); !v.IsValid() {
-		return &proto.Value{TestValue: &proto.Value_A{}}, nil
-	}
+func sliceOrArrayToValue(v reflect.Value, pv *proto.Value) error {
 	if v.Type().Elem().Kind() == reflect.Uint8 {
-		return bytesToValue(v), nil
+		bytesToValue(v, pv)
+		return nil
 	}
 	arr := new(proto.ArrayValue)
-	protoValue := &proto.Value{
-		TestValue: &proto.Value_A{
-			A: arr,
-		},
-	}
-	arr.Items = make([]*proto.Value, 0, v.Len())
-	for i := 0; i < v.Len(); i++ {
-		item, err := anyToValueReflected(v.Index(i))
-		if err != nil {
-			return nil, err
+	if v.Len() != 0 {
+		arr.Items = make([]*proto.Value, 0, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			item, err := anyToValueReflected(v.Index(i))
+			if err != nil {
+				return err
+			}
+			arr.Items = append(arr.Items, item)
 		}
-		arr.Items = append(arr.Items, item)
 	}
-	return protoValue, nil
+	pv.TestValue.(*proto.Value_A).A = arr
+	return nil
 }
 
-func mapToValue(v reflect.Value) (*proto.Value, error) {
-	obj := new(proto.Value_O)
-	protoValue := &proto.Value{
-		TestValue: obj,
+func mapToValue(v reflect.Value, pv *proto.Value) error {
+	if v.Type().Key().Kind() != reflect.String {
+		return fmt.Errorf("map key must be of string type")
 	}
-	if v = getValue(v); v.IsValid() {
-		obj.O = new(proto.ObjectValue)
-		if v.Type().Key().Kind() != reflect.String {
-			return nil, fmt.Errorf("map key must be of string type")
-		}
-		obj.O.Props = make(map[string]*proto.Value)
+	obj := new(proto.ObjectValue)
+	if v.Len() > 0 {
+		obj.Props = make(map[string]*proto.Value)
 		for _, k := range v.MapKeys() {
 			v, err := anyToValueReflected(v.MapIndex(k))
 			if err != nil {
-				return nil, err
+				return err
 			}
-			obj.O.Props[k.String()] = v
+			obj.Props[k.String()] = v
 		}
 	}
-	return protoValue, nil
+	pv.TestValue.(*proto.Value_O).O = obj
+	return nil
 }
 
 // ValueMarshaler interface for client types that can return it's own proto.Value
@@ -145,7 +155,7 @@ var marshalerInterface = reflect.TypeOf((*ValueMarshaler)(nil)).Elem()
 func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 	if !v.IsValid() {
 		// Zero value, possibly nil
-		return new(proto.Value), nil
+		return nilValue, nil
 	}
 	// short path for ValueMarshaler interface
 	if v.Type().Implements(marshalerInterface) {
@@ -154,7 +164,7 @@ func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 	if v.Type().Kind() == reflect.Interface {
 		if v.IsNil() {
 			// empty value
-			return new(proto.Value), nil
+			return nilValue, nil
 		}
 		v = v.Elem()
 	}
@@ -162,9 +172,6 @@ func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 	v, err := flattenValue(v)
 	if err != nil {
 		return nil, err
-	}
-	if !v.IsValid() {
-		return new(proto.Value), nil
 	}
 	t := v.Type()
 	if t == variableType {
@@ -174,35 +181,37 @@ func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 			},
 		}, nil
 	}
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
+	v = getValue(v)
+	if !v.IsValid() {
+		return nilValue, nil
 	}
-	var protoValue *proto.Value
+	t = v.Type()
+	pv := valueForType(t)
 	switch t.Kind() {
 	case reflect.Ptr:
 		// explicit error on pointer to pointer
 		return nil, errors.New("pointer to pointer not supported")
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		protoValue = intToValue(v)
+		intToValue(v, pv)
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		protoValue = uintToValue(v)
+		uintToValue(v, pv)
 	case reflect.Float32, reflect.Float64:
-		protoValue = floatToValue(v)
+		floatToValue(v, pv)
 	case reflect.String:
-		protoValue = stringToValue(v)
+		stringToValue(v, pv)
 	case reflect.Bool:
-		protoValue = boolToValue(v)
+		boolToValue(v, pv)
 	case reflect.Slice, reflect.Array:
-		protoValue, err = sliceOrArrayToValue(v)
+		err = sliceOrArrayToValue(v, pv)
 	case reflect.Map:
-		protoValue, err = mapToValue(v)
+		err = mapToValue(v, pv)
 	case reflect.Struct:
-		protoValue, err = structToValue(v)
+		err = structToValue(v, pv)
 	default:
 		fmt.Printf("%v\n", v.Interface())
 		return nil, fmt.Errorf("kind %s not supported", v.Kind())
 	}
-	return protoValue, err
+	return pv, err
 }
 
 func anyToValue(v interface{}) (*proto.Value, error) {
@@ -254,7 +263,7 @@ func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface
 		v = tv.B
 	case *proto.Value_A:
 		var arr []interface{}
-		if tv.A != nil {
+		if tv.A.GetItems() != nil {
 			arr = make([]interface{}, 0, len(tv.A.GetItems()))
 			for _, av := range tv.A.GetItems() {
 				v, err := valueToAny(variables, av)
@@ -269,7 +278,7 @@ func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface
 		// There is no way to provide an output type for value decoding,
 		// so just treat all always as map. Type information is lost.
 		var m map[string]interface{}
-		if tv.O != nil {
+		if tv.O.GetProps() != nil {
 			m = make(map[string]interface{}, len(tv.O.GetProps()))
 			for k, v := range tv.O.GetProps() {
 				prop, err := valueToAny(variables, v)
@@ -288,6 +297,8 @@ func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface
 				v, err = valueToAny(variables, variableValue)
 			}
 		}
+	case *proto.Value_Nil:
+		v = nil
 	}
 	return
 }
@@ -325,6 +336,9 @@ func makeDriverVariableDefinition(v *proto.VariableDefinition) (vd types.Variabl
 }
 
 func makeProtoVariableDefinitions(v []types.VariableDefinition) (vd []*proto.VariableDefinition, err error) {
+	if len(v) == 0 {
+		return nil, nil
+	}
 	r := make([]*proto.VariableDefinition, 0, len(v))
 	for _, vv := range v {
 		var d *proto.VariableDefinition
@@ -339,6 +353,9 @@ func makeProtoVariableDefinitions(v []types.VariableDefinition) (vd []*proto.Var
 }
 
 func makeDriverVariableDefinitions(v []*proto.VariableDefinition) (vd []types.VariableDefinition, err error) {
+	if len(v) == 0 {
+		return nil, nil
+	}
 	vd = make([]types.VariableDefinition, 0, len(v))
 	for _, vv := range v {
 		var lv types.VariableDefinition
@@ -394,6 +411,9 @@ func makeProtoDirectives(v types.Directives) (dd []*proto.Directive, err error) 
 }
 
 func makeDriverDirectives(variables map[string]*proto.Value, v []*proto.Directive) (dd types.Directives, err error) {
+	if len(v) == 0 {
+		return nil, nil
+	}
 	for _, dir := range v {
 		var tdir types.Directive
 		tdir, err = makeDriverDirective(variables, dir)
@@ -528,6 +548,9 @@ func makeProtoSelectionSet(v types.Selections) (ss []*proto.Selection, err error
 }
 
 func makeDriverSelectionSet(variables map[string]*proto.Value, v []*proto.Selection) (ss types.Selections, err error) {
+	if len(v) == 0 {
+		return nil, nil
+	}
 	for _, sel := range v {
 		var s types.Selection
 		s, err = makeDriverSelection(variables, sel)

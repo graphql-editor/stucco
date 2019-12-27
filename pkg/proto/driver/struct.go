@@ -1,4 +1,4 @@
-package grpc
+package protodriver
 
 import (
 	"reflect"
@@ -31,9 +31,11 @@ type field struct {
 	encode func(v reflect.Value) (*proto.Value, error)
 }
 
-func wrap(f func(reflect.Value) *proto.Value) func(reflect.Value) (*proto.Value, error) {
+func wrap(f func(reflect.Value, *proto.Value), mv func() *proto.Value) func(reflect.Value) (*proto.Value, error) {
 	return func(v reflect.Value) (*proto.Value, error) {
-		return f(v), nil
+		pv := mv()
+		f(v, pv)
+		return pv, nil
 	}
 }
 
@@ -54,21 +56,66 @@ func encodeFuncForType(t reflect.Type) func(reflect.Value) (*proto.Value, error)
 	case reflect.Ptr:
 		klog.Warning("pointer to pointer types are not supported")
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return wrap(intToValue)
+		return wrap(intToValue, func() *proto.Value {
+			return &proto.Value{
+				TestValue: &proto.Value_I{},
+			}
+		})
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return wrap(uintToValue)
+		return wrap(uintToValue, func() *proto.Value {
+			return &proto.Value{
+				TestValue: &proto.Value_U{},
+			}
+		})
 	case reflect.Float32, reflect.Float64:
-		return wrap(floatToValue)
+		return wrap(floatToValue, func() *proto.Value {
+			return &proto.Value{
+				TestValue: &proto.Value_F{},
+			}
+		})
 	case reflect.String:
-		return wrap(stringToValue)
+		return wrap(stringToValue, func() *proto.Value {
+			return &proto.Value{
+				TestValue: &proto.Value_S{},
+			}
+		})
 	case reflect.Bool:
-		return wrap(boolToValue)
+		return wrap(boolToValue, func() *proto.Value {
+			return &proto.Value{
+				TestValue: &proto.Value_B{},
+			}
+		})
 	case reflect.Slice, reflect.Array:
-		return sliceOrArrayToValue
+		if t.Elem().Kind() == reflect.Uint8 {
+			return func(v reflect.Value) (*proto.Value, error) {
+				pv := &proto.Value{
+					TestValue: &proto.Value_Any{},
+				}
+				bytesToValue(v, pv)
+				return pv, nil
+			}
+		} else {
+			return func(v reflect.Value) (*proto.Value, error) {
+				pv := &proto.Value{
+					TestValue: &proto.Value_A{},
+				}
+				return pv, sliceOrArrayToValue(v, pv)
+			}
+		}
 	case reflect.Map:
-		return mapToValue
+		return func(v reflect.Value) (*proto.Value, error) {
+			pv := &proto.Value{
+				TestValue: &proto.Value_O{},
+			}
+			return pv, mapToValue(v, pv)
+		}
 	case reflect.Struct:
-		return structToValue
+		return func(v reflect.Value) (*proto.Value, error) {
+			pv := &proto.Value{
+				TestValue: &proto.Value_O{},
+			}
+			return pv, structToValue(v, pv)
+		}
 	}
 	klog.Warningf("kind %s is unsupported", t.Kind())
 	return nil
@@ -167,34 +214,28 @@ func cachedTypeFields(t reflect.Type) []field {
 	return f.([]field)
 }
 
-func structToValue(v reflect.Value) (*proto.Value, error) {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			// nil pointer to struct is still an object
-			return &proto.Value{TestValue: &proto.Value_O{}}, nil
+func structToValue(v reflect.Value, pv *proto.Value) error {
+	if v = getValue(v); v.IsValid() {
+		fields := cachedTypeFields(v.Type())
+		if len(fields) == 0 {
+			// empty struct or struct with only unexported fields
+			return nil
 		}
-		v = v.Elem()
-	}
-	fields := cachedTypeFields(v.Type())
-	if len(fields) == 0 {
-		// empty struct or struct with only unexported fields
-		return &proto.Value{TestValue: &proto.Value_O{}}, nil
-	}
-	obj := &proto.Value_O{
-		O: &proto.ObjectValue{
+		obj := &proto.ObjectValue{
 			Props: make(map[string]*proto.Value, len(fields)),
-		},
-	}
-	for i := 0; i < len(fields); i++ {
-		fv := v.Field(fields[i].index[0])
-		for _, idx := range fields[i].index[1:] {
-			fv = fv.Field(idx)
 		}
-		var err error
-		obj.O.Props[fields[i].name], err = fields[i].encode(fv)
-		if err != nil {
-			return nil, err
+		for i := 0; i < len(fields); i++ {
+			fv := v.Field(fields[i].index[0])
+			for _, idx := range fields[i].index[1:] {
+				fv = fv.Field(idx)
+			}
+			var err error
+			obj.Props[fields[i].name], err = fields[i].encode(fv)
+			if err != nil {
+				return err
+			}
 		}
+		pv.TestValue.(*proto.Value_O).O = obj
 	}
-	return &proto.Value{TestValue: obj}, nil
+	return nil
 }

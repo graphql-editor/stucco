@@ -30,9 +30,13 @@ func ScalarParseClientTestData() []ScalarParseClientTest {
 				},
 			},
 			ProtoRequest: &proto.ScalarParseRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
+				},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
 				},
 			},
 			ProtoResponse: &proto.ScalarParseResponse{Value: &proto.Value{
@@ -50,9 +54,13 @@ func ScalarParseClientTestData() []ScalarParseClientTest {
 				},
 			},
 			ProtoRequest: &proto.ScalarParseRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
+				},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
 				},
 			},
 			ProtoResponse: &proto.ScalarParseResponse{
@@ -94,7 +102,6 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 		{
 			Title: "CallsScalarParseHandler",
 			Input: &proto.ScalarParseRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
 				},
@@ -114,7 +121,6 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 		{
 			Title: "ReturnsUserError",
 			Input: &proto.ScalarParseRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
 				},
@@ -164,9 +170,13 @@ func ScalarSerializeClientTestData() []ScalarSerializeClientTest {
 				},
 			},
 			ProtoRequest: &proto.ScalarSerializeRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
+				},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
 				},
 			},
 			ProtoResponse: &proto.ScalarSerializeResponse{Value: &proto.Value{
@@ -184,9 +194,13 @@ func ScalarSerializeClientTestData() []ScalarSerializeClientTest {
 				},
 			},
 			ProtoRequest: &proto.ScalarSerializeRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
+				},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
 				},
 			},
 			ProtoResponse: &proto.ScalarSerializeResponse{
@@ -228,7 +242,6 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 		{
 			Title: "CallsScalarSerializeHandler",
 			Input: &proto.ScalarSerializeRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
 				},
@@ -248,7 +261,6 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 		{
 			Title: "ReturnsUserError",
 			Input: &proto.ScalarSerializeRequest{
-				Value: new(proto.Value),
 				Function: &proto.Function{
 					Name: "function",
 				},

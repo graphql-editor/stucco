@@ -2,11 +2,11 @@ syntax = "proto3";
 package proto;
 
 message ObjectValue {
-    map<string, Value> props = 6;
+    map<string, Value> props = 1;
 }
 
 message ArrayValue {
-  repeated Value items = 7;
+  repeated Value items = 1;
 }
 
 message Value {
@@ -20,6 +20,7 @@ message Value {
       ArrayValue a = 7;
       bytes any = 8;
       string variable = 9;
+      bool nil = 10;
     }
 }
 

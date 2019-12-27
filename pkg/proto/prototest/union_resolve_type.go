@@ -33,8 +33,12 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Value: new(proto.Value),
-				Info:  &proto.UnionResolveTypeInfo{},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Info: &proto.UnionResolveTypeInfo{},
 			},
 			ProtoResponse: &proto.UnionResolveTypeResponse{
 				Type: &proto.TypeRef{
@@ -67,8 +71,12 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Value: new(proto.Value),
-				Info:  &proto.UnionResolveTypeInfo{},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Info: &proto.UnionResolveTypeInfo{},
 			},
 			ProtoError: fmt.Errorf("proto error"),
 			Expected: driver.UnionResolveTypeOutput{
@@ -88,8 +96,12 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 				Function: &proto.Function{
 					Name: "function",
 				},
-				Value: new(proto.Value),
-				Info:  &proto.UnionResolveTypeInfo{},
+				Value: &proto.Value{
+					TestValue: &proto.Value_Nil{
+						Nil: true,
+					},
+				},
+				Info: &proto.UnionResolveTypeInfo{},
 			},
 			ProtoResponse: &proto.UnionResolveTypeResponse{
 				Error: &proto.Error{

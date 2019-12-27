@@ -6,116 +6,20 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
-	"github.com/graphql-editor/stucco/pkg/types"
+	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 )
 
-func makeUnionResolveTypeInfo(input driver.UnionResolveTypeInfo) (r *proto.UnionResolveTypeInfo, err error) {
-	variableValues, err := mapOfAnyToMapOfValue(input.VariableValues)
-	if err != nil {
-		return
-	}
-	od, err := makeProtoOperationDefinition(input.Operation)
-	if err != nil {
-		return
-	}
-	rp, err := makeProtoResponsePath(input.Path)
-	if err != nil {
-		return
-	}
-	r = &proto.UnionResolveTypeInfo{
-		FieldName:      input.FieldName,
-		Path:           rp,
-		ReturnType:     makeProtoTypeRef(input.ReturnType),
-		ParentType:     makeProtoTypeRef(input.ParentType),
-		VariableValues: variableValues,
-		Operation:      od,
-	}
-	return
-}
-
-func makeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.UnionResolveTypeRequest, err error) {
-	info, err := makeUnionResolveTypeInfo(input.Info)
-	if err != nil {
-		return
-	}
-	value, err := anyToValue(input.Value)
-	if err != nil {
-		return
-	}
-	if input.Function.Name == "" {
-		return nil, fmt.Errorf("function name is required")
-	}
-	r = &proto.UnionResolveTypeRequest{
-		Function: &proto.Function{
-			Name: input.Function.Name,
-		},
-		Value: value,
-		Info:  info,
-	}
-	return
-}
-
 func (m *Client) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput) {
-	req, err := makeUnionResolveTypeRequest(input)
+	req, err := protodriver.MakeUnionResolveTypeRequest(input)
 	if err == nil {
 		var resp *proto.UnionResolveTypeResponse
 		resp, err = m.Client.UnionResolveType(context.Background(), req)
 		if err == nil {
-			if r := resp.GetType(); r != nil {
-				f.Type = *makeDriverTypeRef(r)
-			}
-			if rerr := resp.GetError(); rerr != nil {
-				err = fmt.Errorf(rerr.GetMsg())
-			}
+			f = protodriver.MakeUnionResolveTypeOutput(resp)
 		}
 	}
 	if err != nil {
 		f.Error = &driver.Error{Message: err.Error()}
-	}
-	return
-}
-
-func makeDriverUnionResolveTypeInfo(input *proto.UnionResolveTypeInfo) (u driver.UnionResolveTypeInfo, err error) {
-	variables := input.GetVariableValues()
-	variableValues, err := mapOfValueToMapOfAny(nil, variables)
-	if err != nil {
-		return
-	}
-	variables = initVariablesWithDefaults(variables, input.GetOperation())
-	od, err := makeDriverOperationDefinition(variables, input.GetOperation())
-	if err != nil {
-		return
-	}
-	rp, err := makeDriverResponsePath(variables, input.GetPath())
-	if err != nil {
-		return
-	}
-	u = driver.UnionResolveTypeInfo{
-		FieldName:      input.GetFieldName(),
-		Path:           rp,
-		ReturnType:     makeDriverTypeRef(input.GetReturnType()),
-		ParentType:     makeDriverTypeRef(input.GetParentType()),
-		VariableValues: variableValues,
-		Operation:      od,
-	}
-	return
-}
-
-func makeUnionResolveTypeInput(input *proto.UnionResolveTypeRequest) (u driver.UnionResolveTypeInput, err error) {
-	val, err := valueToAny(nil, input.GetValue())
-	if err != nil {
-		return
-	}
-	info, err := makeDriverUnionResolveTypeInfo(input.GetInfo())
-	if err != nil {
-		return
-	}
-	u = driver.UnionResolveTypeInput{
-		Function: types.Function{
-			Name: input.GetFunction().GetName(),
-		},
-		Value: val,
-		Info:  info,
 	}
 	return
 }
@@ -136,6 +40,7 @@ func (f UnionResolveTypeHandlerFunc) Handle(in driver.UnionResolveTypeInput) (st
 	return f(in)
 }
 
+// UnionResolveType executes union type resolution request agains user defined function
 func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolveTypeRequest) (f *proto.UnionResolveTypeResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -146,13 +51,13 @@ func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolve
 			}
 		}
 	}()
-	req, err := makeUnionResolveTypeInput(input)
+	req, err := protodriver.MakeUnionResolveTypeInput(input)
 	if err == nil {
 		var resp string
 		resp, err = m.UnionResolveTypeHandler.Handle(req)
 		f = new(proto.UnionResolveTypeResponse)
 		if err == nil {
-			f.Type = &proto.TypeRef{TestTyperef: &proto.TypeRef_Name{Name: resp}}
+			*f = protodriver.MakeUnionResolveTypeResponse(resp)
 		}
 	}
 	if err != nil {

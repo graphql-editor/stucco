@@ -6,66 +6,33 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/proto"
-	"github.com/graphql-editor/stucco/pkg/types"
+	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 )
 
 // ScalarParse executes server side ScalarParse rpc
 func (m *Client) ScalarParse(input driver.ScalarParseInput) (s driver.ScalarParseOutput) {
-	v, err := anyToValue(input.Value)
+	req, err := protodriver.MakeScalarParseRequest(input)
 	if err == nil {
 		var resp *proto.ScalarParseResponse
-		resp, err = m.Client.ScalarParse(
-			context.Background(),
-			&proto.ScalarParseRequest{
-				Function: &proto.Function{
-					Name: input.Function.Name,
-				},
-				Value: v,
-			},
-		)
+		resp, err = m.Client.ScalarParse(context.Background(), req)
 		if err == nil {
-			var r interface{}
-			if respErr := resp.GetError(); respErr != nil {
-				err = fmt.Errorf(respErr.GetMsg())
-			} else {
-				r, err = valueToAny(nil, resp.GetValue())
-				if err == nil {
-					s.Response = r
-				}
-			}
+			s = protodriver.MakeScalarParseOutput(resp)
 		}
 	}
 	if err != nil {
 		s.Error = &driver.Error{Message: err.Error()}
-		err = nil
 	}
 	return
 }
 
 // ScalarSerialize executes server side ScalarSerialize rpc
 func (m *Client) ScalarSerialize(input driver.ScalarSerializeInput) (s driver.ScalarSerializeOutput) {
-	v, err := anyToValue(input.Value)
+	req, err := protodriver.MakeScalarSerializeRequest(input)
 	if err == nil {
 		var resp *proto.ScalarSerializeResponse
-		resp, err = m.Client.ScalarSerialize(
-			context.Background(),
-			&proto.ScalarSerializeRequest{
-				Function: &proto.Function{
-					Name: input.Function.Name,
-				},
-				Value: v,
-			},
-		)
+		resp, err = m.Client.ScalarSerialize(context.Background(), req)
 		if err == nil {
-			var r interface{}
-			if respErr := resp.GetError(); respErr != nil {
-				err = fmt.Errorf(respErr.GetMsg())
-			} else {
-				r, err = valueToAny(nil, resp.GetValue())
-				if err == nil {
-					s.Response = r
-				}
-			}
+			s = protodriver.MakeScalarSerializeOutput(resp)
 		}
 	}
 	if err != nil {
@@ -102,17 +69,12 @@ func (m *Server) ScalarParse(ctx context.Context, input *proto.ScalarParseReques
 		}
 	}()
 	s = new(proto.ScalarParseResponse)
-	val, err := valueToAny(nil, input.GetValue())
+	v, err := protodriver.MakeScalarParseInput(input)
 	if err == nil {
 		var resp interface{}
-		resp, err = m.ScalarParseHandler.Handle(driver.ScalarParseInput{
-			Function: types.Function{
-				Name: input.GetFunction().GetName(),
-			},
-			Value: val,
-		})
+		resp, err = m.ScalarParseHandler.Handle(v)
 		if err == nil {
-			s.Value, err = anyToValue(resp)
+			*s = protodriver.MakeScalarParseResponse(resp)
 		}
 	}
 	if err != nil {
@@ -148,22 +110,16 @@ func (m *Server) ScalarSerialize(ctx context.Context, input *proto.ScalarSeriali
 		}
 	}()
 	s = new(proto.ScalarSerializeResponse)
-	val, err := valueToAny(nil, input.GetValue())
+	val, err := protodriver.MakeScalarSerializeInput(input)
 	if err == nil {
 		var resp interface{}
-		resp, err = m.ScalarSerializeHandler.Handle(driver.ScalarSerializeInput{
-			Function: types.Function{
-				Name: input.GetFunction().GetName(),
-			},
-			Value: val,
-		})
+		resp, err = m.ScalarSerializeHandler.Handle(val)
 		if err == nil {
-			s.Value, err = anyToValue(resp)
+			*s = protodriver.MakeScalarSerializeResponse(resp)
 		}
 	}
 	if err != nil {
 		s.Error = &proto.Error{Msg: err.Error()}
-		err = nil
 	}
 	return
 }
