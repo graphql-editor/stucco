@@ -17,6 +17,7 @@ type GRPC struct {
 	ScalarParseHandler          grpc.ScalarParseHandler
 	ScalarSerializeHandler      grpc.ScalarSerializeHandler
 	UnionResolveTypeHandler     grpc.UnionResolveTypeHandler
+	SetSecretsHandler           grpc.SetSecretsHandler
 	StreamHandler               grpc.StreamHandler
 	StdoutHandler               grpc.StdoutHandler
 	StderrHandler               grpc.StderrHandler

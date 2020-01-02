@@ -65,6 +65,19 @@ func (m *driverClientMock) ScalarSerialize(ctx context.Context, in *proto.Scalar
 	return resp.(*proto.ScalarSerializeResponse), called.Error(1)
 }
 
+func (m *driverClientMock) SetSecrets(ctx context.Context, in *proto.SetSecretsRequest, opts ...googlegrpc.CallOption) (*proto.SetSecretsResponse, error) {
+	i := []interface{}{ctx, in}
+	for _, opt := range opts {
+		i = append(i, opt)
+	}
+	called := m.Called(i...)
+	resp := called.Get(0)
+	if resp == nil {
+		return nil, called.Error(1)
+	}
+	return resp.(*proto.SetSecretsResponse), called.Error(1)
+}
+
 func (m *driverClientMock) UnionResolveType(ctx context.Context, in *proto.UnionResolveTypeRequest, opts ...googlegrpc.CallOption) (*proto.UnionResolveTypeResponse, error) {
 	i := []interface{}{ctx, in}
 	for _, opt := range opts {
@@ -132,6 +145,14 @@ type interfaceResolveTypeMock struct {
 func (m *interfaceResolveTypeMock) Handle(input driver.InterfaceResolveTypeInput) (string, error) {
 	called := m.Called(input)
 	return called.String(0), called.Error(1)
+}
+
+type setSecretsMock struct {
+	mock.Mock
+}
+
+func (m *setSecretsMock) Handle(input driver.SetSecretsInput) error {
+	return m.Called(input).Error(0)
 }
 
 type scalarParseMock struct {

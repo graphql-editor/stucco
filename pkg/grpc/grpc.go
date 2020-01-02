@@ -28,6 +28,7 @@ type Server struct {
 	ScalarParseHandler          ScalarParseHandler
 	ScalarSerializeHandler      ScalarSerializeHandler
 	UnionResolveTypeHandler     UnionResolveTypeHandler
+	SetSecretsHandler           SetSecretsHandler
 	StreamHandler               StreamHandler
 	StdoutHandler               StdoutHandler
 	StderrHandler               StderrHandler
