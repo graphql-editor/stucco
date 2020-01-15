@@ -1,3 +1,21 @@
+# Version v0.3.0
+
+## Download
+
+|   | amd64 |
+|---|----|
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/0.3.0/linux/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.3.0/linux/amd64/stucco) |
+| macOS | [https://stucco-release.fra1.digitaloceanspaces.com/0.3.0/darwin/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.3.0/darwin/amd64/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/0.3.0/windows/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.3.0/windows/amd64/stucco) |
+
+## Changes
+
+```
+ec40f6f by Kamil Matysiewicz: feat: add Protocol Buffer over HTTP transport
+b31dd60 by Kamil Matysiewicz: feat: Support setting server secrets through GRPC
+6b2cc03 by Kamil Matysiewicz: feat: force driver implementations to always return error through Error field on output structs
+```
+
 # Version v0.2.0
 
 ## Download
