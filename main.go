@@ -9,6 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver/plugin"
 	"github.com/graphql-editor/stucco/pkg/router"
@@ -150,7 +153,18 @@ func main() {
 			),
 		),
 	)
-	if err := http.ListenAndServe(":8080", nil); err != nil {
-		klog.Fatalln(err)
+	server := http.Server{
+		Addr: ":8080",
+	}
+	shc := make(chan os.Signal, 1)
+	signal.Notify(shc, syscall.SIGTERM)
+	go func() {
+		<-shc
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		server.Shutdown(ctx)
+	}()
+	if err := server.ListenAndServe(); err != nil {
+		klog.Errorln(err)
 	}
 }

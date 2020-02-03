@@ -8,11 +8,9 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
@@ -344,7 +342,7 @@ func (p *Plugin) Close() (err error) {
 		defer close(clean)
 		// wait for all runners
 		for i := uint8(0); i < p.getRunnersCount(); i++ {
-			<-p.getRunner
+			close(<-p.getRunner)
 		}
 	}()
 	t := time.NewTimer(10 * time.Second)
@@ -460,12 +458,5 @@ func LoadDriverPlugins(cfg Config) func() {
 			plugins = append(plugins, plug)
 		}
 	}
-	cleanupFunc := cleanup(plugins)
-	term := make(chan os.Signal, 1)
-	signal.Notify(term, syscall.SIGTERM)
-	go func() {
-		<-term
-		cleanupFunc()
-	}()
-	return cleanupFunc
+	return cleanup(plugins)
 }
