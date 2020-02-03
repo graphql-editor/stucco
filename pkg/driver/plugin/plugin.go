@@ -8,9 +8,11 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
@@ -18,7 +20,7 @@ import (
 	"k8s.io/klog"
 )
 
-const defaultRunnersCount = 64
+const defaultRunnersCount = 16
 
 type driverShim interface {
 	FieldResolve(driver.FieldResolveInput) driver.FieldResolveOutput
@@ -458,5 +460,12 @@ func LoadDriverPlugins(cfg Config) func() {
 			plugins = append(plugins, plug)
 		}
 	}
-	return cleanup(plugins)
+	cleanupFunc := cleanup(plugins)
+	term := make(chan os.Signal, 1)
+	signal.Notify(term, syscall.SIGTERM)
+	go func() {
+		<-term
+		cleanupFunc()
+	}()
+	return cleanupFunc
 }
