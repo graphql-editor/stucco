@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"strings"
 
 	"github.com/golang/protobuf/proto"
 	protobuf "github.com/golang/protobuf/proto"
@@ -83,7 +84,7 @@ func unmarshalFromHTTP(
 	if err != nil {
 		return err
 	}
-	if string(out.contentType) != messageType {
+	if strings.ToLower(string(out.contentType)) != strings.ToLower(messageType) {
 		return fmt.Errorf("cannot unmarshal %s to %s", messageType, string(out.contentType))
 	}
 	body, err := ioutil.ReadAll(resp.Body)
