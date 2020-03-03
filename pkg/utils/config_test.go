@@ -30,7 +30,6 @@ func TestLoadFileFromFileSystem(t *testing.T) {
 	assert.NoError(t, utils.LoadConfigFile("./testdata/config", &cfg))
 	assert.Equal(t, expectedConfig(), cfg)
 	assert.Error(t, utils.LoadConfigFile("./testdata/invalid", &cfg))
-	assert.Error(t, utils.LoadConfigFile("http://localhost/config", &cfg))
 }
 
 func TestLoadFileFromRemote(t *testing.T) {
@@ -46,4 +45,5 @@ func TestLoadFileFromRemote(t *testing.T) {
 	var cfg router.Config
 	assert.NoError(t, utils.LoadConfigFile("http://localhost:8080/config.json", &cfg))
 	assert.Equal(t, expectedConfig(), cfg)
+	assert.Error(t, utils.LoadConfigFile("http://localhost/config", &cfg))
 }
