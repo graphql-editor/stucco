@@ -15,6 +15,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	google.golang.org/grpc v1.23.1
+	gopkg.in/yaml.v2 v2.2.4
 	k8s.io/apiserver v0.0.0-20191123100217-e01ab74ca9ea
 	k8s.io/klog v1.0.0
 	sigs.k8s.io/yaml v1.1.0
