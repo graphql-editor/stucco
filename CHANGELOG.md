@@ -1,3 +1,19 @@
+# Version v0.3.3
+
+## Download
+
+|   | amd64 |
+|---|----|
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/0.3.3/linux/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.3.3/linux/amd64/stucco) |
+| macOS | [https://stucco-release.fra1.digitaloceanspaces.com/0.3.3/darwin/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.3.3/darwin/amd64/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/0.3.3/windows/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.3.3/windows/amd64/stucco) |
+
+## Changes
+
+```
+7e32677 by Kamil Matysiewicz: fix: compare lowercase message type
+```
+
 # Version v0.3.2
 
 ## Download
