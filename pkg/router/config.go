@@ -1,8 +1,10 @@
 package router
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/graphql-editor/stucco/pkg/types"
@@ -115,6 +117,11 @@ func (c Config) fileSchema() (string, error) {
 	return string(b), nil
 }
 
+func isFile(s string) bool {
+	st, err := os.Stat(s)
+	return err == nil && st != nil
+}
+
 func (c Config) rawSchema() (string, error) {
 	switch {
 	case strings.HasPrefix(c.Schema, "http://"), strings.HasPrefix(c.Schema, "https://"):
@@ -122,7 +129,8 @@ func (c Config) rawSchema() (string, error) {
 	case c.Schema == "":
 		c.Schema = "./schema.graphql"
 		fallthrough
-	case strings.HasPrefix(c.Schema, "file://"), strings.HasPrefix(c.Schema, "/"), strings.HasPrefix(c.Schema, "./"):
+	case isFile(c.Schema):
+		fmt.Fprintf(os.Stderr, "file schema\n")
 		return c.fileSchema()
 	}
 	return c.Schema, nil
