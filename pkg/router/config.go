@@ -1,7 +1,6 @@
 package router
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -130,7 +129,6 @@ func (c Config) rawSchema() (string, error) {
 		c.Schema = "./schema.graphql"
 		fallthrough
 	case isFile(c.Schema):
-		fmt.Fprintf(os.Stderr, "file schema\n")
 		return c.fileSchema()
 	}
 	return c.Schema, nil
