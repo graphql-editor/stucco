@@ -50,7 +50,7 @@ func getConfigExt(fn string) (ext string, err error) {
 	}
 	if err != nil || st.IsDir() {
 		if os.IsNotExist(err) {
-			err = fmt.Errorf("could not find stucco config in current directory")
+			err = fmt.Errorf("could not find stucco config at %s", fn)
 		}
 		if err == nil {
 			err = fmt.Errorf("%s is a directory", st.Name())
@@ -60,8 +60,12 @@ func getConfigExt(fn string) (ext string, err error) {
 }
 
 func realConfigFileName(fn string) (configPath string, err error) {
-	if env := os.Getenv(StuccoConfigEnv); fn == "" && env != "" {
-		fn = env
+	if fn == "" {
+		if env := os.Getenv(StuccoConfigEnv); env != "" {
+			fn = env
+		} else {
+			fn = "./stucco"
+		}
 	}
 	ext, err := getConfigExt(fn)
 	if err == nil {
