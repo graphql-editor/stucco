@@ -12,6 +12,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// StuccoConfigEnv is a name of environment variable that will be checked for stucco.json path if one is not provided
+const StuccoConfigEnv = "STUCCO_CONFIG"
+
 type decodeFunc func([]byte, interface{}) error
 
 func yamlUnmarshal(b []byte, v interface{}) error {
@@ -57,6 +60,9 @@ func getConfigExt(fn string) (ext string, err error) {
 }
 
 func realConfigFileName(fn string) (configPath string, err error) {
+	if env := os.Getenv(StuccoConfigEnv); fn == "" && env != "" {
+		fn = env
+	}
 	ext, err := getConfigExt(fn)
 	if err == nil {
 		configPath = fn

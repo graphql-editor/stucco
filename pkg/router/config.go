@@ -9,6 +9,10 @@ import (
 	"github.com/graphql-editor/stucco/pkg/types"
 )
 
+// SchemaEnv is a name of environment variable that will be checked for schema if
+// one is not provided
+const SchemaEnv = "STUCCO_SCHEMA"
+
 var (
 	defaultEnvironment = Environment{
 		Provider: "local",
@@ -122,6 +126,9 @@ func isFile(s string) bool {
 }
 
 func (c Config) rawSchema() (string, error) {
+	if env := os.Getenv(SchemaEnv); c.Schema == "" && env != "" {
+		c.Schema = env
+	}
 	switch {
 	case strings.HasPrefix(c.Schema, "http://"), strings.HasPrefix(c.Schema, "https://"):
 		return c.httpSchema()
