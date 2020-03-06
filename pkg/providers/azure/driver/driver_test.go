@@ -3,6 +3,7 @@ package driver_test
 import (
 	"net/http"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
@@ -47,7 +48,10 @@ func TestDriver(t *testing.T) {
 	defer os.Unsetenv("STUCCO_WORKER_BASE_URL")
 	var mockDriver drivertest.MockDriver
 	var mockWorkerClient mockWorkerClient
-	mockWorkerClient.On("New", "http://mockurl").Return(&mockDriver)
+	mockWorkerClient.On("New", mock.MatchedBy(func(v interface{}) bool {
+		m, ok := v.(string)
+		return ok && strings.HasPrefix(m, "http://mockurl/")
+	})).Return(&mockDriver)
 	d := azuredriver.Driver{
 		WorkerClient: &mockWorkerClient,
 	}
