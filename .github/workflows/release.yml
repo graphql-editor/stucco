@@ -50,7 +50,7 @@ jobs:
     - name: build all
       run: go build ./...
     - name: build stucco
-      run: go build -ldflags="-X github.com/graphql-editor/stucco/pkg/version.Version=${{ steps.version.outputs.replaced }}" -o bin/${{ steps.version.outputs.replaced }}/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} main.go
+      run: go build -ldflags="-X github.com/graphql-editor/stucco/pkg/version.Version=${{ steps.version.outputs.replaced }}" -o bin/${{ steps.version.outputs.replaced }}/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} ./stucco
     - name: test
       env:
         CGO_ENABLED: 1
