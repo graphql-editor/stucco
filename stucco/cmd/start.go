@@ -18,7 +18,6 @@ package cmd
 import (
 	"context"
 	"flag"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -26,6 +25,7 @@ import (
 	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver/plugin"
+	"github.com/graphql-editor/stucco/pkg/handlers"
 	"github.com/graphql-editor/stucco/pkg/router"
 	"github.com/graphql-editor/stucco/pkg/utils"
 	"github.com/graphql-go/handler"
@@ -35,35 +35,10 @@ import (
 	"k8s.io/klog"
 )
 
-func withProtocolInContext(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(
-			rw,
-			r.WithContext(
-				context.WithValue(
-					r.Context(),
-					router.ProtocolKey, map[string]interface{}{
-						"headers": r.Header,
-					},
-				),
-			),
-		)
-	})
-}
+type klogErrorf struct{}
 
-func recoveryHandler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		defer func() {
-			err := recover()
-			if err != nil {
-				log.Println(err)
-				rw.Header().Set("Content-Type", "text/plain")
-				rw.WriteHeader(http.StatusInternalServerError)
-				rw.Write([]byte("There was an internal server error"))
-			}
-		}()
-		next.ServeHTTP(rw, r)
-	})
+func (klogErrorf) Errorf(msg string, args ...interface{}) {
+	klog.Errorf(msg, args...)
 }
 
 // startCmd represents the start command
@@ -91,7 +66,7 @@ var (
 			})
 			http.Handle(
 				"/graphql",
-				recoveryHandler(
+				handlers.RecoveryHandler(
 					httplog.WithLogging(
 						cors.New(cors.Options{
 							AllowedOrigins: []string{"*"},
@@ -106,10 +81,11 @@ var (
 							AllowedHeaders:   []string{"*"},
 							AllowCredentials: true,
 						}).Handler(
-							withProtocolInContext(h),
+							handlers.WithProtocolInContext(h),
 						),
 						httplog.DefaultStacktracePred,
 					),
+					klogErrorf{},
 				),
 			)
 			server := http.Server{
