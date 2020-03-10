@@ -46,4 +46,6 @@ func TestLoadFileFromRemote(t *testing.T) {
 	assert.NoError(t, utils.LoadConfigFile("http://localhost:8080/config.json", &cfg))
 	assert.Equal(t, expectedConfig(), cfg)
 	assert.Error(t, utils.LoadConfigFile("http://localhost/config", &cfg))
+	assert.NoError(t, utils.LoadConfigFile("http://localhost:8080/config.json?some=arg&in=url", &cfg))
+	assert.Equal(t, expectedConfig(), cfg)
 }
