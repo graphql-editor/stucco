@@ -48,7 +48,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: build all
-      run: go build ./...
+      run: go build ./pkg/... ./stucco/...
     - name: build stucco
       run: go build -ldflags="-X github.com/graphql-editor/stucco/pkg/version.Version=${{ steps.version.outputs.replaced }}" -o bin/${{ steps.version.outputs.replaced }}/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} ./stucco
     - name: test
