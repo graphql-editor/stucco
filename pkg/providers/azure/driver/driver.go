@@ -67,13 +67,22 @@ func (d *Driver) newClient(url string) driver.Driver {
 }
 
 func (d *Driver) baseURL(f types.Function) (us string, err error) {
-	baseURL := os.Getenv("STUCCO_WORKER_BASE_URL")
-	if funcURL := os.Getenv("STUCCO_" + normalizeFuncName(f.Name) + "_URL"); funcURL != "" {
+	baseURL := os.Getenv("STUCCO_AZURE_WORKER_BASE_URL")
+	if funcURL := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(f.Name) + "_URL"); funcURL != "" {
 		baseURL = funcURL
+	}
+	authCode := os.Getenv("STUCCO_AZURE_WORKER_KEY")
+	if funcCode := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(f.Name) + "_KEY"); funcCode != "" {
+		authCode = funcCode
 	}
 	u, err := url.Parse(baseURL)
 	if err != nil {
 		return
+	}
+	if authCode != "" {
+		v := u.Query()
+		v.Add("code", authCode)
+		u.RawQuery = v.Encode()
 	}
 	u.Path = path.Join(u.Path, EndpointName(f.Name))
 	us = u.String()
