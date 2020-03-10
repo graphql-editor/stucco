@@ -2,13 +2,13 @@ package utils
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 
@@ -27,18 +27,19 @@ var supportedExtension = map[string]decodeFunc{
 	".yml":  yamlUnmarshal,
 }
 
-func getConfigExt(fn string) (ext string, err error) {
+func getConfigExt(fn string) (ext string, isurl bool, err error) {
 	u, err := url.Parse(fn)
 	if err != nil {
 		return
 	}
 	for k := range supportedExtension {
 		if strings.HasSuffix(u.Path, k) {
-			return k, nil
+			return k, u.Scheme != "", nil
 		}
 	}
 	if u.Scheme != "" {
-		return "", fmt.Errorf("remote config path must be end with extension")
+		err = errors.Errorf("remote config path must be end with extension")
+		return
 	}
 	var st os.FileInfo
 	for k := range supportedExtension {
@@ -50,10 +51,10 @@ func getConfigExt(fn string) (ext string, err error) {
 	}
 	if err != nil || st.IsDir() {
 		if os.IsNotExist(err) {
-			err = fmt.Errorf("could not find stucco config at %s", fn)
+			err = errors.Errorf("could not find stucco config at %s", fn)
 		}
 		if err == nil {
-			err = fmt.Errorf("%s is a directory", st.Name())
+			err = errors.Errorf("%s is a directory", st.Name())
 		}
 	}
 	return
@@ -67,10 +68,10 @@ func realConfigFileName(fn string) (configPath string, err error) {
 			fn = "./stucco"
 		}
 	}
-	ext, err := getConfigExt(fn)
+	ext, isurl, err := getConfigExt(fn)
 	if err == nil {
 		configPath = fn
-		if !strings.HasSuffix(fn, ext) {
+		if !isurl && !strings.HasSuffix(fn, ext) {
 			configPath = fn + ext
 		}
 	}
@@ -108,9 +109,18 @@ func LoadConfigFile(fn string, v interface{}) (err error) {
 		b, err = ReadConfigFile(configPath)
 	}
 	if err == nil {
-		ext := configPath[strings.LastIndex(configPath, "."):]
-		decode := supportedExtension[ext]
-		err = decode(b, v)
+		var u *url.URL
+		u, err = url.Parse(configPath)
+		if err == nil {
+			// TODO: Check based on response content-type for remote configs
+			ext := u.Path[strings.LastIndex(u.Path, "."):]
+			decode := supportedExtension[ext]
+			if decode != nil {
+				err = decode(b, v)
+			} else {
+				err = errors.Errorf("%s is not a supported config extension", ext)
+			}
+		}
 	}
 	return
 }
