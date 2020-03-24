@@ -3,6 +3,7 @@ package protohttp
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -12,9 +13,14 @@ import (
 	protobuf "github.com/golang/protobuf/proto"
 )
 
+// HTTPClient for protocol buffer
+type HTTPClient interface {
+	Post(url, contentType string, body io.Reader) (*http.Response, error)
+}
+
 // Client implements driver by using Protocol Buffers over HTTP
 type Client struct {
-	*http.Client
+	HTTPClient
 	// URL of a proto server endpoint
 	URL string
 }
@@ -31,8 +37,8 @@ func NewClient(config Config) Client {
 		config.Client = http.DefaultClient
 	}
 	return Client{
-		Client: config.Client,
-		URL:    config.URL,
+		HTTPClient: config.Client,
+		URL:        config.URL,
 	}
 }
 

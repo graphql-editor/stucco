@@ -8,49 +8,70 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/driver/drivertest"
-	"github.com/graphql-editor/stucco/pkg/driver/protohttp"
 	azuredriver "github.com/graphql-editor/stucco/pkg/providers/azure/driver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 
+type mockHTTPClient struct {
+	mock.Mock
+}
+
+func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	called := m.Called(req)
+	if resp, ok := called.Get(0).(*http.Response); ok {
+		return resp, called.Error(1)
+	}
+	return nil, called.Error(1)
+}
+
 func TestProtobufNewClient(t *testing.T) {
-	var pc azuredriver.ProtobufClient
-	assert.Equal(
-		t,
-		&protohttp.Client{
-			Client: http.DefaultClient,
-			URL:    "mockurl",
-		},
-		pc.New("mockurl"),
-	)
-	pc.Client = &http.Client{}
-	assert.Equal(
-		t,
-		&protohttp.Client{
-			Client: &http.Client{},
-			URL:    "mockurl",
-		},
-		pc.New("mockurl"),
-	)
+	assert.NotNil(t, azuredriver.ProtobufClient{}.New("http://mockurl"))
+	assert.NotNil(t, azuredriver.ProtobufClient{
+		HTTPClient: http.DefaultClient,
+	}.New("http://mockurl"))
+	var mockHTTPClient mockHTTPClient
+	os.Setenv("STUCCO_AZURE_WORKER_KEY", "secret")
+	defer os.Unsetenv("STUCCO_AZURE_WORKER_KEY")
+	os.Setenv("STUCCO_AZURE_FUNCTION_NAME_KEY", "specialsecret")
+	defer os.Unsetenv("STUCCO_AZURE_FUNCTION_NAME_KEY")
+	mockHTTPClient.On("Do", mock.MatchedBy(func(v interface{}) bool {
+		req, ok := v.(*http.Request)
+		return ok &&
+			"secret" == req.Header.Get("X-Functions-Key") &&
+			"http://mockurl" == req.URL.String()
+	})).Return(nil, nil)
+	mockHTTPClient.On("Do", mock.MatchedBy(func(v interface{}) bool {
+		req, ok := v.(*http.Request)
+		return ok &&
+			"specialsecret" == req.Header.Get("X-Functions-Key") &&
+			"http://mockurl/functionname" == req.URL.String()
+	})).Return(nil, nil)
+	azuredriver.ProtobufClient{
+		HTTPClient: &mockHTTPClient,
+	}.Post("http://mockurl", "some/content", nil)
+	azuredriver.ProtobufClient{
+		HTTPClient:   &mockHTTPClient,
+		FunctionName: "function.name",
+	}.Post("http://mockurl/functionname", "some/content", nil)
 }
 
 type mockWorkerClient struct {
 	mock.Mock
 }
 
-func (m *mockWorkerClient) New(u string) driver.Driver {
-	return m.Called(u).Get(0).(driver.Driver)
+func (m *mockWorkerClient) New(a string) driver.Driver {
+	return m.Called(a).Get(0).(driver.Driver)
 }
 
 func TestDriver(t *testing.T) {
-	os.Setenv("STUCCO_WORKER_BASE_URL", "http://mockurl")
-	defer os.Unsetenv("STUCCO_WORKER_BASE_URL")
+	os.Setenv("STUCCO_AZURE_WORKER_BASE_URL", "http://mockurl")
+	defer os.Unsetenv("STUCCO_AZURE_WORKER_BASE_URL")
 	var mockDriver drivertest.MockDriver
 	var mockWorkerClient mockWorkerClient
 	mockWorkerClient.On("New", mock.MatchedBy(func(v interface{}) bool {
 		m, ok := v.(string)
-		return ok && strings.HasPrefix(m, "http://mockurl/")
+		return ok && strings.HasPrefix(m, "http://mockurl")
 	})).Return(&mockDriver)
 	d := azuredriver.Driver{
 		WorkerClient: &mockWorkerClient,
@@ -86,7 +107,7 @@ func TestDriver(t *testing.T) {
 	assert.Equal(t, driver.StreamOutput{}, d.Stream(driver.StreamInput{}))
 	mockDriver.AssertCalled(t, "Stream", driver.StreamInput{})
 
-	os.Setenv("STUCCO_WORKER_BASE_URL", "://mockurl")
+	os.Setenv("STUCCO_AZURE_WORKER_BASE_URL", "://mockurl")
 
 	// Test FieldResolve
 	f := d.FieldResolve(driver.FieldResolveInput{})
