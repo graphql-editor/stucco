@@ -32,6 +32,7 @@ type ProtobufClient struct {
 
 // Post implemention for azure worker protobuf communication
 func (p ProtobufClient) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
+	// TODO: This should be done using Azure AD in the future
 	req, err := http.NewRequest(http.MethodPost, url, body)
 	var authCode string
 	if err == nil {
@@ -43,8 +44,13 @@ func (p ProtobufClient) Post(url, contentType string, body io.Reader) (resp *htt
 	if err == nil {
 		if authCode != "" {
 			req.Header.Add("X-Functions-Key", authCode)
+			req.Header.Add("content-type", contentType)
 		}
-		resp, err = p.Do(req)
+		client := p.HTTPClient
+		if client == nil {
+			client = http.DefaultClient
+		}
+		resp, err = client.Do(req)
 	}
 	return
 }
@@ -93,6 +99,7 @@ func (d *Driver) baseURL(f types.Function) (us string, err error) {
 	}
 	u, err := url.Parse(envURL)
 	if err == nil {
+		u.Path = EndpointName(f.Name)
 		us = u.String()
 	}
 	return
