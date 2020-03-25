@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,9 +22,22 @@ const (
 	major
 )
 
-const cdnURL = "https://stucco-release.fra1.digitaloceanspaces.com/%s/%s/%s/stucco%s"
+const (
+	cdnURL                       = "https://stucco-release.fra1.digitaloceanspaces.com/%s/%s/%s/stucco%s"
+	stuccoAzureRouterImage       = "gqleditor/stucco-router-azure-worker"
+	stuccoAzureRouterImageLatest = stuccoAzureRouterImage + ":latest"
+)
 
-func newVersion(bumpType versionBumpType) (v, nv semver.Version, err error) {
+var (
+	reTag   = regexp.MustCompile("^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+	version string
+)
+
+func semverParse(bv string) (semver.Version, error) {
+	return semver.Parse(strings.TrimPrefix(bv, "v"))
+}
+
+func latestVersion() (v semver.Version, err error) {
 	_, err = gbtb.Output("git", "fetch", "--tags")
 	if err != nil {
 		return
@@ -43,11 +57,13 @@ func newVersion(bumpType versionBumpType) (v, nv semver.Version, err error) {
 			tag = tg
 			break
 		}
+		v, err = semverParse(tag)
 	}
-	v, err = semver.Parse(tag[1:])
-	if err != nil {
-		return
-	}
+	return
+}
+
+func newVersion(bumpType versionBumpType) (v, nv semver.Version, err error) {
+	v, err = latestVersion()
 	nv = v
 	switch bumpType {
 	case patch:
@@ -68,10 +84,7 @@ func newVersion(bumpType versionBumpType) (v, nv semver.Version, err error) {
 
 func isClean() (bool, error) {
 	o, err := gbtb.Output("git", "status", "--porcelain")
-	if err != nil {
-		return false, err
-	}
-	return len(o) == 0, nil
+	return err == nil && len(o) == 0, err
 }
 
 func writeChangelog(from, to semver.Version) error {
@@ -183,8 +196,148 @@ func coverage() (err error) {
 	return
 }
 
+func out(s string) string {
+	return filepath.Join("bin", s)
+}
+
+var (
+	azureWorker         = out("azure/worker")
+	azureFunction       = out("azure/function.so")
+	goBuildDependencies = gbtb.DependenciesList{
+		gbtb.GlobFiles("**/*.go"),
+		gbtb.StaticDependencies{"go.sum", "go.mod"},
+	}
+)
+
+type flavour struct {
+	goos, goarch, out string
+}
+
+func buildVersion() string {
+	if version != "" {
+		return version
+	}
+	// if directory is not clean, leave build version empty
+	b, err := isClean()
+	if err == nil && b {
+		// check current HEAD ref and use it as a version
+		// unless it's tagged with a version tag
+		o, err := gbtb.Output("git", "show-ref", "--head", "HEAD")
+		if err == nil {
+			hRef := strings.Split(string(o), " ")[0]
+			buildVersion := hRef[:12]
+			v, err := latestVersion()
+			if err == nil {
+				ver := "v" + v.String()
+				o, err := gbtb.Output("git", "show-ref", ver)
+				if err == nil {
+					// check if latest version tag is equal to current HEAD
+					if hRef == strings.Split(string(o), " ")[0] {
+						buildVersion = ver
+					}
+				}
+			}
+			return buildVersion
+		}
+	}
+	return ""
+}
+
+func ldflags(bv string) string {
+	return fmt.Sprintf("-ldflags=-X github.com/graphql-editor/stucco/pkg/version.BuildVersion=%s", bv)
+}
+
+func xBuildCommandLine(f flavour, bv string) func() error {
+	return func() error {
+		goarch := os.Getenv("GOARCH")
+		goos := os.Getenv("GOOS")
+		cgo := os.Getenv("CGO_ENABLED")
+		defer func() {
+			os.Setenv("GOARCH", goarch)
+			os.Setenv("GOOS", goos)
+			os.Setenv("CGO_ENABLED", cgo)
+		}()
+		os.Setenv("GOOS", f.goos)
+		os.Setenv("GOARCH", f.goarch)
+		os.Setenv("CGO_ENABLED", "0")
+		opts := []string{"-o", f.out}
+		if bv != "" {
+			opts = append(opts, ldflags(bv))
+		}
+		return gbtb.GoBuild("./stucco/main.go", opts...)()
+	}
+}
+
+func helpTask(tasks *gbtb.Tasks) gbtb.Job {
+	return func() error {
+		for _, t := range *tasks {
+			names := t.GetNames()
+			fmt.Printf("%s: %s\n", names[0], strings.Join(names, ","))
+		}
+		return nil
+	}
+}
+
+func dockerTag(src, dst string) gbtb.Job {
+	return gbtb.CommandJob("docker", "tag", src, dst)
+}
+
+func dockerVersionTag(src, dst, bv string) gbtb.Job {
+	return conditionalJob(
+		isVersionCond(bv),
+		dockerTag(src, dst),
+	)
+}
+
+func pushDockerTag(tag string) gbtb.Job {
+	return gbtb.CommandJob("docker", "push", tag)
+}
+
+func pushDockerVersionTag(tag, bv string) gbtb.Job {
+	return conditionalJob(
+		isVersionCond(bv),
+		pushDockerTag(tag),
+	)
+}
+
+func conditionalJob(cond func() bool, j gbtb.Job) gbtb.Job {
+	return func() (err error) {
+		if cond() {
+			err = j()
+		}
+		return
+	}
+}
+
+func majorString(bv string) string {
+	v, err := semverParse(bv)
+	if err != nil {
+		return "v9999"
+	}
+	return fmt.Sprintf("v%d", v.Major)
+}
+
+func minorString(bv string) string {
+	v, err := semverParse(bv)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("v%d.%d", v.Major, v.Minor)
+}
+
+func isVersionCond(bv string) func() bool {
+	return func() bool {
+		_, err := semverParse(bv)
+		return err == nil
+	}
+}
+
 func main() {
-	gbtb.MustRun(
+	gbtb.FlagsInit(flag.CommandLine)
+	flag.StringVar(&version, "version", "", "build version")
+	flag.Parse()
+	bv := buildVersion()
+	tasks := gbtb.Tasks{
 		&gbtb.Task{
 			Name: "bump-patch",
 			Job:  versionBump(patch),
@@ -205,5 +358,110 @@ func main() {
 			Name: "coverage",
 			Job:  coverage,
 		},
+		&gbtb.Task{
+			Name:         azureWorker,
+			Job:          gbtb.GoBuild("github.com/graphql-editor/azure-functions-golang-worker/cmd/worker", "-o", azureWorker),
+			Dependencies: goBuildDependencies,
+		},
+		&gbtb.Task{
+			Name:         azureFunction,
+			Job:          gbtb.GoBuild("github.com/graphql-editor/stucco/pkg/providers/azure/function/graphql", "-buildmode=plugin", "-o", azureFunction, ldflags(bv)),
+			Dependencies: goBuildDependencies,
+		},
+		&gbtb.Task{
+			Name:         "build_azure",
+			Dependencies: gbtb.StaticDependencies{azureWorker, azureFunction},
+		},
+		&gbtb.Task{
+			Name: "build_azure_router_image",
+			Job:  gbtb.CommandJob("docker", "build", "--build-arg", "VERSION="+bv, "-t", stuccoAzureRouterImageLatest, "-f", "docker/azure/Dockerfile", "."),
+		},
+		&gbtb.Task{
+			Name:         "tag_azure_router_image_patch",
+			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
+			Job:          dockerVersionTag(stuccoAzureRouterImageLatest, stuccoAzureRouterImage+":"+bv, bv),
+		},
+		&gbtb.Task{
+			Name:         "tag_azure_router_image_minor",
+			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
+			Job:          dockerVersionTag(stuccoAzureRouterImageLatest, stuccoAzureRouterImage+":"+minorString(bv), bv),
+		},
+		&gbtb.Task{
+			Name:         "tag_azure_router_image_major",
+			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
+			Job:          dockerVersionTag(stuccoAzureRouterImageLatest, stuccoAzureRouterImage+":"+majorString(bv), bv),
+		},
+		&gbtb.Task{
+			Name: "tag_azure_router_image",
+			Dependencies: gbtb.StaticDependencies{
+				"tag_azure_router_image_patch",
+				"tag_azure_router_image_minor",
+				"tag_azure_router_image_major",
+			},
+		},
+		&gbtb.Task{
+			Name:         "deploy_azure_router_image_latest",
+			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
+			Job:          pushDockerTag(stuccoAzureRouterImageLatest),
+		},
+		&gbtb.Task{
+			Name: "deploy_azure_router_image_patch",
+			Dependencies: gbtb.StaticDependencies{
+				"deploy_azure_router_image_latest",
+				"tag_azure_router_image_patch",
+			},
+			Job: pushDockerVersionTag(stuccoAzureRouterImage+":"+bv, bv),
+		},
+		&gbtb.Task{
+			Name: "deploy_azure_router_image_minor",
+			Dependencies: gbtb.StaticDependencies{
+				"deploy_azure_router_image_latest",
+				"tag_azure_router_image_minor",
+			},
+			Job: pushDockerVersionTag(stuccoAzureRouterImage+":"+minorString(bv), bv),
+		},
+		&gbtb.Task{
+			Name: "deploy_azure_router_image_major",
+			Dependencies: gbtb.StaticDependencies{
+				"deploy_azure_router_image_latest",
+				"tag_azure_router_image_major",
+			},
+			Job: pushDockerVersionTag(stuccoAzureRouterImage+":"+majorString(bv), bv),
+		},
+		&gbtb.Task{
+			Name: "deploy_azure_router_image",
+			Dependencies: gbtb.StaticDependencies{
+				"deploy_azure_router_image_patch",
+				"deploy_azure_router_image_latest",
+				"deploy_azure_router_image_minor",
+				"deploy_azure_router_image_major",
+			},
+		},
+	}
+	cliFlavours := []flavour{
+		{goos: "linux", goarch: "amd64"},
+		{goos: "darwin", goarch: "amd64"},
+		{goos: "windows", goarch: "amd64"},
+	}
+	var cliDeps gbtb.StaticDependencies
+	for _, f := range cliFlavours {
+		f.out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"))
+		cliDeps = append(cliDeps, f.out)
+		tasks = append(tasks, &gbtb.Task{
+			Name:         f.out,
+			Job:          xBuildCommandLine(f, bv),
+			Dependencies: goBuildDependencies,
+		})
+	}
+	tasks = append(
+		tasks, &gbtb.Task{
+			Name:         "build_cli",
+			Dependencies: cliDeps,
+		},
+		&gbtb.Task{
+			Name: "help",
+			Job:  helpTask(&tasks),
+		},
 	)
+	tasks.Do(flag.Args()...)
 }

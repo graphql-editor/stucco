@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	protobuf "github.com/golang/protobuf/proto"
+	"github.com/pkg/errors"
 )
 
 // HTTPClient for protocol buffer
@@ -78,9 +79,9 @@ func unmarshalFromHTTP(
 	if resp.StatusCode != http.StatusOK {
 		b, err := ioutil.ReadAll(resp.Body)
 		if err == nil {
-			err = fmt.Errorf(string(b))
+			err = fmt.Errorf(`status_code=%d message="%s"`, resp.StatusCode, string(b))
 		}
-		return err
+		return errors.Wrap(err, "worker request error")
 	}
 	messageType, err := getMessageType(resp.Header.Get(contentTypeHeader))
 	if err != nil {

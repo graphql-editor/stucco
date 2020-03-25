@@ -2,3 +2,4 @@ bin
 node_modules
 .vscode
 .wwwroot
+__debug_bin

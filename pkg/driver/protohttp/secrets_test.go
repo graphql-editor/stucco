@@ -39,7 +39,11 @@ func TestClientSetSecrets(t *testing.T) {
 			URL:    srv.URL,
 		})
 		out := client.SetSecrets(tt.Input)
-		assert.Equal(t, tt.Expected, out)
+		if tt.Expected.Error != nil {
+			assert.Contains(t, out.Error.Message, tt.Expected.Error.Message)
+		} else {
+			assert.Equal(t, tt.Expected, out)
+		}
 	})
 }
 

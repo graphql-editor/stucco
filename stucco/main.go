@@ -24,6 +24,11 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
+
+	crypto_rand "crypto/rand"
+	"encoding/binary"
+	math_rand "math/rand"
 
 	"github.com/graphql-editor/stucco/stucco/cmd"
 	azurecmd "github.com/graphql-editor/stucco/stucco/cmd/azure"
@@ -31,7 +36,21 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func seed() {
+	// seed basic rand source
+	// try seed it with secure seed from crypto, if it fails, fallback
+	// to time
+	seed := time.Now().UTC().UnixNano()
+	var b [8]byte
+	_, err := crypto_rand.Read(b[:])
+	if err == nil {
+		seed = int64(binary.LittleEndian.Uint64(b[:]))
+	}
+	math_rand.Seed(seed)
+}
+
 func main() {
+	seed()
 	rootCmd := &cobra.Command{
 		Use:   "stucco",
 		Short: "Set of tools to work with stucco",

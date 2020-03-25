@@ -23,7 +23,6 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/providers/azure/configs"
 	"github.com/graphql-editor/stucco/pkg/providers/azure/project"
-	"github.com/graphql-editor/stucco/pkg/providers/azure/project/runtimes"
 	"github.com/graphql-editor/stucco/pkg/router"
 	"github.com/graphql-editor/stucco/pkg/utils"
 	"github.com/pkg/errors"
@@ -73,23 +72,21 @@ func NewUpdateCommand() *cobra.Command {
 					klog.Warningf("%s could not be read: %v", localSettingsJSON, err)
 				}
 			}
-			var r project.Runtime
-			switch genOpts.runtime {
-			case "stucco-js":
-				r = runtimes.StuccoJS{}
-			default:
-				exitErr(errors.Errorf("runtime %s is not a valid value", genOpts.runtime), initError)
+			if err := genOpts.validate(); err != nil {
+				exitErr(err, updateError)
 			}
 			p := project.Project{
 				Config:             cfg,
 				Output:             genOpts.output,
 				Overwrite:          genOpts.overwrite,
 				Path:               genOpts.path,
-				Runtime:            r,
+				Runtime:            genOpts.projectRuntime(),
 				WriteLocalSettings: genOpts.localSettings,
+				WriteDockerfile:    genOpts.dockerfile,
+				AuthLevel:          configs.AuthLevel(genOpts.authLevel),
 			}
 			if err := p.Update(); err != nil {
-				exitErr(err, initError)
+				exitErr(err, updateError)
 			}
 		},
 	}

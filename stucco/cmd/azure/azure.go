@@ -27,5 +27,7 @@ func NewAzureCommand() *cobra.Command {
 	}
 	azureCmd.AddCommand(NewInitCommand())
 	azureCmd.AddCommand(NewUpdateCommand())
+	azureCmd.AddCommand(NewDeployCommand())
+	azureCmd.AddCommand(NewStartCommand())
 	return azureCmd
 }

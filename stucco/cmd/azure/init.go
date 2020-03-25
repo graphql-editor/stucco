@@ -18,7 +18,9 @@ package azurecmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/graphql-editor/stucco/pkg/providers/azure/configs"
 	"github.com/graphql-editor/stucco/pkg/providers/azure/project"
 	"github.com/graphql-editor/stucco/pkg/providers/azure/project/runtimes"
 	"github.com/graphql-editor/stucco/pkg/router"
@@ -48,7 +50,7 @@ const (
 
 type genOpts struct {
 	localSettings, dockerfile, overwrite bool
-	path, output, runtime                string
+	path, output, runtime, authLevel     string
 }
 
 func (g *genOpts) setupCommand(cmd *cobra.Command) {
@@ -58,6 +60,43 @@ func (g *genOpts) setupCommand(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&g.path, "path", "p", g.path, "Project path")
 	cmd.Flags().StringVarP(&g.output, "output", "o", filepath.Join(g.path, ".wwwroot"), "Output root path")
 	cmd.Flags().StringVarP(&g.runtime, "runtime", "r", "stucco-js", "Stucco runtime name")
+	cmd.Flags().StringVar(&g.authLevel, "auth-level", "function", "Function auth level")
+}
+
+func (g genOpts) projectRuntime() (r project.Runtime) {
+	switch g.runtime {
+	case "stucco-js":
+		r = runtimes.StuccoJS{}
+	}
+	return
+}
+
+func isSubpath(p1, p2 string) bool {
+	if !filepath.IsAbs(p2) {
+		return true
+	}
+	p, err := filepath.Rel(p1, p2)
+	return err == nil && strings.HasPrefix(
+		filepath.Join(p1, p),
+		filepath.Clean(p1),
+	)
+}
+
+func (g genOpts) validate() error {
+	switch g.runtime {
+	case "stucco-js":
+	default:
+		return errors.Errorf("runtime %s is not a valid value", g.runtime)
+	}
+	switch configs.AuthLevel(g.authLevel) {
+	case configs.AnonymousAuthLevel, configs.FunctionAuthLevel, configs.AdminAuthLevel:
+	default:
+		return errors.Errorf("auth level %s is not a valid value", g.authLevel)
+	}
+	if !isSubpath(g.path, g.output) {
+		return errors.Errorf("output path %s is outside of %s", g.output, g.path)
+	}
+	return nil
 }
 
 func newGenOpts() genOpts {
@@ -72,6 +111,7 @@ func newGenOpts() genOpts {
 		path:          wd,
 		output:        filepath.Join(wd, ".wwwroot"),
 		runtime:       "stucco-js",
+		authLevel:     "function",
 	}
 }
 
@@ -99,20 +139,18 @@ func NewInitCommand() *cobra.Command {
 			if err := utils.LoadConfigFile(cfgPath, &cfg); err != nil {
 				exitErr(err, initError)
 			}
-			var r project.Runtime
-			switch genOpts.runtime {
-			case "stucco-js":
-				r = runtimes.StuccoJS{}
-			default:
-				exitErr(errors.Errorf("runtime %s is not a valid value", genOpts.runtime), initError)
+			if err := genOpts.validate(); err != nil {
+				exitErr(err, initError)
 			}
 			p := project.Project{
 				Config:             cfg,
 				Output:             genOpts.output,
 				Overwrite:          genOpts.overwrite,
 				Path:               genOpts.path,
-				Runtime:            r,
+				Runtime:            genOpts.projectRuntime(),
 				WriteLocalSettings: genOpts.localSettings,
+				WriteDockerfile:    genOpts.dockerfile,
+				AuthLevel:          configs.AuthLevel(genOpts.authLevel),
 			}
 			if err := p.Write(); err != nil {
 				exitErr(err, initError)

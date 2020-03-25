@@ -26,10 +26,10 @@ func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestProtobufNewClient(t *testing.T) {
-	assert.NotNil(t, azuredriver.ProtobufClient{}.New("http://mockurl"))
+	assert.NotNil(t, azuredriver.ProtobufClient{}.New("http://mockurl", "funcname"))
 	assert.NotNil(t, azuredriver.ProtobufClient{
 		HTTPClient: http.DefaultClient,
-	}.New("http://mockurl"))
+	}.New("http://mockurl", "funcname"))
 	var mockHTTPClient mockHTTPClient
 	os.Setenv("STUCCO_AZURE_WORKER_KEY", "secret")
 	defer os.Unsetenv("STUCCO_AZURE_WORKER_KEY")
@@ -60,8 +60,8 @@ type mockWorkerClient struct {
 	mock.Mock
 }
 
-func (m *mockWorkerClient) New(a string) driver.Driver {
-	return m.Called(a).Get(0).(driver.Driver)
+func (m *mockWorkerClient) New(a, b string) driver.Driver {
+	return m.Called(a, b).Get(0).(driver.Driver)
 }
 
 func TestDriver(t *testing.T) {
@@ -72,7 +72,7 @@ func TestDriver(t *testing.T) {
 	mockWorkerClient.On("New", mock.MatchedBy(func(v interface{}) bool {
 		m, ok := v.(string)
 		return ok && strings.HasPrefix(m, "http://mockurl")
-	})).Return(&mockDriver)
+	}), "").Return(&mockDriver)
 	d := azuredriver.Driver{
 		WorkerClient: &mockWorkerClient,
 	}

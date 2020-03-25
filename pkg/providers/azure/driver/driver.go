@@ -16,7 +16,22 @@ import (
 
 // WorkerClient creates new protobuf for communication with workers
 type WorkerClient interface {
-	New(url string) driver.Driver
+	New(url, fname string) driver.Driver
+}
+
+// KeyReader returns access key for function
+type KeyReader interface {
+	GetKey(function string) (string, error)
+}
+
+type envKeyReader struct{}
+
+func (envKeyReader) GetKey(function string) (string, error) {
+	authCode := os.Getenv("STUCCO_AZURE_WORKER_KEY")
+	if funcCode := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(function) + "_KEY"); funcCode != "" {
+		authCode = funcCode
+	}
+	return authCode, nil
 }
 
 // HTTPClient used by azure client
@@ -28,6 +43,7 @@ type HTTPClient interface {
 type ProtobufClient struct {
 	HTTPClient
 	FunctionName string
+	KeyReader
 }
 
 // Post implemention for azure worker protobuf communication
@@ -36,10 +52,11 @@ func (p ProtobufClient) Post(url, contentType string, body io.Reader) (resp *htt
 	req, err := http.NewRequest(http.MethodPost, url, body)
 	var authCode string
 	if err == nil {
-		authCode = os.Getenv("STUCCO_AZURE_WORKER_KEY")
-		if funcCode := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(p.FunctionName) + "_KEY"); funcCode != "" {
-			authCode = funcCode
+		kr := p.KeyReader
+		if kr == nil {
+			kr = envKeyReader{}
 		}
+		authCode, err = kr.GetKey(p.FunctionName)
 	}
 	if err == nil {
 		if authCode != "" {
@@ -56,7 +73,8 @@ func (p ProtobufClient) Post(url, contentType string, body io.Reader) (resp *htt
 }
 
 // New returns new driver using protobuf protocol
-func (p ProtobufClient) New(u string) driver.Driver {
+func (p ProtobufClient) New(u, f string) driver.Driver {
+	p.FunctionName = f
 	return &protohttp.Client{
 		HTTPClient: p,
 		URL:        u,
@@ -82,22 +100,24 @@ func normalizeFuncName(fn string) string {
 	return fn
 }
 
+func envFuncURL(fName string) (*url.URL, error) {
+	envURL := os.Getenv("STUCCO_AZURE_WORKER_BASE_URL")
+	if funcURL := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(fName) + "_URL"); funcURL != "" {
+		envURL = funcURL
+	}
+	return url.Parse(envURL)
+}
+
 func (d *Driver) newClient(url, fName string) driver.Driver {
 	workerClient := d.WorkerClient
 	if workerClient == nil {
-		workerClient = &ProtobufClient{
-			FunctionName: fName,
-		}
+		workerClient = &ProtobufClient{}
 	}
-	return workerClient.New(url)
+	return workerClient.New(url, fName)
 }
 
 func (d *Driver) baseURL(f types.Function) (us string, err error) {
-	envURL := os.Getenv("STUCCO_AZURE_WORKER_BASE_URL")
-	if funcURL := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(f.Name) + "_URL"); funcURL != "" {
-		envURL = funcURL
-	}
-	u, err := url.Parse(envURL)
+	u, err := envFuncURL(f.Name)
 	if err == nil {
 		u.Path = EndpointName(f.Name)
 		us = u.String()

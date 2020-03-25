@@ -25,24 +25,39 @@ const (
 	dockerfileFilename        = "Dockerfile"
 	filePerm                  = 0644
 	dirPerm                   = 0755
-	dockerfile                = `FROM gqleditor/stucco-js-azure-worker:node12
-
+	dockerfile                = `FROM node:12 as build
+USER node
+ADD --chown=node:node . /home/node/work
+WORKDIR /home/node/work
+RUN rm -rf node_modules \
+	&& npm i \
+	&& npm run build --if-present \
+	&& rm -rf node_modules
+FROM gqleditor/stucco-js-azure-worker:node12
 ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
-	AzureFunctionsJobHost__Logging__Console__IsEnabled=true
-
-COPY {{ .Path }} /home/site/wwwroot
-{{ if ne .Path .Output -}}
-COPY %s/* /home/site/wwwroot/
-{{- end }}
-RUN cd /home/site/wwwroot && \
-	npm install --production
-
+	AzureFunctionsJobHost__Logging__Console__IsEnabled=true \
+	STUCCO_PROJECT_ROOT=/home/site
+COPY --from=build /home/node/work /home/site
+RUN cd /home/site && \
+	npm install --production && \
+	{{ template "WWWRoot" . }}
 WORKDIR /home/site/wwwroot`
 )
 
 var (
 	defaultRoutePrefix = ""
-	dockerfileTemplate = template.Must(template.New("Dockerfile").Parse(dockerfile))
+	dockerfileTemplate = template.Must(
+		template.Must(
+			template.Must(template.New("Dockerfile").Parse(dockerfile)).
+				New("Output").Parse(`{{ if and (ne .Path .Output) (ne .Output "") }}/{{ .Output }}{{ end }}`),
+		).
+			New("WWWRoot").Parse(`{{ if or (eq .Path .Output) (eq .Output "") -}}
+					ln -s /home/site /home/site/wwwroot
+				{{- else -}}
+					[ "/home/site{{ template "Output" .}}" != "/home/site/wwwroot" ] && ln -s /home/site{{ template "Output" .}} /home/site/wwwroot
+				{{- end }}`,
+		),
+	)
 )
 
 // Function represents function data information used in generation of function.json
@@ -81,6 +96,8 @@ type Project struct {
 	WriteLocalSettings bool
 	// WriteDockerfile instructs project to generate boilerplate Dockerfile in project
 	WriteDockerfile bool
+	// AuthLevel represents auth level used in generated function
+	AuthLevel configs.AuthLevel
 }
 
 func handlePath(path string, overwrite bool) (write bool, err error) {
@@ -100,6 +117,17 @@ func handlePath(path string, overwrite bool) (write bool, err error) {
 	return
 }
 
+func (p Project) functionPath(path string) (out string, err error) {
+	if p.Output == "" {
+		p.Output = p.Path
+	}
+	out, err = filepath.Rel(p.Output, path)
+	if err == nil {
+		out = filepath.Join(p.Path, out)
+	}
+	return
+}
+
 func (p Project) writeFunctionConfig(path string, f types.Function) (err error) {
 	var write bool
 	if write, err = handlePath(path, p.Overwrite); err == nil && write {
@@ -109,6 +137,14 @@ func (p Project) writeFunctionConfig(path string, f types.Function) (err error) 
 				path,
 				filepath.Join(p.Path, functionData.ScriptFile),
 			)
+			//var funcPath string
+			//funcPath, err = p.functionPath(path)
+			//if err == nil {
+			//	functionData.ScriptFile, err = filepath.Rel(
+			//		funcPath,
+			//		filepath.Join(p.Path, functionData.ScriptFile),
+			//	)
+			//}
 			if err == nil {
 				var b []byte
 				if b, err = json.Marshal(configs.Function{
@@ -120,7 +156,7 @@ func (p Project) writeFunctionConfig(path string, f types.Function) (err error) 
 							Type:      configs.HTTPTrigger,
 							Direction: configs.InDirection,
 							Route:     driver.EndpointName(f.Name),
-							AuthLevel: configs.FunctionAuthLevel,
+							AuthLevel: p.AuthLevel,
 							Methods:   []configs.Method{configs.PostMethod},
 						},
 						{
@@ -231,7 +267,15 @@ func (p Project) writeDockerfile(path string) (err error) {
 			err = errors.Wrap(err, fmt.Sprintf("could not write %s", path))
 		}
 	}()
-	f, err := os.Create(dockerfile)
+	wd, err := os.Getwd()
+	var f *os.File
+	if err == nil {
+		f, err = os.Create(path)
+	}
+	var projectPath string
+	if err == nil {
+		projectPath, err = filepath.Rel(wd, p.Path)
+	}
 	if err == nil {
 		defer func() {
 			ferr := f.Close()
@@ -239,7 +283,21 @@ func (p Project) writeDockerfile(path string) (err error) {
 				err = ferr
 			}
 		}()
-		err = dockerfileTemplate.Execute(f, p)
+		ctx := Project{
+			Path: projectPath,
+		}
+		switch p.Output {
+		case "", p.Path:
+			ctx.Output = ctx.Path
+		default:
+			ctx.Output, err = filepath.Rel(p.Path, p.Output)
+			if err == nil {
+				ctx.Output = filepath.Join(ctx.Path, ctx.Output)
+			}
+		}
+		if err == nil {
+			err = dockerfileTemplate.ExecuteTemplate(f, "Dockerfile", ctx)
+		}
 	}
 	return
 }
@@ -300,7 +358,6 @@ func (p Project) out() (out string, err error) {
 // Write project from scratch
 func (p Project) Write() (err error) {
 	out, err := p.out()
-	fmt.Println(out)
 	if err == nil {
 		err = p.writeFunctions(out)
 	}
