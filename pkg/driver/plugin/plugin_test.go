@@ -97,6 +97,7 @@ func setupPluginDriverTests(t *testing.T) (*grpcClientMock, func(*testing.T)) {
 	pluginClientMock.On("Client").Return(pluginClientProtocolMock, nil)
 	pluginClientMock.On("Kill").Return()
 	pluginClientProtocolMock.On("Dispense", "driver_grpc").Return(grpcClientMock, nil)
+	pluginClientProtocolMock.On("Ping").Return(nil)
 	return grpcClientMock, func(t *testing.T) {
 		plugin.ExecCommand = exec.Command
 		plugin.NewPluginClient = plugin.DefaultPluginClient

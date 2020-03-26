@@ -3,7 +3,6 @@ package plugin
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/hashicorp/go-plugin"
+	"github.com/pkg/errors"
 	"k8s.io/klog"
 )
 
@@ -203,6 +203,22 @@ func (p *Plugin) start() error {
 			go func() {
 				if err := d.Stderr(ctx, "plugin."+filepath.Base(cmd.Path)); err != nil {
 					klog.Error(err)
+				}
+			}()
+			go func() {
+				ticker := time.NewTicker(time.Second * 5)
+				defer ticker.Stop()
+				for {
+					select {
+					case <-ticker.C:
+						rpcClient, err := p.client.Client()
+						if err == nil {
+							err = rpcClient.Ping()
+						}
+						if err != nil {
+							klog.Fatal(errors.Wrap(err, "plugin error, quitting: "))
+						}
+					}
 				}
 			}()
 			p.createRunners()
