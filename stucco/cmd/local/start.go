@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package localcmd
 
 import (
 	"context"
@@ -41,10 +41,9 @@ func (klogErrorf) Errorf(msg string, args ...interface{}) {
 	klog.Errorf(msg, args...)
 }
 
-// startCmd represents the start command
-var (
-	startConfig string
-	startCmd    = &cobra.Command{
+func NewStartCommand() *cobra.Command {
+	var startConfig string
+	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Start local runner",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -104,10 +103,6 @@ var (
 			}
 		},
 	}
-)
-
-func init() {
-	localCmd.AddCommand(startCmd)
 	klogFlagSet := flag.NewFlagSet("klog", flag.ExitOnError)
 	klog.InitFlags(klogFlagSet)
 	if verb := klogFlagSet.Lookup("v"); verb != nil {
@@ -116,8 +111,7 @@ func init() {
 		verbosityLevel := (verb.Value.(*klog.Level))
 		*verbosityLevel = l
 	}
-	startCmd.Flags().AddGoFlagSet(klogFlagSet)
-	startCmd.Flags().StringVarP(&startConfig, "config", "c", "", "path to stucco config")
-
-	localCmd.Flags()
+	startCommand.Flags().AddGoFlagSet(klogFlagSet)
+	startCommand.Flags().StringVarP(&startConfig, "config", "c", "", "path to stucco config")
+	return startCommand
 }

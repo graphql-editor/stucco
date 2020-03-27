@@ -13,18 +13,18 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package cmd
+package localcmd
 
 import (
 	"github.com/spf13/cobra"
 )
 
-// azureCmd represents the azure command
-var azureCmd = &cobra.Command{
-	Use:   "azure",
-	Short: "Set of tools to help with Azure Functions and stucco integration",
-}
-
-func init() {
-	rootCmd.AddCommand(azureCmd)
+// NewLocalCommand create new local command
+func NewLocalCommand() *cobra.Command {
+	localCommand := &cobra.Command{
+		Use:   "local",
+		Short: "Local stucco runner",
+	}
+	localCommand.AddCommand(NewStartCommand())
+	return localCommand
 }

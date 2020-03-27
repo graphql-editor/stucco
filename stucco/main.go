@@ -21,8 +21,26 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/graphql-editor/stucco/stucco/cmd"
+import (
+	"fmt"
+	"os"
+
+	"github.com/graphql-editor/stucco/stucco/cmd"
+	azurecmd "github.com/graphql-editor/stucco/stucco/cmd/azure"
+	localcmd "github.com/graphql-editor/stucco/stucco/cmd/local"
+	"github.com/spf13/cobra"
+)
 
 func main() {
-	cmd.Execute()
+	rootCmd := &cobra.Command{
+		Use:   "stucco",
+		Short: "Set of tools to work with stucco",
+	}
+	rootCmd.AddCommand(cmd.NewVersionCommand())
+	rootCmd.AddCommand(azurecmd.NewAzureCommand())
+	rootCmd.AddCommand(localcmd.NewLocalCommand())
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

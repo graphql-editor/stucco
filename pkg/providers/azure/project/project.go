@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"log"
 
@@ -21,12 +22,27 @@ const (
 	functionJSONFileName      = "function.json"
 	hostJSONFileName          = "host.json"
 	localSettingsJSONFileName = "local.settings.json"
+	dockerfileFilename        = "Dockerfile"
 	filePerm                  = 0644
 	dirPerm                   = 0755
+	dockerfile                = `FROM gqleditor/stucco-js-azure-worker:node12
+
+ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
+	AzureFunctionsJobHost__Logging__Console__IsEnabled=true
+
+COPY {{ .Path }} /home/site/wwwroot
+{{ if ne .Path .Output -}}
+COPY %s/* /home/site/wwwroot/
+{{- end }}
+RUN cd /home/site/wwwroot && \
+	npm install --production
+
+WORKDIR /home/site/wwwroot`
 )
 
 var (
 	defaultRoutePrefix = ""
+	dockerfileTemplate = template.Must(template.New("Dockerfile").Parse(dockerfile))
 )
 
 // Function represents function data information used in generation of function.json
@@ -63,6 +79,8 @@ type Project struct {
 	Runtime Runtime
 	// WriteLocalSettings if set to true default local.settings.json will be written
 	WriteLocalSettings bool
+	// WriteDockerfile instructs project to generate boilerplate Dockerfile in project
+	WriteDockerfile bool
 }
 
 func handlePath(path string, overwrite bool) (write bool, err error) {
@@ -203,6 +221,29 @@ func (p Project) writeLocalSettings(path string) error {
 	return nil
 }
 
+func (p Project) writeDockerfile(path string) (err error) {
+	if !p.WriteDockerfile {
+		return nil
+	}
+	path = filepath.Join(path, dockerfileFilename)
+	defer func() {
+		if err != nil {
+			err = errors.Wrap(err, fmt.Sprintf("could not write %s", path))
+		}
+	}()
+	f, err := os.Create(dockerfile)
+	if err == nil {
+		defer func() {
+			ferr := f.Close()
+			if err == nil {
+				err = ferr
+			}
+		}()
+		err = dockerfileTemplate.Execute(f, p)
+	}
+	return
+}
+
 func resolverName(p string) string {
 	parts := strings.Split(p, ".")
 	return "resolver-" + parts[0] + "-field-" + parts[1]
@@ -247,12 +288,17 @@ func (p Project) out() (out string, err error) {
 	if out == "" {
 		out, err = os.Getwd()
 	}
+	_, err = os.Stat(out)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(out, dirPerm)
+	}
 	return
 }
 
 // Write project from scratch
 func (p Project) Write() (err error) {
 	out, err := p.out()
+	fmt.Println(out)
 	if err == nil {
 		err = p.writeFunctions(out)
 	}
@@ -261,6 +307,9 @@ func (p Project) Write() (err error) {
 	}
 	if err == nil {
 		err = p.writeLocalSettings(out)
+	}
+	if err == nil {
+		err = p.writeDockerfile(out)
 	}
 	if err != nil {
 		err = errors.Wrap(err, "could not write Azure Functions configs")
