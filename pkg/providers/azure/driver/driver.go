@@ -44,8 +44,8 @@ func (p ProtobufClient) Post(url, contentType string, body io.Reader) (resp *htt
 	if err == nil {
 		if authCode != "" {
 			req.Header.Add("X-Functions-Key", authCode)
-			req.Header.Add("content-type", contentType)
 		}
+		req.Header.Add("content-type", contentType)
 		client := p.HTTPClient
 		if client == nil {
 			client = http.DefaultClient
