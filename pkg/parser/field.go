@@ -11,18 +11,18 @@ import (
 func makeFieldArgs(p *Parser, fd *ast.FieldDefinition) (args graphql.FieldConfigArgument, err error) {
 	if len(fd.Arguments) != 0 {
 		args = make(graphql.FieldConfigArgument)
-		for _, arg := range fd.Arguments {
-			t, err := toGraphQLType(p, arg.Type)
-			if err != nil {
-				break
+		for i := 0; err == nil && i < len(fd.Arguments); i++ {
+			arg := fd.Arguments[i]
+			var t graphql.Type
+			if t, err = toGraphQLType(p, arg.Type); err == nil {
+				args[arg.Name.Value] = &graphql.ArgumentConfig{
+					Type: t,
+				}
+				if arg.DefaultValue != nil {
+					args[arg.Name.Value].DefaultValue = arg.DefaultValue.GetValue()
+				}
+				setDescription(&args[arg.Name.Value].Description, arg)
 			}
-			args[arg.Name.Value] = &graphql.ArgumentConfig{
-				Type: t,
-			}
-			if arg.DefaultValue != nil {
-				args[arg.Name.Value].DefaultValue = arg.DefaultValue.GetValue()
-			}
-			setDescription(&args[arg.Name.Value].Description, arg)
 		}
 	}
 	return
