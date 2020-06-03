@@ -1,3 +1,22 @@
+# Version v0.4.5
+
+## Download
+
+|   | amd64 |
+|---|----|
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/0.4.5/linux/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.4.5/linux/amd64/stucco) |
+| macOS | [https://stucco-release.fra1.digitaloceanspaces.com/0.4.5/darwin/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.4.5/darwin/amd64/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/0.4.5/windows/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/0.4.5/windows/amd64/stucco) |
+
+## Changes
+
+```
+05d76ee by Kamil Matysiewicz: fix: support type system extensions
+f2a1b66 by Kamil Matysiewicz: fix: propagate errors from parsing field arguments in parser
+6fea36e by Kamil Matysiewicz: fix: always append content type in azure driver request
+f43062c by Kamil Matysiewicz: feat: add boilerplate dockerfile generation and move generated files to .wwwroot by default
+```
+
 # Version v0.3.3
 
 ## Download
