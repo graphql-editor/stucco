@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/Dennor/gbtb"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 )
 
 type versionBumpType uint
