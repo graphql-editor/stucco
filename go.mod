@@ -23,3 +23,5 @@ require (
 )
 
 replace github.com/blang/semver => github.com/blang/semver v1.1.1-0.20190414102917-ba2c2ddd8906
+
+replace github.com/graphql-go/graphql => github.com/graphql-editor/graphql v0.7.10-0.20200602133915-4d19dee64a08

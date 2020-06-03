@@ -206,6 +206,16 @@ func starwarsSchema() graphql.Schema {
 		},
 		Type: starshipType,
 	})
+	queryType.AddFieldConfig("dailyReviews", &graphql.Field{
+		Description: "Returns all reviews from a given day, by default day is today",
+		Name:        "dailyReviews",
+		Args: graphql.FieldConfigArgument{
+			"day": &graphql.ArgumentConfig{
+				Type: timeScalar,
+			},
+		},
+		Type: graphql.NewNonNull(graphql.NewList(graphql.NewNonNull(reviewType))),
+	})
 
 	// Mutation fields
 	mutationType.AddFieldConfig("createReview", &graphql.Field{
@@ -655,6 +665,10 @@ type Query {
     human(id: ID!): Human
     starship(id: ID!): Starship
 }
+extend type Query {
+	"""Returns all reviews from a given day, by default day is today"""
+	dailyReviews(day: Time): [Review!]!
+}
 """The mutation type, represents all updates we can make to our data"""
 type Mutation {
     createReview(episode: Episode!, review: ReviewInput!): Review
@@ -777,8 +791,18 @@ type Starship {
 union SearchResult = Human | Droid | Starship
 scalar Time
 
+directive @testDir on SCHEMA | SCALAR | OBJECT | FIELD_DEFINITION | ARGUMENT_DEFINITION | INTERFACE | UNION | ENUM | ENUM_VALUE | INPUT_OBJECT | INPUT_FIELD_DEFINITION | QUERY | MUTATION | SUBSCRIPTION | FIELD | FRAGMENT_DEFINITION | FRAGMENT_SPREAD | INLINE_FRAGMENT
+
+extend scalar Time @testDir
+extend interface Character @testDir
+extend union SearchResult @testDir
+extend enum Episode @testDir
+
 schema {
 	query: Query
+}
+
+extend schema {
 	mutation: Mutation
 }
 `
