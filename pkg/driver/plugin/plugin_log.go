@@ -20,7 +20,11 @@ type klogLogger struct {
 }
 
 func (k *klogLogger) clean(lv hclog.Level) string {
-	return strings.Join(strings.Split(k.String(), " ")[2:], " ")
+	parts := strings.Split(k.String(), " ")[2:]
+	for parts[0] == "" {
+		parts = parts[1:]
+	}
+	return strings.Join(parts, " ")
 }
 
 // Trace writes an error log to klog
