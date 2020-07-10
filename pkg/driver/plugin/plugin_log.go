@@ -9,16 +9,6 @@ import (
 	"k8s.io/klog"
 )
 
-var (
-	_trimLevel = map[hclog.Level]int{
-		hclog.Debug: len("[DEBUG]"),
-		hclog.Trace: len("[TRACE]"),
-		hclog.Info:  len("[INFO] "),
-		hclog.Warn:  len("[WARN] "),
-		hclog.Error: len("[ERROR]"),
-	}
-)
-
 type klogLogger struct {
 	hclog.Logger
 	bytes.Buffer
@@ -30,7 +20,7 @@ type klogLogger struct {
 }
 
 func (k *klogLogger) clean(lv hclog.Level) string {
-	return strings.Join(strings.Split(string(k.Bytes()), " ")[2:], " ")
+	return strings.Join(strings.Split(k.String(), " ")[2:], " ")
 }
 
 // Trace writes an error log to klog

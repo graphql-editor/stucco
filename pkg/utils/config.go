@@ -84,7 +84,8 @@ func realConfigFileName(fn string) (configPath string, err error) {
 func ReadConfigFile(fn string) (b []byte, err error) {
 	configPath, err := realConfigFileName(fn)
 	if err == nil {
-		u, err := url.Parse(configPath)
+		var u *url.URL
+		u, err = url.Parse(configPath)
 		if err == nil {
 			if u.Scheme == "" {
 				b, err = ioutil.ReadFile(u.Path)

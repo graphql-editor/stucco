@@ -208,16 +208,13 @@ func (p *Plugin) start() error {
 			go func() {
 				ticker := time.NewTicker(time.Second * 5)
 				defer ticker.Stop()
-				for {
-					select {
-					case <-ticker.C:
-						rpcClient, err := p.client.Client()
-						if err == nil {
-							err = rpcClient.Ping()
-						}
-						if err != nil {
-							klog.Fatal(errors.Wrap(err, "plugin error, quitting: "))
-						}
+				for range ticker.C {
+					rpcClient, err := p.client.Client()
+					if err == nil {
+						err = rpcClient.Ping()
+					}
+					if err != nil {
+						klog.Fatal(errors.Wrap(err, "plugin error, quitting: "))
 					}
 				}
 			}()

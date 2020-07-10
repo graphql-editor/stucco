@@ -91,7 +91,7 @@ func handlePath(path string, overwrite bool) (write bool, err error) {
 			err = os.RemoveAll(path)
 			write = err == nil
 		} else {
-			log.Printf(fmt.Sprintf("skipping path %s because it exists", path))
+			log.Printf("skipping path %s because it exists", path)
 		}
 	case os.IsNotExist(err):
 		err = nil
@@ -115,7 +115,7 @@ func (p Project) writeFunctionConfig(path string, f types.Function) (err error) 
 					ScriptFile: functionData.ScriptFile,
 					EntryPoint: functionData.EntryPoint,
 					Bindings: []configs.Binding{
-						configs.Binding{
+						{
 							Name:      "req",
 							Type:      configs.HTTPTrigger,
 							Direction: configs.InDirection,
@@ -123,7 +123,7 @@ func (p Project) writeFunctionConfig(path string, f types.Function) (err error) 
 							AuthLevel: configs.FunctionAuthLevel,
 							Methods:   []configs.Method{configs.PostMethod},
 						},
-						configs.Binding{
+						{
 							Name:      "res",
 							Type:      configs.HTTP,
 							Direction: configs.OutDirection,
@@ -190,9 +190,9 @@ func (p Project) writeHost(path string) error {
 	return err
 }
 
-func (p Project) writeLocalSettings(path string) error {
+func (p Project) writeLocalSettings(path string) (err error) {
 	if !p.WriteLocalSettings {
-		return nil
+		return
 	}
 	path = filepath.Join(path, localSettingsJSONFileName)
 	values := make(map[string]string, len(p.LocalSettingsValues))
@@ -218,7 +218,7 @@ func (p Project) writeLocalSettings(path string) error {
 		err = errors.Wrap(err, fmt.Sprintf("could not write %s", path))
 	}
 
-	return nil
+	return
 }
 
 func (p Project) writeDockerfile(path string) (err error) {
@@ -288,9 +288,11 @@ func (p Project) out() (out string, err error) {
 	if out == "" {
 		out, err = os.Getwd()
 	}
-	_, err = os.Stat(out)
-	if os.IsNotExist(err) {
-		err = os.Mkdir(out, dirPerm)
+	if err == nil {
+		_, err = os.Stat(out)
+		if os.IsNotExist(err) {
+			err = os.Mkdir(out, dirPerm)
+		}
 	}
 	return
 }

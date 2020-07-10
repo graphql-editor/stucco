@@ -18,9 +18,15 @@ type Muxer interface {
 	UnionResolveType(driver.UnionResolveTypeInput) (string, error)
 }
 
+// ErrorLogger logs unrecoverable errors while handling request
+type ErrorLogger interface {
+	Error(err error)
+}
+
 // Handler is a http.Handler for Protocol Buffers server
 type Handler struct {
 	Muxer
+	ErrorLogger
 }
 
 type httpError interface {
@@ -123,6 +129,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	rw.Header().Add(contentTypeHeader, responseContent.String())
-	rw.Write(response)
 	rw.WriteHeader(http.StatusOK)
+	if _, err := rw.Write(response); err != nil && h.ErrorLogger != nil {
+		h.ErrorLogger.Error(err)
+	}
 }

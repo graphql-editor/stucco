@@ -27,7 +27,9 @@ func (r *Router) bindInterfaces(c *parser.Config) error {
 		if err != nil {
 			return err
 		}
-		r.setDriverSecrets(dri)
+		if err := r.setDriverSecrets(dri); err != nil {
+			return err
+		}
 		c.Interfaces[k] = Dispatch{
 			Driver:  dri,
 			TypeMap: &r.Schema,

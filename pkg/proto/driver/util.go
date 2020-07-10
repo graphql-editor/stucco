@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	sliceInterfaceReflectType     = reflect.SliceOf(reflect.TypeOf((*interface{})(nil)).Elem())
 	mapStringInterfaceReflectType = reflect.TypeOf((map[string]interface{})(nil))
 	nilValue                      = &proto.Value{
 		TestValue: &proto.Value_Nil{

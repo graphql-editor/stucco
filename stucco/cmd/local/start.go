@@ -96,7 +96,9 @@ func NewStartCommand() *cobra.Command {
 				<-shc
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 				defer cancel()
-				server.Shutdown(ctx)
+				if err := server.Shutdown(ctx); err != nil {
+					klog.Errorln(err)
+				}
 			}()
 			if err := server.ListenAndServe(); err != nil {
 				klog.Errorln(err)

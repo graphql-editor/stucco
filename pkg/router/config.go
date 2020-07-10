@@ -112,8 +112,7 @@ func (c Config) httpSchema() (string, error) {
 }
 
 func (c Config) fileSchema() (string, error) {
-	strings.TrimPrefix(c.Schema, "file://")
-	b, err := ioutil.ReadFile(c.Schema)
+	b, err := ioutil.ReadFile(strings.TrimPrefix(c.Schema, "file://"))
 	if err != nil {
 		return "", err
 	}

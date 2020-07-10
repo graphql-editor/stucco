@@ -368,12 +368,14 @@ func TestLoadDriverPluginsCallsConfigHelper(t *testing.T) {
 	if os.Getenv("GO_WANT_HELPER_PROCESS") != "1" {
 		return
 	}
-	json.NewEncoder(os.Stdout).Encode([]driver.Config{
-		driver.Config{
+	if err := json.NewEncoder(os.Stdout).Encode([]driver.Config{
+		{
 			Provider: "fake",
 			Runtime:  "fake",
 		},
-	})
+	}); err != nil {
+		os.Exit(1)
+	}
 	os.Exit(0)
 }
 

@@ -63,10 +63,6 @@ func makeTypeRefFromType(t graphql.Type) *types.TypeRef {
 	return &types.TypeRef{Name: t.Name()}
 }
 
-func mustMakeTypeRefFromType(t graphql.Type) types.TypeRef {
-	return assertTypeRef(makeTypeRefFromType(t))
-}
-
 func newResposnePath(p *graphql.ResponsePath) *types.ResponsePath {
 	if p == nil || p.Key == nil {
 		return nil

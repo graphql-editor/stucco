@@ -18,7 +18,11 @@ func RecoveryHandler(next http.Handler, logger ErrorLog) http.Handler {
 				}
 				rw.Header().Set("Content-Type", "text/plain")
 				rw.WriteHeader(http.StatusInternalServerError)
-				rw.Write([]byte("There was an internal server error"))
+				if _, err := rw.Write(
+					[]byte("There was an internal server error"),
+				); err != nil && logger != nil {
+					logger.Errorf("%v\n", err)
+				}
 			}
 		}()
 		next.ServeHTTP(rw, r)

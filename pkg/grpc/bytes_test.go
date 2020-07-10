@@ -82,10 +82,10 @@ func TestClientLogging(t *testing.T) {
 	pr, pw, _ := os.Pipe()
 	os.Stderr = pw
 	streams := map[string]*byteStreamMock{
-		"Stdout": &byteStreamMock{
+		"Stdout": {
 			data: make(chan []byte),
 		},
-		"Stderr": &byteStreamMock{
+		"Stderr": {
 			data: make(chan []byte),
 		},
 	}

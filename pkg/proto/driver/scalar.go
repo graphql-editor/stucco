@@ -36,8 +36,6 @@ func MakeScalarParseOutput(resp *proto.ScalarParseResponse) driver.ScalarParseOu
 		}
 	}
 	if err != nil {
-	}
-	if err != nil {
 		out.Error = &driver.Error{Message: err.Error()}
 	}
 	return out
@@ -69,8 +67,6 @@ func MakeScalarSerializeOutput(resp *proto.ScalarSerializeResponse) driver.Scala
 		if err == nil {
 			out.Response = r
 		}
-	}
-	if err != nil {
 	}
 	if err != nil {
 		out.Error = &driver.Error{Message: err.Error()}

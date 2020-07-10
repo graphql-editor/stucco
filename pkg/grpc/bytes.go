@@ -46,7 +46,9 @@ func streamBytes(dst io.WriteCloser, stream byteStream) error {
 		}
 		data := resp.GetData()
 		data = append(data, 0xFF)
-		dst.Write(data)
+		if _, err := dst.Write(data); err != nil {
+			return err
+		}
 	}
 }
 
@@ -171,11 +173,6 @@ type StdoutHandlerFunc func(*proto.ByteStreamRequest, proto.Driver_StdoutServer)
 // Handle for implementing StdoutHandler interface
 func (f StdoutHandlerFunc) Handle(p *proto.ByteStreamRequest, d proto.Driver_StdoutServer) error {
 	return f(p, d)
-}
-
-type stdoutHandlerCloser struct {
-	io.Closer
-	StdoutHandler
 }
 
 // HookFile implements StdoutHandler by hijacking os.Stdout, and writing all

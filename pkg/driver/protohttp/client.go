@@ -60,10 +60,6 @@ func (c *Client) do(in, out message) error {
 	return err
 }
 
-func contentTypesEqual(a, b string) bool {
-	return a == b
-}
-
 func getMessageType(contentType string) (string, error) {
 	mediaType, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
@@ -90,7 +86,7 @@ func unmarshalFromHTTP(
 	if err != nil {
 		return err
 	}
-	if strings.ToLower(string(out.contentType)) != strings.ToLower(messageType) {
+	if !strings.EqualFold(string(out.contentType), messageType) {
 		return fmt.Errorf("cannot unmarshal %s to %s", messageType, string(out.contentType))
 	}
 	body, err := ioutil.ReadAll(resp.Body)

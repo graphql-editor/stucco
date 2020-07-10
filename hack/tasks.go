@@ -33,7 +33,7 @@ func newVersion(bumpType versionBumpType) (v, nv semver.Version, err error) {
 		return
 	}
 	var tag string
-	reTag, err := regexp.Compile("^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+	reTag, err := regexp.Compile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
 	if err != nil {
 		return
 	}
@@ -132,9 +132,9 @@ func writeChangelog(from, to semver.Version) error {
 func commitAndTag(newVersion semver.Version) error {
 	versionString := fmt.Sprintf("v%s", newVersion.String())
 	for _, c := range [][]string{
-		[]string{"git", "add", "CHANGELOG.md"},
-		[]string{"git", "commit", "-m", versionString},
-		[]string{"git", "tag", versionString},
+		{"git", "add", "CHANGELOG.md"},
+		{"git", "commit", "-m", versionString},
+		{"git", "tag", versionString},
 	} {
 		_, err := gbtb.Output(c[0], c[1:]...)
 		if err != nil {
@@ -164,10 +164,10 @@ func generateProto() error {
 	return gbtb.CommandJob("protoc", "-I", ".", "driver.proto", "--go_out=plugins=grpc:.")()
 }
 
-func coverage() error {
+func coverage() (err error) {
 
 	args := []string{"-coverprofile=coverage.out", "./"}
-	filepath.Walk("./pkg", func(path string, fi os.FileInfo, err error) error {
+	if err = filepath.Walk("./pkg", func(path string, fi os.FileInfo, err error) error {
 		if err != nil ||
 			path == "./pkg" ||
 			!fi.IsDir() ||
@@ -177,8 +177,10 @@ func coverage() error {
 		}
 		args = append(args, "./"+path)
 		return nil
-	})
-	return gbtb.Go("test", args...)()
+	}); err == nil {
+		err = gbtb.Go("test", args...)()
+	}
+	return
 }
 
 func main() {
