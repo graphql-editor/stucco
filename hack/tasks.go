@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -29,8 +30,13 @@ const (
 )
 
 var (
-	reTag   = regexp.MustCompile("^v[0-9]+\\.[0-9]+\\.[0-9]+$")
-	version string
+	reTag    = regexp.MustCompile("^v[0-9]+\\.[0-9]+\\.[0-9]+$")
+	version  string
+	dontTest = []string{
+		"github.com/graphql-editor/stucco/hack",
+		"github.com/graphql-editor/stucco/pkg/proto",
+		"github.com/graphql-editor/stucco/pkg/proto/prototest",
+	}
 )
 
 func semverParse(bv string) (semver.Version, error) {
@@ -177,23 +183,42 @@ func generateProto() error {
 	return gbtb.CommandJob("protoc", "-I", ".", "driver.proto", "--go_out=plugins=grpc:.")()
 }
 
-func coverage() (err error) {
-
-	args := []string{"-coverprofile=coverage.out", "./"}
-	if err = filepath.Walk("./pkg", func(path string, fi os.FileInfo, err error) error {
-		if err != nil ||
-			path == "./pkg" ||
-			!fi.IsDir() ||
-			filepath.Base(path) == "proto" ||
-			strings.HasSuffix(filepath.Base(path), "test") {
-			return err
-		}
-		args = append(args, "./"+path)
-		return nil
-	}); err == nil {
-		err = gbtb.Go("test", args...)()
+func testPackages() ([]string, error) {
+	b, err := exec.Command("go", "list", "./...").Output()
+	if err != nil {
+		return nil, err
 	}
-	return
+	var pkgs []string
+	for _, pkg := range strings.Split(string(b), "\n") {
+		if pkg != "" && !excludePkg(pkg) {
+			pkgs = append(pkgs, pkg)
+		}
+	}
+	return pkgs, nil
+}
+
+func runTests(coverage bool) error {
+	pkgs, err := testPackages()
+	if err != nil {
+		return err
+	}
+	args := []string{"test"}
+	if coverage {
+		args = append(args, "-coverprofile=coverage.out")
+	}
+	args = append(args, pkgs...)
+	cmd := exec.Command("go", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return gbtb.PipeCommands(cmd)
+}
+
+func test() error {
+	return runTests(false)
+}
+
+func coverage() (err error) {
+	return runTests(true)
 }
 
 func out(s string) string {
@@ -332,6 +357,15 @@ func isVersionCond(bv string) func() bool {
 	}
 }
 
+func excludePkg(pkg string) bool {
+	for _, exclude := range dontTest {
+		if pkg == exclude {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	gbtb.FlagsInit(flag.CommandLine)
 	flag.StringVar(&version, "version", "", "build version")
@@ -353,6 +387,10 @@ func main() {
 		&gbtb.Task{
 			Name: "generate-proto",
 			Job:  generateProto,
+		},
+		&gbtb.Task{
+			Name: "test",
+			Job:  test,
 		},
 		&gbtb.Task{
 			Name: "coverage",
