@@ -33,13 +33,6 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: checkout
       uses: actions/checkout@v1
-    - name: version
-      id: version
-      uses: frabert/replace-string-action@v1.1
-      with:
-        pattern: 'refs/tags/(.*)'
-        string: '${{ github.ref }}'
-        replace-with: '$1'
     - name: cache deps
       uses: actions/cache@v1
       with:
@@ -48,15 +41,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: build all
-      run: go build ./pkg/... ./stucco/...
-    - name: build stucco
-      run: go build -ldflags="-X github.com/graphql-editor/stucco/pkg/version.Version=${{ steps.version.outputs.replaced }}" -o bin/${{ steps.version.outputs.replaced }}/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} ./stucco
+      run: go run ./hack/tasks.go -- build_cli build_azure
     - name: test
-      env:
-        CGO_ENABLED: 1
       run: |
-        go test ./...
-        go test -race ./...
+        go run ./hack/tasks.go -- test
+        go run ./hack/tasks.go -- test-race
     - uses: actions/upload-artifact@v1
       with:
         name: binaries
@@ -79,10 +68,9 @@ jobs:
         replace-with: '$1'
     - name: copy latest version
       run: |
+        rm -r bin/azure
+        mv bin/cli bin/${{ steps.version.outputs.replaced }}
         cp -r bin/${{ steps.version.outputs.replaced }} bin/latest
-    - name: latest version tag
-      run: |
-        echo "${{ steps.version.outputs.replaced }}" > bin/latest/version
     - uses: jakejarvis/s3-sync-action@master
       with:
         args: --acl public-read --follow-symlinks

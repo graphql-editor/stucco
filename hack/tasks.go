@@ -52,18 +52,16 @@ func latestVersion() (v semver.Version, err error) {
 	if err != nil {
 		return
 	}
-	var tag string
 	reTag, err := regexp.Compile(`^v[0-9]+\.[0-9]+\.[0-9]+$`)
 	if err != nil {
 		return
 	}
-	for _, tg := range strings.Split(string(o), "\n") {
-		tg = strings.TrimSpace(tg)
-		if reTag.Match([]byte(tg)) {
-			tag = tg
+	for _, tag := range strings.Split(string(o), "\n") {
+		tag = strings.TrimSpace(tag)
+		if reTag.Match([]byte(tag)) {
+			v, err = semverParse(tag)
 			break
 		}
-		v, err = semverParse(tag)
 	}
 	return
 }
@@ -184,7 +182,7 @@ func generateProto() error {
 }
 
 func testPackages() ([]string, error) {
-	b, err := exec.Command("go", "list", "./...").Output()
+	b, err := gbtb.Output("go", "list", "./...")
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +195,7 @@ func testPackages() ([]string, error) {
 	return pkgs, nil
 }
 
-func runTests(coverage bool) error {
+func runTests(coverage, race bool) error {
 	pkgs, err := testPackages()
 	if err != nil {
 		return err
@@ -205,6 +203,9 @@ func runTests(coverage bool) error {
 	args := []string{"test"}
 	if coverage {
 		args = append(args, "-coverprofile=coverage.out")
+	}
+	if race {
+		args = append(args, "-race")
 	}
 	args = append(args, pkgs...)
 	cmd := exec.Command("go", args...)
@@ -214,11 +215,15 @@ func runTests(coverage bool) error {
 }
 
 func test() error {
-	return runTests(false)
+	return runTests(false, false)
+}
+
+func testRace() error {
+	return runTests(false, true)
 }
 
 func coverage() (err error) {
-	return runTests(true)
+	return runTests(true, false)
 }
 
 func out(s string) string {
@@ -274,22 +279,18 @@ func ldflags(bv string) string {
 
 func xBuildCommandLine(f flavour, bv string) func() error {
 	return func() error {
-		goarch := os.Getenv("GOARCH")
-		goos := os.Getenv("GOOS")
-		cgo := os.Getenv("CGO_ENABLED")
-		defer func() {
-			os.Setenv("GOARCH", goarch)
-			os.Setenv("GOOS", goos)
-			os.Setenv("CGO_ENABLED", cgo)
-		}()
-		os.Setenv("GOOS", f.goos)
-		os.Setenv("GOARCH", f.goarch)
-		os.Setenv("CGO_ENABLED", "0")
-		opts := []string{"-o", f.out}
+		opts := []string{"build", "-o", f.out}
 		if bv != "" {
 			opts = append(opts, ldflags(bv))
 		}
-		return gbtb.GoBuild("./stucco/main.go", opts...)()
+		opts = append(opts, "./stucco/main.go")
+		cmd := exec.Command("go", opts...)
+		cmd.Env = append(cmd.Env, append([]string{
+			"GOARCH=" + f.goarch,
+			"GOOS=" + f.goos,
+			"CGO_ENABLED=0",
+		})...)
+		return gbtb.PipeCommands(cmd)
 	}
 }
 
@@ -391,6 +392,10 @@ func main() {
 		&gbtb.Task{
 			Name: "test",
 			Job:  test,
+		},
+		&gbtb.Task{
+			Name: "test-race",
+			Job:  testRace,
 		},
 		&gbtb.Task{
 			Name: "coverage",

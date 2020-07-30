@@ -47,12 +47,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: build all
-      run: go build ./pkg/... ./stucco/...
-    - name: build stucco
-      run: go build -ldflags="-X github.com/graphql-editor/stucco/pkg/version.Version=${{ github.sha }}" -o bin/${{ github.sha }}/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} ./stucco
+      run: go run ./hack/tasks.go -- build_cli build_azure
     - name: test
       env:
         CGO_ENABLED: 1
       run: |
-        go test ./...
-        go test -race ./...
+        go run ./hack/tasks.go -- test
+        go run ./hack/tasks.go -- test-race
