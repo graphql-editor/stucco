@@ -6,7 +6,8 @@ name: Stucco release
 env:
   CGO_ENABLED: 0
 jobs:
-  build:
+  build_cli:
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
     strategy:
       matrix:
         go-version: [1.13.x]
@@ -23,9 +24,6 @@ jobs:
             goarch: amd64
             ext: '.exe'
     runs-on: ${{ matrix.platform }}
-    env:
-      GOOS: ${{ matrix.goos }}
-      GOARCH: ${{ matrix.goarch }}
     steps:
     - name: setup go
       uses: actions/setup-go@v1
@@ -40,9 +38,11 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: build all
-      run: go run ./hack/tasks.go -- build_cli build_azure
+    - name: build cli
+      run: go run ./hack/tasks.go -- bin/cli/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }}
     - name: test
+      env:
+        CGO_ENABLED: 1
       run: |
         go run ./hack/tasks.go -- test
         go run ./hack/tasks.go -- test-race
@@ -50,8 +50,35 @@ jobs:
       with:
         name: binaries
         path: bin
+  build_azure:
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      matrix:
+        go-version: [1.13.x]
+        platform: [ubuntu-latest]
+        include:
+          - platform: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - name: setup go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: checkout
+      uses: actions/checkout@v1
+    - name: cache deps
+      uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: build azure
+      run: go run ./hack/tasks.go -- build_azure
   release:
-    needs: build
+    needs:
+    - build_cli
+    - build_azure
     runs-on: ubuntu-latest
     steps:
     - name: pull artifacts
@@ -68,7 +95,6 @@ jobs:
         replace-with: '$1'
     - name: copy latest version
       run: |
-        rm -r bin/azure
         mv bin/cli bin/${{ steps.version.outputs.replaced }}
         cp -r bin/${{ steps.version.outputs.replaced }} bin/latest
     - uses: jakejarvis/s3-sync-action@master

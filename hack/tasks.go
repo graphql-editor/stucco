@@ -24,7 +24,7 @@ const (
 )
 
 const (
-	cdnURL                       = "https://stucco-release.fra1.digitaloceanspaces.com/%s/%s/%s/stucco%s"
+	cdnURL                       = "https://stucco-release.fra1.digitaloceanspaces.com/v%s/%s/%s/stucco%s"
 	stuccoAzureRouterImage       = "gqleditor/stucco-router-azure-worker"
 	stuccoAzureRouterImageLatest = stuccoAzureRouterImage + ":latest"
 )
@@ -240,7 +240,7 @@ var (
 )
 
 type flavour struct {
-	goos, goarch, out string
+	goos, goarch, out, ext string
 }
 
 func buildVersion() string {
@@ -512,11 +512,11 @@ func main() {
 	cliFlavours := []flavour{
 		{goos: "linux", goarch: "amd64"},
 		{goos: "darwin", goarch: "amd64"},
-		{goos: "windows", goarch: "amd64"},
+		{goos: "windows", goarch: "amd64", ext: ".exe"},
 	}
 	var cliDeps gbtb.StaticDependencies
 	for _, f := range cliFlavours {
-		f.out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"))
+		f.out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))
 		cliDeps = append(cliDeps, f.out)
 		tasks = append(tasks, &gbtb.Task{
 			Name:         f.out,
