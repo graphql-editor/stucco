@@ -518,8 +518,10 @@ func main() {
 	for _, f := range cliFlavours {
 		f.out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))
 		cliDeps = append(cliDeps, f.out)
+		// keep job names consitent across operating systems
+		name := strings.Join([]string{"bin", "cli", f.goos, f.goarch, "stucco" + f.ext}, "/")
 		tasks = append(tasks, &gbtb.Task{
-			Name:         f.out,
+			Name:         name,
 			Job:          xBuildCommandLine(f, bv),
 			Dependencies: goBuildDependencies,
 		})
