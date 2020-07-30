@@ -38,8 +38,15 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+    - name: version
+      id: version
+      uses: frabert/replace-string-action@v1.1
+      with:
+        pattern: 'refs/tags/(.*)'
+        string: '${{ github.ref }}'
+        replace-with: '$1'
     - name: build cli
-      run: go run ./hack/tasks.go -- bin/cli/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }}
+      run: go run ./hack/tasks.go -- bin/cli/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }} --version ${{ steps.version.outputs.replaced }}
     - name: test
       env:
         CGO_ENABLED: 1
