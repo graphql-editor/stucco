@@ -339,7 +339,7 @@ func (d *deployContext) newFunctionSite(image FunctionAppImage, context Context,
 			Value: &image.Username,
 		})
 	}
-	if image.Username != "" {
+	if image.Password != "" {
 		appSettings = append(appSettings, web.NameValuePair{
 			Name:  pointer.ToString("DOCKER_REGISTRY_SERVER_PASSWORD"),
 			Value: &image.Password,
@@ -356,7 +356,7 @@ func (d *deployContext) newFunctionSite(image FunctionAppImage, context Context,
 			SiteConfig: &web.SiteConfig{
 				NumberOfWorkers:     &context.FunctionApp.Plan.Workers,
 				NetFrameworkVersion: pointer.ToString("v4.0"),
-				LinuxFxVersion:      pointer.ToString(fmt.Sprintf("DOCKER|%s", image)),
+				LinuxFxVersion:      pointer.ToString(fmt.Sprintf("DOCKER|%s", image.Repository)),
 				AppSettings:         &appSettings,
 				AlwaysOn:            pointer.ToBool(false),
 				LocalMySQLEnabled:   pointer.ToBool(false),
