@@ -87,8 +87,7 @@ func (d *deployContext) getOrCreateBlobContainer(ctx context.Context, context Co
 }
 
 func (d *deployContext) deployFunctionKeys(ctx context.Context, context Context) (err error) {
-	_, created, err := d.getOrCreateBlobContainer(ctx, context, "azure-webjobs-secrets")
-	if err == nil && created {
+	if _, _, err := d.getOrCreateBlobContainer(ctx, context, "azure-webjobs-secrets"); err == nil {
 		k := context.FunctionApp.Key
 		if k == "" {
 			b := make([]byte, 32)
@@ -325,6 +324,13 @@ func (d *deployContext) newFunctionSite(image FunctionAppImage, context Context,
 		{
 			Name:  pointer.ToString("WEBSITE_NODE_DEFAULT_VERSION"),
 			Value: pointer.ToString("~12"),
+		},
+		// Timestamp so that each new update is "touched", this is needed
+		// as each update rotates host master key and functions need
+		// to be restared for that to change to take place.
+		{
+			Name:  pointer.ToString("UPDATED_AT"),
+			Value: pointer.ToString(time.Now().String()),
 		},
 	}, appSettings...)
 	if image.Registry != "" {
