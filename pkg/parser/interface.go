@@ -56,6 +56,8 @@ func getInterfaceResolveTypeFunction(p *Parser, name string) (fn graphql.Resolve
 			return
 		}
 		fn = defaultResolveFunc(types)
+	} else {
+		_, err = getObjectsImplementingInterface(p, name)
 	}
 	return
 }
