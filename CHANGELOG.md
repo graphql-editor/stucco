@@ -1,3 +1,18 @@
+# Version v0.6.0
+
+## Download
+
+|   | amd64 |
+|---|----|
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/v0.6.0/linux/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.6.0/linux/amd64/stucco) |
+| macOS | [https://stucco-release.fra1.digitaloceanspaces.com/v0.6.0/darwin/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.6.0/darwin/amd64/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/v0.6.0/windows/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.6.0/windows/amd64/stucco) |
+
+## Changes
+
+```
+```
+
 # Version v0.5.3
 
 ## Download
