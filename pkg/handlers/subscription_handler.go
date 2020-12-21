@@ -30,11 +30,11 @@ type subscriptionHandler struct {
 	pretty bool
 	schema *graphql.Schema
 	sub    router.BlockingSubscriptionPayload
+	req    *http.Request
 }
 
 func (s subscriptionHandler) do() *graphql.Result {
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	ctx, cancel := context.WithTimeout(s.req.Context(), time.Second*30)
 	defer cancel()
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
 	params := graphql.Params{
@@ -136,6 +136,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			pretty: h.pretty,
 			schema: h.Schema,
 			sub:    sub,
+			req:    req,
 		}
 		subHandler.Handle(conn)
 		return
