@@ -211,8 +211,8 @@ func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
 func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
 	return func(params graphql.ResolveParams) (interface{}, error) {
 		// short circuit subscription call
-		subCtx := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)
-		if subCtx.IsSubscription {
+		subCtx, ok := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)
+		if ok && subCtx.IsSubscription {
 			return nil, nil
 		}
 		info := buildFieldInfoParams(params.Info)

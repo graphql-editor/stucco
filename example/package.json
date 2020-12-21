@@ -18,6 +18,6 @@
   },
   "homepage": "https://github.com/graphql-editor/stucco#readme",
   "dependencies": {
-    "stucco-js": "^0.4.1"
+    "stucco-js": "^0.6.3"
   }
 }
