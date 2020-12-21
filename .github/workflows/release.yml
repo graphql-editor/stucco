@@ -57,6 +57,31 @@ jobs:
       with:
         name: binaries
         path: bin
+  build_azure:
+    if: "!contains(github.event.head_commit.message, '[ci skip]')"
+    strategy:
+      matrix:
+        go-version: [1.13.x]
+        platform: [ubuntu-latest]
+        include:
+          - platform: ubuntu-latest
+    runs-on: ${{ matrix.platform }}
+    steps:
+    - name: setup go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go-version }}
+    - name: checkout
+      uses: actions/checkout@v1
+    - name: cache deps
+      uses: actions/cache@v1
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+    - name: build azure
+      run: go run ./hack/tasks.go -- build_azure
   release:
     needs:
     - build_cli
