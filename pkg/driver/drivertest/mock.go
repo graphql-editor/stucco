@@ -31,3 +31,11 @@ func (m *MockDriver) UnionResolveType(in driver.UnionResolveTypeInput) driver.Un
 func (m *MockDriver) Stream(in driver.StreamInput) driver.StreamOutput {
 	return m.Called(in).Get(0).(driver.StreamOutput)
 }
+
+func (m *MockDriver) SubscriptionListen(in driver.SubscriptionListenInput) driver.SubscriptionListenOutput {
+	return m.Called(in).Get(0).(driver.SubscriptionListenOutput)
+}
+
+func (m *MockDriver) SubscriptionConnection(in driver.SubscriptionConnectionInput) driver.SubscriptionConnectionOutput {
+	return m.Called(in).Get(0).(driver.SubscriptionConnectionOutput)
+}

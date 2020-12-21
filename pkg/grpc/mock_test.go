@@ -129,6 +129,32 @@ func (m *driverClientMock) Stderr(ctx context.Context, in *proto.ByteStreamReque
 	return resp.(proto.Driver_StderrClient), called.Error(1)
 }
 
+func (m *driverClientMock) SubscriptionConnection(ctx context.Context, in *proto.SubscriptionConnectionRequest, opts ...googlegrpc.CallOption) (*proto.SubscriptionConnectionResponse, error) {
+	i := []interface{}{ctx, in}
+	for _, opt := range opts {
+		i = append(i, opt)
+	}
+	called := m.Called(i...)
+	resp := called.Get(0)
+	if resp == nil {
+		return nil, called.Error(1)
+	}
+	return resp.(*proto.SubscriptionConnectionResponse), called.Error(1)
+}
+
+func (m *driverClientMock) SubscriptionListen(ctx context.Context, in *proto.SubscriptionListenRequest, opts ...googlegrpc.CallOption) (proto.Driver_SubscriptionListenClient, error) {
+	i := []interface{}{ctx, in}
+	for _, opt := range opts {
+		i = append(i, opt)
+	}
+	called := m.Called(i...)
+	resp := called.Get(0)
+	if resp == nil {
+		return nil, called.Error(1)
+	}
+	return resp.(proto.Driver_SubscriptionListenClient), called.Error(1)
+}
+
 type fieldResolveMock struct {
 	mock.Mock
 }

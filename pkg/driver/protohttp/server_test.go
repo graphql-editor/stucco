@@ -37,3 +37,8 @@ func (m *mockMuxer) UnionResolveType(in driver.UnionResolveTypeInput) (string, e
 	called := m.Called(in)
 	return called.String(0), called.Error(1)
 }
+
+func (m *mockMuxer) SubscriptionConnection(in driver.SubscriptionConnectionInput) (interface{}, error) {
+	called := m.Called(in)
+	return called.Get(0), called.Error(1)
+}
