@@ -12,15 +12,17 @@ import (
 // GRPC implement GRPCPlugin interface fro go-plugin
 type GRPC struct {
 	plugin.Plugin
-	FieldResolveHandler         grpc.FieldResolveHandler
-	InterfaceResolveTypeHandler grpc.InterfaceResolveTypeHandler
-	ScalarParseHandler          grpc.ScalarParseHandler
-	ScalarSerializeHandler      grpc.ScalarSerializeHandler
-	UnionResolveTypeHandler     grpc.UnionResolveTypeHandler
-	SetSecretsHandler           grpc.SetSecretsHandler
-	StreamHandler               grpc.StreamHandler
-	StdoutHandler               grpc.StdoutHandler
-	StderrHandler               grpc.StderrHandler
+	FieldResolveHandler           grpc.FieldResolveHandler
+	InterfaceResolveTypeHandler   grpc.InterfaceResolveTypeHandler
+	ScalarParseHandler            grpc.ScalarParseHandler
+	ScalarSerializeHandler        grpc.ScalarSerializeHandler
+	UnionResolveTypeHandler       grpc.UnionResolveTypeHandler
+	SetSecretsHandler             grpc.SetSecretsHandler
+	StreamHandler                 grpc.StreamHandler
+	StdoutHandler                 grpc.StdoutHandler
+	StderrHandler                 grpc.StderrHandler
+	SubscriptionConnectionHandler grpc.SubscriptionConnectionHandler
+	SubscriptionListenHandler     grpc.SubscriptionListenHandler
 }
 
 // RegisterDriverServer registers an concrete implementation of a grpc server for a protocol.
@@ -29,14 +31,16 @@ var RegisterDriverServer = proto.RegisterDriverServer
 // GRPCServer returns a server implementation for go-plugin
 func (g *GRPC) GRPCServer(broker *plugin.GRPCBroker, s *googlegrpc.Server) error {
 	RegisterDriverServer(s, &grpc.Server{
-		FieldResolveHandler:         g.FieldResolveHandler,
-		InterfaceResolveTypeHandler: g.InterfaceResolveTypeHandler,
-		ScalarParseHandler:          g.ScalarParseHandler,
-		ScalarSerializeHandler:      g.ScalarSerializeHandler,
-		UnionResolveTypeHandler:     g.UnionResolveTypeHandler,
-		StreamHandler:               g.StreamHandler,
-		StdoutHandler:               g.StdoutHandler,
-		StderrHandler:               g.StderrHandler,
+		FieldResolveHandler:           g.FieldResolveHandler,
+		InterfaceResolveTypeHandler:   g.InterfaceResolveTypeHandler,
+		ScalarParseHandler:            g.ScalarParseHandler,
+		ScalarSerializeHandler:        g.ScalarSerializeHandler,
+		UnionResolveTypeHandler:       g.UnionResolveTypeHandler,
+		StreamHandler:                 g.StreamHandler,
+		StdoutHandler:                 g.StdoutHandler,
+		StderrHandler:                 g.StderrHandler,
+		SubscriptionConnectionHandler: g.SubscriptionConnectionHandler,
+		SubscriptionListenHandler:     g.SubscriptionListenHandler,
 	})
 	return nil
 }

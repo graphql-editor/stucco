@@ -28,7 +28,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/handlers"
 	"github.com/graphql-editor/stucco/pkg/router"
 	"github.com/graphql-editor/stucco/pkg/utils"
-	"github.com/graphql-go/handler"
 	"github.com/rs/cors"
 	"github.com/spf13/cobra"
 	"k8s.io/apiserver/pkg/server/httplog"
@@ -58,7 +57,7 @@ func NewStartCommand() *cobra.Command {
 			if err != nil {
 				klog.Fatalln(err)
 			}
-			h := handler.New(&handler.Config{
+			h := handlers.New(handlers.Config{
 				Schema:   &router.Schema,
 				Pretty:   true,
 				GraphiQL: true,

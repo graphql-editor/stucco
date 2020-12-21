@@ -1,6 +1,8 @@
 package router
 
 import (
+	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -89,13 +91,14 @@ type SecretsConfig struct {
 
 // Config is a router configuration mapping defined endpoints with thier runtime config
 type Config struct {
-	Environment Environment                `json:"environment"` // Environment is a default config of a router
-	Interfaces  map[string]InterfaceConfig `json:"interfaces"`  // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
-	Resolvers   map[string]ResolverConfig  `json:"resolvers"`   // Resolvers is a map of FaaS function configs used in resolution
-	Scalars     map[string]ScalarConfig    `json:"scalars"`     // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
-	Schema      string                     `json:"schema"`      // String with GraphQL schema or an URL to the schema
-	Unions      map[string]UnionConfig     `json:"unions"`      // Unions is a map of FaaS function configs used in determining concrete type of an union
-	Secrets     SecretsConfig              `json:"secrets"`     // Secrets is a map of references to secrets
+	Environment   Environment                `json:"environment"`   // Environment is a default config of a router
+	Interfaces    map[string]InterfaceConfig `json:"interfaces"`    // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
+	Resolvers     map[string]ResolverConfig  `json:"resolvers"`     // Resolvers is a map of FaaS function configs used in resolution
+	Scalars       map[string]ScalarConfig    `json:"scalars"`       // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
+	Schema        string                     `json:"schema"`        // String with GraphQL schema or an URL to the schema
+	Unions        map[string]UnionConfig     `json:"unions"`        // Unions is a map of FaaS function configs used in determining concrete type of an union
+	Secrets       SecretsConfig              `json:"secrets"`       // Secrets is a map of references to secrets
+	Subscriptions SubscriptionConfig         `json:"subscriptions"` // Configure subscription behaviour
 }
 
 func (c Config) httpSchema() (string, error) {
@@ -138,4 +141,45 @@ func (c Config) rawSchema() (string, error) {
 		return c.fileSchema()
 	}
 	return c.Schema, nil
+}
+
+// SubscriptionKind defines allowed types of subscription
+type SubscriptionKind uint8
+
+// UnmarshalJSON implements json.Unmarshaler
+func (s *SubscriptionKind) UnmarshalJSON(b []byte) error {
+	var sk string
+	if err := json.Unmarshal(b, &sk); err != nil {
+		return err
+	}
+	switch sk {
+	case "blocking":
+		*s = BlockingSubscription
+	case "external":
+		*s = ExternalSubscription
+	case "redirect":
+		*s = RedirectSubscription
+	default:
+		return errors.New("subscription kind must be of: blocking, external, redirect")
+	}
+	return nil
+}
+
+const (
+	// DefaultSubscription defaults to internal
+	DefaultSubscription SubscriptionKind = iota
+	// BlockingSubscription subscription keeps alive subscription connection until client disconnects and streams
+	BlockingSubscription
+	// ExternalSubscription subscription returns a value from extension with connection payload to external service
+	ExternalSubscription
+	// RedirectSubscription returns 302 response with a redirect address being a user generated address
+	RedirectSubscription
+)
+
+// SubscriptionConfig configures subscription handling for stucco
+type SubscriptionConfig struct {
+	Environment      *Environment     `json:"environment,omitempty"`
+	Kind             SubscriptionKind `json:"kind,omitempty"`
+	CreateConnection types.Function   `json:"createConnection,omitempty"`
+	Listen           types.Function   `json:"listen,omitempty"`
 }

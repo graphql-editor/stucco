@@ -29,6 +29,8 @@ type driverShim interface {
 	Stream(driver.StreamInput) driver.StreamOutput
 	Stdout(ctx context.Context, name string) error
 	Stderr(ctx context.Context, name string) error
+	SubscriptionConnection(driver.SubscriptionConnectionInput) driver.SubscriptionConnectionOutput
+	SubscriptionListen(driver.SubscriptionListenInput) driver.SubscriptionListenOutput
 }
 
 type driverClient struct {
@@ -93,6 +95,10 @@ func (r pluginRunner) do(p *Plugin, payload *pluginPayload) {
 		resp = dri.UnionResolveType(data)
 	case driver.StreamInput:
 		resp = dri.Stream(data)
+	case driver.SubscriptionConnectionInput:
+		resp = dri.SubscriptionConnection(data)
+	case driver.SubscriptionListenInput:
+		resp = dri.SubscriptionListen(data)
 	default:
 		err = errors.New("unknown input")
 	}
@@ -341,6 +347,32 @@ func (p *Plugin) Stream(in driver.StreamInput) driver.StreamOutput {
 		}
 	}
 	return resp.(driver.StreamOutput)
+}
+
+// SubscriptionConnection creates connection with plugin
+func (p *Plugin) SubscriptionConnection(in driver.SubscriptionConnectionInput) driver.SubscriptionConnectionOutput {
+	resp, err := p.do(in)
+	if err != nil {
+		return driver.SubscriptionConnectionOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
+	}
+	return resp.(driver.SubscriptionConnectionOutput)
+}
+
+// SubscriptionListen creates listen stream with plugin
+func (p *Plugin) SubscriptionListen(in driver.SubscriptionListenInput) driver.SubscriptionListenOutput {
+	resp, err := p.do(in)
+	if err != nil {
+		return driver.SubscriptionListenOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
+	}
+	return resp.(driver.SubscriptionListenOutput)
 }
 
 // Close plugin and stop all runners

@@ -2,7 +2,7 @@ syntax = "proto3";
 package proto;
 
 message ObjectValue {
-    map<string, Value> props = 1;
+  map<string, Value> props = 1;
 }
 
 message ArrayValue {
@@ -10,159 +10,159 @@ message ArrayValue {
 }
 
 message Value {
-    oneof test_value {
-      int64 i = 1;
-      uint64 u = 2;
-      double f = 3;
-      string s = 4;
-      bool b = 5;
-      ObjectValue o = 6;
-      ArrayValue a = 7;
-      bytes any = 8;
-      string variable = 9;
-      bool nil = 10;
-    }
+  oneof test_value {
+	int64 i = 1;
+	uint64 u = 2;
+	double f = 3;
+	string s = 4;
+	bool b = 5;
+	ObjectValue o = 6;
+	ArrayValue a = 7;
+	bytes any = 8;
+	string variable = 9;
+	bool nil = 10;
+  }
 }
 
 message Error {
-	string msg = 1;
+  string msg = 1;
 }
 
 message Function {
-	string name = 1;
+  string name = 1;
 }
 
 message TypeRef {
-	oneof test_typeref {
-		string name = 1;
-		TypeRef nonNull = 2;
-		TypeRef list = 3;
-	}
+  oneof test_typeref {
+	string name = 1;
+	TypeRef nonNull = 2;
+	TypeRef list = 3;
+  }
 }
 
 message ResponsePath {
-	Value key = 1;
-	ResponsePath prev = 2;
+  Value key = 1;
+  ResponsePath prev = 2;
 }
 
 message Variable {
-	string name = 1;
+  string name = 1;
 }
 
 message VariableDefinition {
-	Variable variable = 1;
-	Value defaultValue = 2;
+  Variable variable = 1;
+  Value defaultValue = 2;
 }
 
 message Directive {
-	string name = 1;
-	map<string, Value> arguments = 2;
+  string name = 1;
+  map<string, Value> arguments = 2;
 }
 
 message FragmentDefinition {
-	repeated Directive directives = 1;
-	TypeRef typeCondition = 2;
-	repeated Selection selectionSet = 3;
-	repeated VariableDefinition variableDefinitions = 4;
+  repeated Directive directives = 1;
+  TypeRef typeCondition = 2;
+  repeated Selection selectionSet = 3;
+  repeated VariableDefinition variableDefinitions = 4;
 }
 
 message Selection {
-	string name = 1;
-	map<string, Value> arguments = 2;
-	repeated Directive directives = 3;
-	repeated Selection selectionSet = 4;
-	FragmentDefinition definition = 5;
+  string name = 1;
+  map<string, Value> arguments = 2;
+  repeated Directive directives = 3;
+  repeated Selection selectionSet = 4;
+  FragmentDefinition definition = 5;
 }
 
 message OperationDefinition {
-	string operation = 1;
-	string name = 2;
-	repeated VariableDefinition variableDefinitions = 3;
-	repeated Directive directives = 4;
-	repeated Selection selectionSet = 5;
+  string operation = 1;
+  string name = 2;
+  repeated VariableDefinition variableDefinitions = 3;
+  repeated Directive directives = 4;
+  repeated Selection selectionSet = 5;
 }
 
 message FieldResolveInfo {
-	string fieldName = 1;
-	ResponsePath path = 2;
-	TypeRef returnType = 3;
-	TypeRef parentType = 4;
-	OperationDefinition operation = 5;
-	map<string, Value> variableValues = 6;
+  string fieldName = 1;
+  ResponsePath path = 2;
+  TypeRef returnType = 3;
+  TypeRef parentType = 4;
+  OperationDefinition operation = 5;
+  map<string, Value> variableValues = 6;
 }
 
 message FieldResolveRequest {
-	Function function = 1;
-	Value source = 2;
-	map<string, Value> arguments = 3;
-	FieldResolveInfo info = 4;
-	map<string, string> secrets = 5;
-	Value protocol = 6;
+  Function function = 1;
+  Value source = 2;
+  map<string, Value> arguments = 3;
+  FieldResolveInfo info = 4;
+  map<string, string> secrets = 5;
+  Value protocol = 6;
 }
 
 message FieldResolveResponse {
-	Value response = 1;
-	Error error = 2;
+  Value response = 1;
+  Error error = 2;
 }
 
 message InterfaceResolveTypeInfo {
-	string fieldName = 1;
-	ResponsePath path = 2;
-	TypeRef returnType = 3;
-	TypeRef parentType = 4;
-	OperationDefinition operation = 5;
-	map<string, Value> variableValues = 6;
+  string fieldName = 1;
+  ResponsePath path = 2;
+  TypeRef returnType = 3;
+  TypeRef parentType = 4;
+  OperationDefinition operation = 5;
+  map<string, Value> variableValues = 6;
 }
 
 message InterfaceResolveTypeRequest {
-	Function function = 1;
-	Value value = 2;
-	InterfaceResolveTypeInfo info = 3;
+  Function function = 1;
+  Value value = 2;
+  InterfaceResolveTypeInfo info = 3;
 }
 
 message InterfaceResolveTypeResponse {
-	TypeRef type = 1;
-	Error error = 2;
+  TypeRef type = 1;
+  Error error = 2;
 }
 
 message ScalarParseRequest {
-    Value value = 1;
-	Function function = 2;
+  Value value = 1;
+  Function function = 2;
 }
 
 message ScalarParseResponse {
-    Value value = 1;
-	Error error = 2;
+  Value value = 1;
+  Error error = 2;
 }
 
 message ScalarSerializeRequest {
-    Value value = 1;
-	Function function = 2;
+  Value value = 1;
+  Function function = 2;
 }
 
 message ScalarSerializeResponse {
-    Value value = 1;
-	Error error = 2;
+  Value value = 1;
+  Error error = 2;
 }
 
 message UnionResolveTypeInfo {
-	string fieldName = 1;
-	ResponsePath path = 2;
-	TypeRef returnType = 3;
-	TypeRef parentType = 4;
-	OperationDefinition operation = 5;
-	map<string, Value> variableValues = 6;
+  string fieldName = 1;
+  ResponsePath path = 2;
+  TypeRef returnType = 3;
+  TypeRef parentType = 4;
+  OperationDefinition operation = 5;
+  map<string, Value> variableValues = 6;
 }
 
 message UnionResolveTypeRequest {
-	Function function = 1;
-	Value value = 2;
-	UnionResolveTypeInfo info = 3;
+  Function function = 1;
+  Value value = 2;
+  UnionResolveTypeInfo info = 3;
 }
 
 message UnionResolveTypeResponse {
-	TypeRef type = 1;
-	Error error = 2;
+  TypeRef type = 1;
+  Error error = 2;
 }
 
 message Secret {
@@ -179,25 +179,25 @@ message SetSecretsResponse {
 }
 
 message StreamInfo {
-	string fieldName = 1;
-	ResponsePath path = 2;
-	TypeRef returnType = 3;
-	TypeRef parentType = 4;
-	OperationDefinition operation = 5;
-	map<string, Value> variableValues = 6;
+  string fieldName = 1;
+  ResponsePath path = 2;
+  TypeRef returnType = 3;
+  TypeRef parentType = 4;
+  OperationDefinition operation = 5;
+  map<string, Value> variableValues = 6;
 }
 
 message StreamRequest {
-	Function function = 1;
-	map<string, Value> arguments = 2;
-	StreamInfo info = 3;
-	map<string, string> secrets = 4;
-	Value protocol = 5;
+  Function function = 1;
+  map<string, Value> arguments = 2;
+  StreamInfo info = 3;
+  map<string, string> secrets = 4;
+  Value protocol = 5;
 }
 
 message StreamMessage {
-	Value response = 1;
-	Error error = 2;
+  Value response = 1;
+  Error error = 2;
 }
 
 message ByteStreamRequest {}
@@ -206,14 +206,41 @@ message ByteStream {
   bytes data = 1;
 }
 
+message SubscriptionConnectionRequest {
+  Function function = 1;
+  string query = 2;
+  map<string, Value> variableValues = 3;
+  string operationName = 4;
+  Value protocol = 5;
+}
+
+message SubscriptionConnectionResponse {
+  Value response = 1;
+  Error error = 2;
+}
+
+message SubscriptionListenRequest {
+  Function function = 1;
+  string query = 2;
+  map<string, Value> variableValues = 3;
+  string operationName = 4;
+  Value protocol = 5;
+}
+
+message SubscriptionListenMessage {
+  bool next = 1;
+}
+
 service Driver {
-	rpc FieldResolve(FieldResolveRequest) returns (FieldResolveResponse);
-	rpc InterfaceResolveType(InterfaceResolveTypeRequest) returns (InterfaceResolveTypeResponse);
-	rpc ScalarParse(ScalarParseRequest) returns (ScalarParseResponse);
-	rpc ScalarSerialize(ScalarSerializeRequest) returns (ScalarSerializeResponse);
-	rpc UnionResolveType(UnionResolveTypeRequest) returns (UnionResolveTypeResponse);
-    rpc SetSecrets(SetSecretsRequest) returns (SetSecretsResponse);
-	rpc Stream(StreamRequest) returns(stream StreamMessage);
-	rpc Stdout(ByteStreamRequest) returns(stream ByteStream);
-	rpc Stderr(ByteStreamRequest) returns(stream ByteStream);
+  rpc FieldResolve(FieldResolveRequest) returns (FieldResolveResponse);
+  rpc InterfaceResolveType(InterfaceResolveTypeRequest) returns (InterfaceResolveTypeResponse);
+  rpc ScalarParse(ScalarParseRequest) returns (ScalarParseResponse);
+  rpc ScalarSerialize(ScalarSerializeRequest) returns (ScalarSerializeResponse);
+  rpc UnionResolveType(UnionResolveTypeRequest) returns (UnionResolveTypeResponse);
+  rpc SetSecrets(SetSecretsRequest) returns (SetSecretsResponse);
+  rpc Stream(StreamRequest) returns(stream StreamMessage);
+  rpc Stdout(ByteStreamRequest) returns(stream ByteStream);
+  rpc Stderr(ByteStreamRequest) returns(stream ByteStream);
+  rpc SubscriptionConnection(SubscriptionConnectionRequest) returns (SubscriptionConnectionResponse);
+  rpc SubscriptionListen(SubscriptionListenRequest) returns (stream SubscriptionListenMessage);
 }

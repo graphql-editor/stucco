@@ -20,6 +20,8 @@ func NewStartCommand() *cobra.Command {
 	var worker string
 	var listen string
 	var key string
+	var saAccount string
+	var saKey string
 	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Run azure router locally",
@@ -31,6 +33,8 @@ func NewStartCommand() *cobra.Command {
 			handler, err := httptrigger.NewHandler(httptrigger.Config{
 				StuccoConfig: config,
 				Schema:       schema,
+				Account:      saAccount,
+				Key:          saKey,
 			})
 			if err != nil {
 				fmt.Println(err)
@@ -62,5 +66,7 @@ func NewStartCommand() *cobra.Command {
 	startCommand.Flags().StringVarP(&listen, "listen", "l", ":8080", "Router listen address")
 	startCommand.Flags().StringVarP(&schema, "schema", "s", "schema.graphql", "Path or url to stucco schema")
 	startCommand.Flags().StringVarP(&worker, "worker", "w", "http://localhost:8081", "Address of azure function worker")
+	startCommand.Flags().StringVar(&saAccount, "storage-account", "", "Storage account to use")
+	startCommand.Flags().StringVar(&saKey, "storage-account-key", "", "Key to storage account")
 	return startCommand
 }

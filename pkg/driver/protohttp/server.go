@@ -16,6 +16,7 @@ type Muxer interface {
 	ScalarParse(driver.ScalarParseInput) (interface{}, error)
 	ScalarSerialize(driver.ScalarSerializeInput) (interface{}, error)
 	UnionResolveType(driver.UnionResolveTypeInput) (string, error)
+	SubscriptionConnection(driver.SubscriptionConnectionInput) (interface{}, error)
 }
 
 // ErrorLogger logs unrecoverable errors while handling request
@@ -104,6 +105,9 @@ func (h *Handler) serveHTTP(req *http.Request) (
 	case string(unionResolveTypeRequestMessage):
 		responseContent = unionResolveTypeResponseMessage
 		response = h.unionResolveType(req)
+	case string(subscriptionConnectionRequestMessage):
+		responseContent = subscriptionConnectionResponseMessage
+		response = h.subscriptionConnection(req)
 	default:
 		herr = &badRequest{
 			msg:  "invalid protobuf message type: %s",

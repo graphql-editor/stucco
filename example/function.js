@@ -154,4 +154,23 @@ module.exports = {
 
 	// Human.starships
 	starships: input => input.source.starships.map(v => starship(v)),
+
+	// Subscription example
+	randomGreet: () => `Hey, ${
+		database.humans.concat(database.droids)[Math.floor(
+			(database.humans.length + database.droids.length) * Math.random()
+		)].name
+	}`,
+
+	listen: (_, emitter) => {
+		const handle = setInterval(() => {
+			emitter.emit();
+		}, 1000);
+		emitter.on('close', (err) => {
+			if (err) {
+				console.error(err);
+			}
+			clearInterval(handle);
+		});
+	},
 }

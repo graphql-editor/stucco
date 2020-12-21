@@ -18,6 +18,7 @@ require (
 	github.com/docker/docker v0.7.3-0.20190327010347-be7ac8be2ae0
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/golang/protobuf v1.4.2
+	github.com/gorilla/websocket v1.4.0
 	github.com/graphql-editor/azure-functions-golang-worker v0.1.0
 	github.com/graphql-go/graphql v0.7.9
 	github.com/graphql-go/handler v0.2.3
@@ -50,4 +51,4 @@ require (
 	k8s.io/klog v1.0.0
 )
 
-replace github.com/graphql-go/graphql => github.com/graphql-editor/graphql v0.7.10-0.20200602133915-4d19dee64a08
+replace github.com/graphql-go/graphql => github.com/graphql-editor/graphql v0.7.10-0.20201221123605-e119ceedc5f1

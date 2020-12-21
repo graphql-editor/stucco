@@ -12,6 +12,10 @@ type Query {
 type Mutation {
     createReview(episode: Episode!, review: ReviewInput!): Review
 }
+"""The subscription type, represents all subscriptions we can make"""
+type Subscription {
+    randomGreet: String!
+}
 """The episodes in the Star Wars trilogy"""
 enum Episode {
     """Star Wars Episode IV: A New Hope, released in 1977."""
@@ -133,4 +137,5 @@ scalar Time
 schema {
 	query: Query
 	mutation: Mutation
+    subscription: Subscription
 }

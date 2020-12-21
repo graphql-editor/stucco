@@ -17,6 +17,11 @@ type protocolKey int
 // ProtocolKey used to pass extra data from protocol used for comunication
 const ProtocolKey protocolKey = 0
 
+type rawSubscriptionKey int
+
+// RawSubscriptionKey used to pass instruction about how a subscription should be handled.
+const RawSubscriptionKey rawSubscriptionKey = 0
+
 // TypeMap contains defined GraphQL types
 type TypeMap interface {
 	Type(name string) graphql.Type
@@ -205,6 +210,11 @@ func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
 // FieldResolve creates a function that calls implementation of field resolution through driver
 func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
 	return func(params graphql.ResolveParams) (interface{}, error) {
+		// short circuit subscription call
+		subCtx := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)
+		if subCtx.IsSubscription {
+			return nil, nil
+		}
 		info := buildFieldInfoParams(params.Info)
 		input := driver.FieldResolveInput{
 			Function:  rs.Resolve,

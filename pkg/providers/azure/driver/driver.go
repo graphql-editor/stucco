@@ -198,3 +198,21 @@ func (d *Driver) Stream(in driver.StreamInput) driver.StreamOutput {
 	}
 	return client.Stream(in)
 }
+func (d *Driver) SubscriptionConnection(in driver.SubscriptionConnectionInput) driver.SubscriptionConnectionOutput {
+	client, err := d.functionClient(in.Function)
+	if err != nil {
+		return driver.SubscriptionConnectionOutput{
+			Error: err,
+		}
+	}
+	return client.SubscriptionConnection(in)
+}
+func (d *Driver) SubscriptionListen(in driver.SubscriptionListenInput) driver.SubscriptionListenOutput {
+	client, err := d.functionClient(in.Function)
+	if err != nil {
+		return driver.SubscriptionListenOutput{
+			Error: err,
+		}
+	}
+	return client.SubscriptionListen(in)
+}

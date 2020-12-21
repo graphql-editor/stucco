@@ -21,4 +21,8 @@ type Driver interface {
 	UnionResolveType(UnionResolveTypeInput) UnionResolveTypeOutput
 	// Stream begins streaming data between router and runner.
 	Stream(StreamInput) StreamOutput
+	// SubscriptionConnection creates connection payload for subscription
+	SubscriptionConnection(SubscriptionConnectionInput) SubscriptionConnectionOutput
+	// SubscriptionListen creates connection payload for subscription
+	SubscriptionListen(SubscriptionListenInput) SubscriptionListenOutput
 }

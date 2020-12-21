@@ -64,6 +64,11 @@
 			"resolve": {
 				"name": "function.createReview"
 			}
+		},
+		"Subscription.randomGreet": {
+			"resolve": {
+				"name": "function.randomGreet"
+			}
 		}
 	},
 	"interfaces": {
@@ -81,6 +86,11 @@
 			"Serialize": {
 				"name": "function.TimeSerialize"
 			}
+		}
+	},
+	"subscriptions": {
+		"listen": {
+			"name": "function.listen"
 		}
 	}
 }
