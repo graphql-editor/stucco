@@ -127,6 +127,11 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	result := graphql.Do(params)
 	if sub, ok := result.Extensions["subscriptionBlocking"].(router.BlockingSubscriptionPayload); ok && len(result.Errors) == 0 {
+		defer func() {
+			if r := recover(); r != nil {
+				klog.Error(r)
+			}
+		}()
 		conn, err := h.upgrader.Upgrade(rw, req, nil)
 		if err != nil {
 			klog.Error(err.Error())
