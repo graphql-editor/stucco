@@ -199,6 +199,7 @@ func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
 		ParentType:     makeTypeRefFromType(params.ParentType),
 		VariableValues: params.VariableValues,
 		Path:           newResposnePath(params.Path),
+		RootValue:      params.RootValue,
 	}
 	odef, ok := params.Operation.(*ast.OperationDefinition)
 	if ok {
@@ -211,9 +212,11 @@ func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
 func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
 	return func(params graphql.ResolveParams) (interface{}, error) {
 		// short circuit subscription call
-		subCtx, ok := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)
-		if ok && subCtx.IsSubscription {
-			return nil, nil
+		if params.Context != nil {
+			subCtx, ok := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)
+			if ok && subCtx.IsSubscription {
+				return nil, nil
+			}
 		}
 		info := buildFieldInfoParams(params.Info)
 		input := driver.FieldResolveInput{

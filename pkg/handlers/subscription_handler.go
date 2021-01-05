@@ -33,11 +33,18 @@ type subscriptionHandler struct {
 	req    *http.Request
 }
 
-func (s subscriptionHandler) do() *graphql.Result {
+func (s subscriptionHandler) do(v interface{}) *graphql.Result {
 	ctx, cancel := context.WithTimeout(s.req.Context(), time.Second*30)
 	defer cancel()
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
+	var ro map[string]interface{}
+	if v != nil {
+		ro = map[string]interface{}{
+			"payload": v,
+		}
+	}
 	params := graphql.Params{
+		RootObject:     ro,
 		Schema:         *s.schema,
 		RequestString:  s.sub.Context.Query,
 		VariableValues: s.sub.Context.VariableValues,
@@ -73,8 +80,14 @@ func (s subscriptionHandler) Handle(ws *websocket.Conn) {
 	defer ws.Close()
 	defer s.sub.Reader.Close()
 	for s.sub.Reader.Next() {
+		v, err := s.sub.Reader.Read()
+		if err != nil {
+			klog.Error("unknown error", err)
+			return
+		}
 		// execute graphql query
-		if err := s.writeResult(ws, s.do()); err != nil {
+		if err := s.writeResult(ws, s.do(v)); err != nil {
+			klog.Error("unknown error", err)
 			return
 		}
 	}

@@ -84,6 +84,30 @@ const character = id => database
 
 const friends = input => input.map(v => character(v))
 
+function listenRandomGreet(emitter) {
+	const handle = setInterval(() => {
+		emitter.emit();
+	}, 1000);
+	emitter.on('close', (err) => {
+		if (err) {
+			console.error(err);
+		}
+		clearInterval(handle);
+	});
+}
+
+function listenTickAt(emitter) {
+	const handle = setInterval(() => {
+		emitter.emit((new Date()).toString());
+	}, 1000);
+	emitter.on('close', (err) => {
+		if (err) {
+			console.error(err);
+		}
+		clearInterval(handle);
+	});
+}
+
 // Here we are implementing functions as defined by stucco.json
 module.exports = {
 	// Query.hero
@@ -162,15 +186,15 @@ module.exports = {
 		)].name
 	}`,
 
-	listen: (_, emitter) => {
-		const handle = setInterval(() => {
-			emitter.emit();
-		}, 1000);
-		emitter.on('close', (err) => {
-			if (err) {
-				console.error(err);
-			}
-			clearInterval(handle);
-		});
+	// Subscription example with payload
+	tickAt: (input) => `Listener had a tick at ${input.info.rootValue.payload}`,
+
+	listen: (input, emitter) => {
+	  const findSelection = (sel) => input.operation.selectionSet.find((v) => v.name === sel);
+	  if (findSelection('randomGreet')) {
+		listenRandomGreet(emitter);
+	  } else if (findSelection('tickAt')) {
+		listenTickAt(emitter);
+	  }
 	},
 }

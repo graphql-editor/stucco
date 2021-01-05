@@ -7,8 +7,10 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/parser"
+	"github.com/graphql-editor/stucco/pkg/types"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/gqlerrors"
+	"github.com/graphql-go/graphql/language/ast"
 )
 
 // Router dispatches defined functions to a driver that handles them
@@ -204,13 +206,14 @@ func NewRouter(c Config) (Router, error) {
 
 // SubscribeContext contains information about subscription execution
 type SubscribeContext struct {
-	Query          string                          `json:"query,omitempty"`
-	VariableValues map[string]interface{}          `json:"variableValues,omitempty"`
-	OperationName  string                          `json:"operationName,omitempty"`
-	IsSubscription bool                            `json:"-"`
-	Reader         driver.SubscriptionListenReader `json:"-"`
-	formattedErr   []gqlerrors.FormattedError
-	err            error
+	Query               string                          `json:"query,omitempty"`
+	VariableValues      map[string]interface{}          `json:"variableValues,omitempty"`
+	OperationName       string                          `json:"operationName,omitempty"`
+	OperationDefinition *types.OperationDefinition      `json:"operationDefinition,omitempty"`
+	IsSubscription      bool                            `json:"-"`
+	Reader              driver.SubscriptionListenReader `json:"-"`
+	formattedErr        []gqlerrors.FormattedError
+	err                 error
 }
 
 type subscriptionExtensionKeyType string
@@ -286,6 +289,10 @@ func (s *SubscribeExtension) ResolveFieldDidStart(ctx context.Context, info *gra
 		s.router.Schema.SubscriptionType().Name() == info.ParentType.Name() {
 		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
 		subCtx.IsSubscription = true
+		if subCtx.OperationDefinition == nil && info.Operation != nil {
+			op := info.Operation.(*ast.OperationDefinition)
+			subCtx.OperationDefinition = makeOperationDefinition(op, info.Fragments)
+		}
 	}
 	return ctx, func(v interface{}, err error) {}
 }
@@ -316,6 +323,7 @@ func (s *SubscribeExtension) internalSubscription(ctx *SubscribeContext) driver.
 		Query:          ctx.Query,
 		VariableValues: ctx.VariableValues,
 		OperationName:  ctx.OperationName,
+		Operation:      ctx.OperationDefinition,
 	})
 	return out
 }

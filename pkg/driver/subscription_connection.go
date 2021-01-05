@@ -5,10 +5,11 @@ import "github.com/graphql-editor/stucco/pkg/types"
 // SubscriptionConnectionInput represents input to a function which creates subscription connection data
 type SubscriptionConnectionInput struct {
 	Function       types.Function
-	Query          string                 `json:"query,omitempty"`
-	VariableValues map[string]interface{} `json:"variableValues,omitempty"`
-	OperationName  string                 `json:"operationName,omitempty"`
-	Protocol       interface{}            `json:"protocol,omitempty"`
+	Query          string                     `json:"query,omitempty"`
+	VariableValues map[string]interface{}     `json:"variableValues,omitempty"`
+	OperationName  string                     `json:"operationName,omitempty"`
+	Protocol       interface{}                `json:"protocol,omitempty"`
+	Operation      *types.OperationDefinition `json:"operation,omitempty"`
 }
 
 // SubscriptionConnectionOutput represents response from a function which creates subscription connection data

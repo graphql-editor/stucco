@@ -69,6 +69,11 @@
 			"resolve": {
 				"name": "function.randomGreet"
 			}
+		},
+		"Subscription.tickAt": {
+			"resolve": {
+				"name": "function.tickAt"
+			}
 		}
 	},
 	"interfaces": {

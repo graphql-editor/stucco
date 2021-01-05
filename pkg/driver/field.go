@@ -10,6 +10,7 @@ type FieldResolveInfo struct {
 	ParentType     *types.TypeRef             `json:"parentType,omitempty"`
 	Operation      *types.OperationDefinition `json:"operation,omitempty"`
 	VariableValues map[string]interface{}     `json:"variableValues,omitempty"`
+	RootValue      interface{}                `json:"rootValue,omitempty"`
 }
 
 // FieldResolveInput represents data passed to field resolution

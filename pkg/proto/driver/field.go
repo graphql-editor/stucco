@@ -19,6 +19,13 @@ func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *proto.FieldRes
 	if err != nil {
 		return
 	}
+	var rt *proto.Value
+	if input.RootValue != nil {
+		rt, err = anyToValue(input.RootValue)
+		if err != nil {
+			return
+		}
+	}
 	r = &proto.FieldResolveInfo{
 		FieldName:      input.FieldName,
 		Path:           rp,
@@ -26,6 +33,7 @@ func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *proto.FieldRes
 		ParentType:     makeProtoTypeRef(input.ParentType),
 		VariableValues: variableValues,
 		Operation:      od,
+		RootValue:      rt,
 	}
 	return
 }

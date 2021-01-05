@@ -26,9 +26,11 @@ func MakeSubscriptionListenRequest(input driver.SubscriptionListenInput) (r *pro
 			return
 		}
 	}
-	proto, err := anyToValue(input.Protocol)
+	ret.Operation, err = makeProtoOperationDefinition(input.Operation)
 	if err == nil {
-		ret.Protocol = proto
+		ret.Protocol, err = anyToValue(input.Protocol)
+	}
+	if err == nil {
 		r = &ret
 	}
 	return
@@ -36,6 +38,7 @@ func MakeSubscriptionListenRequest(input driver.SubscriptionListenInput) (r *pro
 
 type sigType struct {
 	ok  bool
+	v   interface{}
 	err error
 }
 
@@ -43,6 +46,7 @@ type subscriptionReader struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 	sigCh  chan sigType
+	v      interface{}
 	err    error
 }
 
@@ -63,6 +67,14 @@ func NewSubscriptionReader(client proto.DriverClient, req *proto.SubscriptionLis
 			}
 			if m != nil {
 				sig.ok = m.Next
+				if m.Payload != nil {
+					var v interface{}
+					v, verr := valueToAny(nil, m.Payload)
+					sig.v = v
+					if err == nil && verr != nil {
+						sig.err = verr
+					}
+				}
 			}
 			r.sigCh <- sig
 			if !sig.ok || sig.err != nil {
@@ -84,7 +96,12 @@ func (r *subscriptionReader) Error() error {
 func (r *subscriptionReader) Next() bool {
 	sig := <-r.sigCh
 	r.err = sig.err
+	r.v = sig.v
 	return sig.ok
+}
+
+func (r *subscriptionReader) Read() (interface{}, error) {
+	return r.v, nil
 }
 
 func (r *subscriptionReader) Close() error {

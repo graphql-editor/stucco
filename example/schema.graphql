@@ -15,6 +15,7 @@ type Mutation {
 """The subscription type, represents all subscriptions we can make"""
 type Subscription {
     randomGreet: String!
+    tickAt: String!
 }
 """The episodes in the Star Wars trilogy"""
 enum Episode {

@@ -89,6 +89,7 @@ message FieldResolveInfo {
   TypeRef parentType = 4;
   OperationDefinition operation = 5;
   map<string, Value> variableValues = 6;
+  Value rootValue = 7;
 }
 
 message FieldResolveRequest {
@@ -225,10 +226,12 @@ message SubscriptionListenRequest {
   map<string, Value> variableValues = 3;
   string operationName = 4;
   Value protocol = 5;
+  OperationDefinition operation = 6;
 }
 
 message SubscriptionListenMessage {
   bool next = 1;
+  Value payload = 2;
 }
 
 service Driver {
