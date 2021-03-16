@@ -1,3 +1,4 @@
+// Package localcmd is a local command
 /*
 Copyright © 2020 NAME HERE <EMAIL ADDRESS>
 
@@ -16,17 +17,11 @@ limitations under the License.
 package localcmd
 
 import (
-	"context"
 	"flag"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
-	"github.com/graphql-editor/stucco/pkg/driver/plugin"
 	"github.com/graphql-editor/stucco/pkg/handlers"
-	"github.com/graphql-editor/stucco/pkg/router"
+	"github.com/graphql-editor/stucco/pkg/server"
 	"github.com/graphql-editor/stucco/pkg/utils"
 	"github.com/rs/cors"
 	"github.com/spf13/cobra"
@@ -40,67 +35,52 @@ func (klogErrorf) Errorf(msg string, args ...interface{}) {
 	klog.Errorf(msg, args...)
 }
 
+// NewStartCommand creates a start command
 func NewStartCommand() *cobra.Command {
 	var startConfig string
+	var schema string
 	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Start local runner",
 		Run: func(cmd *cobra.Command, args []string) {
-			var cfg router.Config
-			err := utils.LoadConfigFile(startConfig, &cfg)
-			if err != nil {
-				klog.Fatalln(err)
+			var cfg server.Config
+			if err := utils.LoadConfigFile(startConfig, &cfg); err != nil {
+				klog.Fatal(err)
 			}
-			cleanupPlugins := plugin.LoadDriverPlugins(plugin.Config{})
-			defer cleanupPlugins()
-			router, err := router.NewRouter(cfg)
-			if err != nil {
-				klog.Fatalln(err)
+			if schema != "" {
+				cfg.Schema = schema
 			}
-			h := handlers.New(handlers.Config{
-				Schema:   &router.Schema,
-				Pretty:   true,
-				GraphiQL: true,
-			})
-			http.Handle(
-				"/graphql",
-				handlers.RecoveryHandler(
-					httplog.WithLogging(
-						cors.New(cors.Options{
-							AllowedOrigins: []string{"*"},
-							AllowedMethods: []string{
-								http.MethodHead,
-								http.MethodGet,
-								http.MethodPost,
-								http.MethodPut,
-								http.MethodPatch,
-								http.MethodDelete,
-							},
-							AllowedHeaders:   []string{"*"},
-							AllowCredentials: true,
-						}).Handler(
-							handlers.WithProtocolInContext(h),
-						),
-						httplog.DefaultStacktracePred,
+			h, err := server.New(cfg)
+			if err != nil {
+				klog.Fatal(err)
+			}
+			h = handlers.RecoveryHandler(
+				httplog.WithLogging(
+					cors.New(cors.Options{
+						AllowedOrigins: []string{"*"},
+						AllowedMethods: []string{
+							http.MethodHead,
+							http.MethodGet,
+							http.MethodPost,
+							http.MethodPut,
+							http.MethodPatch,
+							http.MethodDelete,
+						},
+						AllowedHeaders:   []string{"*"},
+						AllowCredentials: true,
+					}).Handler(
+						handlers.WithProtocolInContext(h),
 					),
-					klogErrorf{},
+					httplog.DefaultStacktracePred,
 				),
+				klogErrorf{},
 			)
-			server := http.Server{
-				Addr: ":8080",
+			srv := server.Server{
+				Handler: h,
+				Addr:    ":8080",
 			}
-			shc := make(chan os.Signal, 1)
-			signal.Notify(shc, syscall.SIGTERM)
-			go func() {
-				<-shc
-				ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-				defer cancel()
-				if err := server.Shutdown(ctx); err != nil {
-					klog.Errorln(err)
-				}
-			}()
-			if err := server.ListenAndServe(); err != nil {
-				klog.Errorln(err)
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				klog.Fatal(err)
 			}
 		},
 	}
@@ -114,5 +94,6 @@ func NewStartCommand() *cobra.Command {
 	}
 	startCommand.Flags().AddGoFlagSet(klogFlagSet)
 	startCommand.Flags().StringVarP(&startConfig, "config", "c", "", "path to stucco config")
+	startCommand.Flags().StringVarP(&schema, "schema", "s", "", "path to stucco config")
 	return startCommand
 }

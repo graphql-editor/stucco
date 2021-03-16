@@ -3,6 +3,7 @@ package driver
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -84,6 +85,8 @@ func (p ProtobufClient) New(u, f string) driver.Driver {
 // Driver implements stucco driver interface calling protobuf workers over http
 // with configurable workers base url
 type Driver struct {
+	BaseURL     string
+	FunctionURL map[string]string
 	WorkerClient
 }
 
@@ -100,10 +103,24 @@ func normalizeFuncName(fn string) string {
 	return fn
 }
 
-func envFuncURL(fName string) (*url.URL, error) {
-	envURL := os.Getenv("STUCCO_AZURE_WORKER_BASE_URL")
-	if funcURL := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(fName) + "_URL"); funcURL != "" {
+func (d *Driver) envFuncURL(fName string) (*url.URL, error) {
+	envURL := d.BaseURL
+	if envURL == "" {
+		if val, ok := os.LookupEnv("STUCCO_AZURE_WORKER_BASE_URL"); ok {
+			envURL = val
+		}
+	}
+	normalizedFuncName := normalizeFuncName(fName)
+	if funcURL := os.Getenv("STUCCO_AZURE_" + normalizedFuncName + "_URL"); funcURL != "" {
 		envURL = funcURL
+	}
+	if d.FunctionURL != nil {
+		if val, ok := d.FunctionURL[normalizedFuncName]; ok {
+			envURL = val
+		}
+	}
+	if envURL == "" {
+		return nil, errors.New("base url for function not set")
 	}
 	return url.Parse(envURL)
 }
@@ -117,7 +134,7 @@ func (d *Driver) newClient(url, fName string) driver.Driver {
 }
 
 func (d *Driver) baseURL(f types.Function) (us string, err error) {
-	u, err := envFuncURL(f.Name)
+	u, err := d.envFuncURL(f.Name)
 	if err == nil {
 		u.Path = EndpointName(f.Name)
 		us = u.String()
@@ -125,6 +142,7 @@ func (d *Driver) baseURL(f types.Function) (us string, err error) {
 	return
 }
 
+// SetSecrets implements driver.Driver
 func (d *Driver) SetSecrets(in driver.SetSecretsInput) driver.SetSecretsOutput {
 	// noop, secrets must be sed during deployment
 	return driver.SetSecretsOutput{}
@@ -142,6 +160,7 @@ func (d *Driver) functionClient(f types.Function) (client driver.Driver, derr *d
 	return
 }
 
+// FieldResolve implements driver.Driver
 func (d *Driver) FieldResolve(in driver.FieldResolveInput) driver.FieldResolveOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -152,6 +171,7 @@ func (d *Driver) FieldResolve(in driver.FieldResolveInput) driver.FieldResolveOu
 	return client.FieldResolve(in)
 }
 
+// InterfaceResolveType implements driver.Driver
 func (d *Driver) InterfaceResolveType(in driver.InterfaceResolveTypeInput) driver.InterfaceResolveTypeOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -162,6 +182,7 @@ func (d *Driver) InterfaceResolveType(in driver.InterfaceResolveTypeInput) drive
 	return client.InterfaceResolveType(in)
 }
 
+// ScalarParse implements driver.Driver
 func (d *Driver) ScalarParse(in driver.ScalarParseInput) driver.ScalarParseOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -171,6 +192,8 @@ func (d *Driver) ScalarParse(in driver.ScalarParseInput) driver.ScalarParseOutpu
 	}
 	return client.ScalarParse(in)
 }
+
+// ScalarSerialize implements driver.Driver
 func (d *Driver) ScalarSerialize(in driver.ScalarSerializeInput) driver.ScalarSerializeOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -180,6 +203,8 @@ func (d *Driver) ScalarSerialize(in driver.ScalarSerializeInput) driver.ScalarSe
 	}
 	return client.ScalarSerialize(in)
 }
+
+// UnionResolveType implements driver.Driver
 func (d *Driver) UnionResolveType(in driver.UnionResolveTypeInput) driver.UnionResolveTypeOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -189,6 +214,8 @@ func (d *Driver) UnionResolveType(in driver.UnionResolveTypeInput) driver.UnionR
 	}
 	return client.UnionResolveType(in)
 }
+
+// Stream implements driver.Driver
 func (d *Driver) Stream(in driver.StreamInput) driver.StreamOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -198,6 +225,8 @@ func (d *Driver) Stream(in driver.StreamInput) driver.StreamOutput {
 	}
 	return client.Stream(in)
 }
+
+// SubscriptionConnection implements driver.Driver
 func (d *Driver) SubscriptionConnection(in driver.SubscriptionConnectionInput) driver.SubscriptionConnectionOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {
@@ -207,6 +236,8 @@ func (d *Driver) SubscriptionConnection(in driver.SubscriptionConnectionInput) d
 	}
 	return client.SubscriptionConnection(in)
 }
+
+// SubscriptionListen implements driver.Driver
 func (d *Driver) SubscriptionListen(in driver.SubscriptionListenInput) driver.SubscriptionListenOutput {
 	client, err := d.functionClient(in.Function)
 	if err != nil {

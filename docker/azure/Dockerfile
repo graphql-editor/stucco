@@ -1,30 +1,13 @@
-FROM gqleditor/azure-functions-golang-worker:v0.1.0 AS build
+FROM golang:1.16 as build
 
-ARG VERSION
-ENV HOME=/home
-COPY . /home/site/wwwroot
-WORKDIR /home/site/wwwroot
+ENV CGO_ENABLED=0
+ADD . /app
+WORKDIR /app
+RUN go run hack/tasks.go bin/cli/linux/amd64/stucco --version=${VERSION}
 
-RUN go run hack/tasks.go build_azure --version=${VERSION}
+FROM mcr.microsoft.com/azure-functions/dotnet:3.0
 
-FROM debian:buster-slim
+ENV AzureFunctionsJobHost__Logging__Console__IsEnabled=true
 
-RUN apt-get update && apt-get install -y \
-    libicu63 libssl1.1 ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-
-ENV AzureWebJobsScriptRoot=/home/site/wwwroot \
-    HOME=/home \
-    FUNCTIONS_WORKER_RUNTIME=golang \
-    DOTNET_USE_POLLING_FILE_WATCHER=true \
-	ASPNETCORE_URLS=http://*:80 \
-	AZURE_GOLANG_WORKER_PREBUILT_graphql=/home/site/wwwroot/graphql/function.so
-
-COPY --from=build [ "/azure-functions-host", "/azure-functions-host" ]
-COPY --from=build [ "/FuncExtensionBundles", "/FuncExtensionBundles" ]
-COPY --from=build [ "/home/site/wwwroot/bin/azure/worker", "/azure-functions-host/workers/golang/worker" ]
-COPY --from=build [ "/home/site/wwwroot/bin/azure/function.so", "/home/site/wwwroot/graphql/function.so" ]
-COPY pkg/providers/azure/function /home/site/wwwroot
-COPY pkg/providers/azure/function/worker.config.json /azure-functions-host/workers/golang/
-WORKDIR /home/site/wwwroot
-CMD [ "/azure-functions-host/Microsoft.Azure.WebJobs.Script.WebHost" ]
+COPY --from=build /app/pkg/providers/azure/function /home/site/wwwroot
+COPY --from=build /app/bin/cli/linux/amd64/stucco /home/site/wwwroot/stucco

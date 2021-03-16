@@ -231,8 +231,6 @@ func out(s string) string {
 }
 
 var (
-	azureWorker         = out("azure/worker")
-	azureFunction       = out("azure/function.so")
 	goBuildDependencies = gbtb.DependenciesList{
 		gbtb.GlobFiles("**/*.go"),
 		gbtb.StaticDependencies{"go.sum", "go.mod"},
@@ -367,34 +365,6 @@ func excludePkg(pkg string) bool {
 	return false
 }
 
-func azureWorkerJob() error {
-	cmd := exec.Command(
-		"go",
-		"build",
-		"-o",
-		azureWorker,
-		"github.com/graphql-editor/azure-functions-golang-worker/cmd/worker",
-	)
-	cmd.Env = append(cmd.Env, "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
-	return gbtb.PipeCommands(cmd)
-}
-
-func azureFunctionJob(bv string) func() error {
-	return func() error {
-		cmd := exec.Command(
-			"go",
-			"build",
-			"-buildmode=plugin",
-			"-o",
-			azureFunction,
-			ldflags(bv),
-			"github.com/graphql-editor/stucco/pkg/providers/azure/function/graphql",
-		)
-		cmd.Env = append(cmd.Env, "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
-		return gbtb.PipeCommands(cmd)
-	}
-}
-
 func main() {
 	gbtb.FlagsInit(flag.CommandLine)
 	flag.StringVar(&version, "version", "", "build version")
@@ -428,20 +398,6 @@ func main() {
 		&gbtb.Task{
 			Name: "coverage",
 			Job:  coverage,
-		},
-		&gbtb.Task{
-			Name:         azureWorker,
-			Job:          azureWorkerJob,
-			Dependencies: goBuildDependencies,
-		},
-		&gbtb.Task{
-			Name:         azureFunction,
-			Job:          azureFunctionJob(bv),
-			Dependencies: goBuildDependencies,
-		},
-		&gbtb.Task{
-			Name:         "build_azure",
-			Dependencies: gbtb.StaticDependencies{azureWorker, azureFunction},
 		},
 		&gbtb.Task{
 			Name: "build_azure_router_image",

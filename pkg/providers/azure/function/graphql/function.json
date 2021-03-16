@@ -7,8 +7,7 @@
 			"name": "req",
 			"methods": [
 				"get",
-				"post",
-				"options"
+				"post"
 			]
 		},
 		{
@@ -16,6 +15,5 @@
 			"direction": "out",
 			"name": "res"
 		}
-	],
-	"scriptFile": "function.go"
+	]
 }

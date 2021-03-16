@@ -46,6 +46,7 @@ func (h HostJSON) HasKey() bool {
 
 // StorageHostKeyReader read function key from azure storage host.json
 type StorageHostKeyReader struct {
+	Driver           *Driver
 	Account, Key     string
 	ConnectionString string
 	lock             sync.RWMutex
@@ -53,7 +54,11 @@ type StorageHostKeyReader struct {
 }
 
 func (s *StorageHostKeyReader) appName(function string) (name string, err error) {
-	u, err := envFuncURL(function)
+	d := s.Driver
+	if d == nil {
+		d = &Driver{}
+	}
+	u, err := d.envFuncURL(function)
 	if err == nil {
 		name = strings.Split(u.Hostname(), ".")[0]
 	}

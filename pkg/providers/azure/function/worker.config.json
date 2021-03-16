@@ -1,8 +1,0 @@
-{
-	"description": {
-		"language": "golang",
-		"extensions":[".go"],
-		"defaultExecutablePath": "/azure-functions-host/workers/golang/worker",
-		"defaultWorkerPath": ""
-	}
-}
