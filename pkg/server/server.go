@@ -93,6 +93,7 @@ func (d Driver) azureLoad() (Driver, error) {
 	var saAccount string
 	var saKey string
 	var saConnectionString string
+	var saStuccoFiles string
 	set := func(dst *string, k string, m map[string]interface{}) {
 		if m == nil {
 			return
@@ -107,6 +108,7 @@ func (d Driver) azureLoad() (Driver, error) {
 		set(&saAccount, "account", v)
 		set(&saKey, "key", v)
 		set(&saConnectionString, "connectionString", v)
+		set(&saStuccoFiles, "stuccoFiles", v)
 	}
 	dri := &azuredriver.Driver{
 		BaseURL: worker,

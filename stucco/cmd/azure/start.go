@@ -1,10 +1,14 @@
 package azurecmd
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
+	"github.com/Azure/azure-storage-blob-go/azblob"
 	"github.com/spf13/cobra"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
@@ -13,10 +17,61 @@ import (
 	"github.com/graphql-editor/stucco/pkg/utils"
 )
 
+func createBlobLinks(container, account, key, connectionString string) (config, schema string, err error) {
+	if connectionString != "" {
+		parts := strings.Split(connectionString, ";")
+		for _, p := range parts {
+			if acc := strings.TrimPrefix(p, "AccountName="); acc != p {
+				account = acc
+			}
+			if k := strings.TrimPrefix(p, "AccountKey="); k != p {
+				key = k
+			}
+		}
+	}
+	if container == "" || account == "" || key == "" {
+		return
+	}
+	credential, err := azblob.NewSharedKeyCredential(account, key)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, d := range []struct {
+		fileName string
+		dest     *string
+	}{
+		{"schema.graphql", &schema},
+		{"stucco.json", &config},
+	} {
+		var sasQueryParams azblob.SASQueryParameters
+		sasQueryParams, err = azblob.BlobSASSignatureValues{
+			Protocol:      azblob.SASProtocolHTTPS,
+			ExpiryTime:    time.Now().UTC().Add(48 * time.Hour),
+			ContainerName: container,
+			BlobName:      d.fileName,
+			Permissions:   azblob.BlobSASPermissions{Add: false, Read: true, Write: false}.String(),
+		}.NewSASQueryParameters(credential)
+		if err != nil {
+			return
+		}
+
+		qp := sasQueryParams.Encode()
+		*d.dest = fmt.Sprintf(
+			"https://%s.blob.core.windows.net/%s/%s?%s",
+			account,
+			container,
+			d.fileName,
+			qp,
+		)
+	}
+	return
+}
+
 type storageDefaults struct {
 	account          string
 	key              string
 	connectionString string
+	stuccoFiles      string
 }
 type azureDefaults struct {
 	listenAddress string
@@ -31,14 +86,6 @@ var defaults = func() azureDefaults {
 	if val, ok := os.LookupEnv("FUNCTIONS_CUSTOMHANDLER_PORT"); ok {
 		listenPort = val
 	}
-	schema := "schema.graphql"
-	if val, ok := os.LookupEnv("STUCCO_SCHEMA"); ok {
-		schema = val
-	}
-	config := ""
-	if val, ok := os.LookupEnv("STUCCO_CONFIG"); ok {
-		config = val
-	}
 	worker := "http://localhost:7071"
 	if val, ok := os.LookupEnv("STUCCO_AZURE_WORKER_BASE_URL"); ok {
 		worker = val
@@ -49,9 +96,10 @@ var defaults = func() azureDefaults {
 			account:          os.Getenv("STUCCO_AZURE_WORKER_STORAGE_ACCOUNT"),
 			key:              os.Getenv("STUCCO_AZURE_WORKER_STORAGE_ACCOUNT_KEY"),
 			connectionString: os.Getenv("AzureWebJobsStorage"),
+			stuccoFiles:      os.Getenv("STUCCO_AZURE_CONTAINER"),
 		},
-		schema: schema,
-		config: config,
+		schema: os.Getenv("STUCCO_SCHEMA"),
+		config: os.Getenv("STUCCO_CONFIG"),
 		worker: worker,
 	}
 }()
@@ -66,11 +114,19 @@ func NewStartCommand() *cobra.Command {
 	var saAccount string
 	var saKey string
 	var saConnectionString string
+	var saStuccoFiles string
 	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Run azure router",
 		Run: func(cmd *cobra.Command, args []string) {
 			var cfg server.Config
+			if config == "" && schema == "" {
+				var err error
+				config, schema, err = createBlobLinks(saStuccoFiles, saAccount, saKey, saConnectionString)
+				if err != nil {
+					log.Fatal(err)
+				}
+			}
 			if err := utils.LoadConfigFile(config, &cfg); err != nil {
 				log.Fatal(err)
 			}
@@ -94,6 +150,7 @@ func NewStartCommand() *cobra.Command {
 								"account":          saAccount,
 								"key":              saKey,
 								"connectionString": saConnectionString,
+								"stuccoFiles":      saStuccoFiles,
 							},
 						},
 					},
@@ -123,5 +180,6 @@ func NewStartCommand() *cobra.Command {
 	startCommand.Flags().StringVar(&saAccount, "storage-account", defaults.storage.account, "Storage account to use")
 	startCommand.Flags().StringVar(&saKey, "storage-account-key", defaults.storage.key, "Key to storage account")
 	startCommand.Flags().StringVar(&saConnectionString, "storage-connection-string", defaults.storage.connectionString, "Connection string to azure web jobs storage")
+	startCommand.Flags().StringVar(&saStuccoFiles, "stucco-files-container", defaults.storage.stuccoFiles, "A name of container with stucco files in Azure Storage")
 	return startCommand
 }

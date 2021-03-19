@@ -1,9 +1,11 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -239,6 +241,7 @@ var (
 
 type flavour struct {
 	goos, goarch, out, ext string
+	azureFunction          bool
 }
 
 func buildVersion() string {
@@ -292,6 +295,93 @@ func xBuildCommandLine(f flavour, bv string) func() error {
 	}
 }
 
+type zipData struct {
+	dst, src string
+}
+
+func zipFiles(filename string, files []zipData) error {
+	newZipFile, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer newZipFile.Close()
+
+	zipWriter := zip.NewWriter(newZipFile)
+	defer zipWriter.Close()
+
+	for _, file := range files {
+		if err = addFileToZip(zipWriter, file.dst, file.src); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func addFileToZip(zipWriter *zip.Writer, dst, src string) error {
+	fileToZip, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer fileToZip.Close()
+
+	// Get the file information
+	info, err := fileToZip.Stat()
+	if err != nil {
+		return err
+	}
+
+	header, err := zip.FileInfoHeader(info)
+	if err != nil {
+		return err
+	}
+
+	header.Name = dst
+	header.Method = zip.Deflate
+
+	writer, err := zipWriter.CreateHeader(header)
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(writer, fileToZip)
+	return err
+}
+
+func makeAzureFunctionZip(flavours []flavour) func() error {
+	return func() error {
+		azureOut := filepath.Join("bin", "azure")
+		err := os.MkdirAll(azureOut, 0755)
+		if err != nil {
+			return err
+		}
+		files := []zipData{}
+		for _, funcFile := range []string{
+			filepath.Join("graphql", "function.json"),
+			"host.json",
+			"run.js",
+		} {
+			files = append(
+				files,
+				zipData{
+					dst: funcFile,
+					src: filepath.Join("pkg", "providers", "azure", "function", funcFile),
+				},
+			)
+		}
+		for _, fv := range flavours {
+			if fv.azureFunction {
+				files = append(
+					files,
+					zipData{
+						dst: filepath.Join("stucco", fv.goos, fv.goarch, "stucco"+fv.ext),
+						src: fv.out,
+					},
+				)
+			}
+		}
+		return zipFiles(filepath.Join(azureOut, "function.zip"), files)
+	}
+}
+
 func helpTask(tasks *gbtb.Tasks) gbtb.Job {
 	return func() error {
 		for _, t := range *tasks {
@@ -300,28 +390,6 @@ func helpTask(tasks *gbtb.Tasks) gbtb.Job {
 		}
 		return nil
 	}
-}
-
-func dockerTag(src, dst string) gbtb.Job {
-	return gbtb.CommandJob("docker", "tag", src, dst)
-}
-
-func dockerVersionTag(src, dst, bv string) gbtb.Job {
-	return conditionalJob(
-		isVersionCond(bv),
-		dockerTag(src, dst),
-	)
-}
-
-func pushDockerTag(tag string) gbtb.Job {
-	return gbtb.CommandJob("docker", "push", tag)
-}
-
-func pushDockerVersionTag(tag, bv string) gbtb.Job {
-	return conditionalJob(
-		isVersionCond(bv),
-		pushDockerTag(tag),
-	)
 }
 
 func conditionalJob(cond func() bool, j gbtb.Job) gbtb.Job {
@@ -399,80 +467,19 @@ func main() {
 			Name: "coverage",
 			Job:  coverage,
 		},
-		&gbtb.Task{
-			Name: "build_azure_router_image",
-			Job:  gbtb.CommandJob("docker", "build", "--build-arg", "VERSION="+bv, "-t", stuccoAzureRouterImageLatest, "-f", "docker/azure/Dockerfile", "."),
-		},
-		&gbtb.Task{
-			Name:         "tag_azure_router_image_patch",
-			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
-			Job:          dockerVersionTag(stuccoAzureRouterImageLatest, stuccoAzureRouterImage+":"+bv, bv),
-		},
-		&gbtb.Task{
-			Name:         "tag_azure_router_image_minor",
-			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
-			Job:          dockerVersionTag(stuccoAzureRouterImageLatest, stuccoAzureRouterImage+":"+minorString(bv), bv),
-		},
-		&gbtb.Task{
-			Name:         "tag_azure_router_image_major",
-			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
-			Job:          dockerVersionTag(stuccoAzureRouterImageLatest, stuccoAzureRouterImage+":"+majorString(bv), bv),
-		},
-		&gbtb.Task{
-			Name: "tag_azure_router_image",
-			Dependencies: gbtb.StaticDependencies{
-				"tag_azure_router_image_patch",
-				"tag_azure_router_image_minor",
-				"tag_azure_router_image_major",
-			},
-		},
-		&gbtb.Task{
-			Name:         "deploy_azure_router_image_latest",
-			Dependencies: gbtb.StaticDependencies{"build_azure_router_image"},
-			Job:          pushDockerTag(stuccoAzureRouterImageLatest),
-		},
-		&gbtb.Task{
-			Name: "deploy_azure_router_image_patch",
-			Dependencies: gbtb.StaticDependencies{
-				"deploy_azure_router_image_latest",
-				"tag_azure_router_image_patch",
-			},
-			Job: pushDockerVersionTag(stuccoAzureRouterImage+":"+bv, bv),
-		},
-		&gbtb.Task{
-			Name: "deploy_azure_router_image_minor",
-			Dependencies: gbtb.StaticDependencies{
-				"deploy_azure_router_image_latest",
-				"tag_azure_router_image_minor",
-			},
-			Job: pushDockerVersionTag(stuccoAzureRouterImage+":"+minorString(bv), bv),
-		},
-		&gbtb.Task{
-			Name: "deploy_azure_router_image_major",
-			Dependencies: gbtb.StaticDependencies{
-				"deploy_azure_router_image_latest",
-				"tag_azure_router_image_major",
-			},
-			Job: pushDockerVersionTag(stuccoAzureRouterImage+":"+majorString(bv), bv),
-		},
-		&gbtb.Task{
-			Name: "deploy_azure_router_image",
-			Dependencies: gbtb.StaticDependencies{
-				"deploy_azure_router_image_patch",
-				"deploy_azure_router_image_latest",
-				"deploy_azure_router_image_minor",
-				"deploy_azure_router_image_major",
-			},
-		},
 	}
 	cliFlavours := []flavour{
-		{goos: "linux", goarch: "amd64"},
+		{goos: "linux", goarch: "amd64", azureFunction: true},
 		{goos: "darwin", goarch: "amd64"},
-		{goos: "windows", goarch: "amd64", ext: ".exe"},
+		{goos: "windows", goarch: "amd64", ext: ".exe", azureFunction: true},
+		{goos: "linux", goarch: "386", azureFunction: true},
+		{goos: "windows", goarch: "386", ext: ".exe", azureFunction: true},
+	}
+	for i, f := range cliFlavours {
+		cliFlavours[i].out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))
 	}
 	var cliDeps gbtb.StaticDependencies
 	for _, f := range cliFlavours {
-		f.out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))
 		cliDeps = append(cliDeps, f.out)
 		// keep job names consitent across operating systems
 		name := strings.Join([]string{"bin", "cli", f.goos, f.goarch, "stucco" + f.ext}, "/")
@@ -486,6 +493,11 @@ func main() {
 		tasks, &gbtb.Task{
 			Name:         "build_cli",
 			Dependencies: cliDeps,
+		},
+		&gbtb.Task{
+			Name:         "build_azure_function",
+			Dependencies: cliDeps,
+			Job:          makeAzureFunctionZip(cliFlavours),
 		},
 		&gbtb.Task{
 			Name: "help",

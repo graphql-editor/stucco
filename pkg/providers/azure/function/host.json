@@ -19,9 +19,9 @@
   },
   "customHandler": {
     "description": {
-      "defaultExecutablePath": "stucco",
+      "defaultExecutablePath": "node",
       "workingDirectory": "",
-      "arguments": ["azure", "start"]
+      "arguments": ["run.js"]
     },
 	"enableForwardingHttpRequest": true
   }
