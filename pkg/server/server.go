@@ -202,6 +202,9 @@ var defaultDrivers = Drivers{
 			Runtime:  "function",
 		},
 		Type: Azure,
+		Attributes: map[string]interface{}{
+			"worker": "http://localhost",
+		},
 	},
 }
 
@@ -226,6 +229,24 @@ type Config struct {
 	GraphiQL           *bool              `json:"graphiql"`
 	Drivers            Drivers            `json:"drivers"`
 	DefaultEnvironment router.Environment `json:"defaultEnvironment"`
+}
+
+// UnmarshalJSON implements json unmarshaler
+func (c *Config) UnmarshalJSON(b []byte) error {
+	type config Config
+	if err := json.Unmarshal(b, &c.Config); err != nil {
+		return err
+	}
+	return json.Unmarshal(b, (*config)(c))
+}
+
+// UnmarshalYAML implements yaml unmarshaler
+func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	type config Config
+	if err := unmarshal(&c.Config); err != nil {
+		return err
+	}
+	return unmarshal((*config)(c))
 }
 
 // New returns new handler for graphql server

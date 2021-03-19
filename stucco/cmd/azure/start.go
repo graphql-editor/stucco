@@ -35,7 +35,7 @@ var defaults = func() azureDefaults {
 	if val, ok := os.LookupEnv("STUCCO_SCHEMA"); ok {
 		schema = val
 	}
-	config := "stucco.json"
+	config := ""
 	if val, ok := os.LookupEnv("STUCCO_CONFIG"); ok {
 		config = val
 	}

@@ -1,8 +1,6 @@
 package driver
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"io"
 	"net/http"
@@ -92,8 +90,7 @@ type Driver struct {
 
 // EndpointName create endpoint name from string
 func EndpointName(p string) string {
-	b := sha256.Sum256([]byte(p))
-	return hex.EncodeToString(b[:])
+	return p
 }
 
 func normalizeFuncName(fn string) string {
