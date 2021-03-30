@@ -16,6 +16,7 @@ import (
 const StuccoConfigEnv = "STUCCO_CONFIG"
 
 type decodeFunc func([]byte, interface{}) error
+type encodeFunc func(interface{}) ([]byte, error)
 
 func yamlUnmarshal(b []byte, v interface{}) error {
 	return yaml.Unmarshal(b, v)
@@ -25,6 +26,11 @@ var supportedExtension = map[string]decodeFunc{
 	".json": json.Unmarshal,
 	".yaml": yamlUnmarshal,
 	".yml":  yamlUnmarshal,
+}
+var supportedExtensionEncode = map[string]encodeFunc{
+	".json": json.Marshal,
+	".yaml": yaml.Marshal,
+	".yml":  yaml.Marshal,
 }
 
 func getConfigExt(fn string) (ext string, isurl bool, err error) {
@@ -100,6 +106,24 @@ func ReadConfigFile(fn string) (b []byte, err error) {
 		}
 	}
 	return
+}
+
+// SaveConfigFile saves config to file
+func SaveConfigFile(fn string, data interface{}) (err error) {
+	ext, _, _ := getConfigExt(fn)
+	configPath, err := realConfigFileName(fn)
+	if err != nil {
+		return err
+	}
+	encode := supportedExtensionEncode[ext]
+
+	file, err := encode(data)
+
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(configPath, file, 0644)
 }
 
 // LoadConfigFile returns Config from file

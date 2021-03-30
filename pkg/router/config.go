@@ -101,6 +101,57 @@ type Config struct {
 	Subscriptions SubscriptionConfig         `json:"subscriptions"` // Configure subscription behaviour
 }
 
+func (c *Config) AddResolver(rsv, fn string) {
+	if c.Resolvers == nil {
+		c.Resolvers = make(map[string]ResolverConfig)
+	}
+	c.Resolvers[rsv] = ResolverConfig{
+		Resolve: types.Function{
+			Name: fn,
+		},
+	}
+}
+
+func (c *Config) AddInterface(intrf, fn string) {
+	if c.Interfaces == nil {
+		c.Interfaces = make(map[string]InterfaceConfig)
+	}
+	c.Interfaces[intrf] = InterfaceConfig{
+		ResolveType: types.Function{
+			Name: fn,
+		},
+	}
+}
+
+func (c *Config) AddScalar(sclr, parse string, serialize string) {
+	if c.Scalars == nil {
+		c.Scalars = make(map[string]ScalarConfig)
+	}
+	c.Scalars[sclr] = ScalarConfig{
+		Parse: types.Function{
+			Name: parse,
+		},
+		Serialize: types.Function{
+			Name: serialize,
+		},
+	}
+}
+
+func (c *Config) AddUnion(union, fn string) {
+	if c.Unions == nil {
+		c.Unions = make(map[string]UnionConfig)
+	}
+	c.Unions[union] = UnionConfig{
+		ResolveType: types.Function{
+			Name: fn,
+		},
+	}
+}
+
+func (c *Config) AddSchema(schema string) {
+	c.Schema = schema
+}
+
 func (c Config) httpSchema() (string, error) {
 	resp, err := http.Get(c.Schema)
 	if err != nil {

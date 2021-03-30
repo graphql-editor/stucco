@@ -48,6 +48,19 @@ func (d *DriverKind) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
+func (d DriverKind) MarshalJSON() (b []byte, err error) {
+	var s string
+	switch d {
+	case Plugin:
+		s = "plugin"
+	case Azure:
+		s = "azure"
+	default:
+		return nil, errors.New("invalid DriverKind")
+	}
+	return json.Marshal(s)
+}
+
 type staticKey string
 
 func (k staticKey) GetKey(function string) (string, error) {

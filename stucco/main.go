@@ -34,6 +34,8 @@ import (
 	azurecmd "github.com/graphql-editor/stucco/stucco/cmd/azure"
 	localcmd "github.com/graphql-editor/stucco/stucco/cmd/local"
 	"github.com/spf13/cobra"
+
+	configcmd "github.com/graphql-editor/stucco/stucco/cmd/config"
 )
 
 func seed() {
@@ -58,6 +60,7 @@ func main() {
 	rootCmd.AddCommand(cmd.NewVersionCommand())
 	rootCmd.AddCommand(azurecmd.NewAzureCommand())
 	rootCmd.AddCommand(localcmd.NewLocalCommand())
+	rootCmd.AddCommand(configcmd.NewConfigCommand())
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
