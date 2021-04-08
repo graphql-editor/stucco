@@ -112,7 +112,7 @@ func (d *Driver) envFuncURL(fName string) (*url.URL, error) {
 		envURL = funcURL
 	}
 	if d.FunctionURL != nil {
-		if val, ok := d.FunctionURL[normalizedFuncName]; ok {
+		if val, ok := d.FunctionURL[fName]; ok {
 			envURL = val
 		}
 	}

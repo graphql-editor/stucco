@@ -25,9 +25,8 @@ func NewAzureCommand() *cobra.Command {
 		Use:   "azure",
 		Short: "Set of tools to help with Azure Functions and stucco integration",
 	}
-	azureCmd.AddCommand(NewInitCommand())
-	azureCmd.AddCommand(NewUpdateCommand())
-	azureCmd.AddCommand(NewDeployCommand())
 	azureCmd.AddCommand(NewStartCommand())
+	azureCmd.AddCommand(NewZipRouterCommand())
+	azureCmd.AddCommand(NewZipFunctionCommand())
 	return azureCmd
 }

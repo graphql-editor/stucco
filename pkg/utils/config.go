@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -90,20 +89,7 @@ func realConfigFileName(fn string) (configPath string, err error) {
 func ReadConfigFile(fn string) (b []byte, err error) {
 	configPath, err := realConfigFileName(fn)
 	if err == nil {
-		var u *url.URL
-		u, err = url.Parse(configPath)
-		if err == nil {
-			if u.Scheme == "" {
-				b, err = ioutil.ReadFile(u.Path)
-			} else {
-				var resp *http.Response
-				resp, err = http.Get(u.String())
-				if err == nil {
-					defer resp.Body.Close()
-					b, err = ioutil.ReadAll(resp.Body)
-				}
-			}
-		}
+		return ReadLocalOrRemoteFile(configPath)
 	}
 	return
 }
