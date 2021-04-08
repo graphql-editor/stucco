@@ -89,7 +89,7 @@ jobs:
   release:
     needs:
     - build_cli
-    - build_azure
+    - build_azure_function
     runs-on: ubuntu-latest
     steps:
     - name: pull artifacts
