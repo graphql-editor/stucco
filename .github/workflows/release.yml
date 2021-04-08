@@ -10,7 +10,7 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.16.x]
         platform: [ubuntu-latest, macos-latest, windows-latest]
         include:
           - platform: ubuntu-latest
@@ -45,23 +45,25 @@ jobs:
         pattern: 'refs/tags/(.*)'
         string: '${{ github.ref }}'
         replace-with: '$1'
+    - name: build tasks
+      run: go build -o tasks ./hack/tasks.go
     - name: build cli
-      run: go run ./hack/tasks.go -version ${{ steps.version.outputs.replaced }} bin/cli/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }}
+      run: ./tasks -version ${{ steps.version.outputs.replaced }} bin/cli/${{ matrix.goos }}/${{ matrix.goarch }}/stucco${{ matrix.ext }}
     - name: test
       env:
         CGO_ENABLED: 1
       run: |
-        go run ./hack/tasks.go -- test
-        go run ./hack/tasks.go -- test-race
-    - uses: actions/upload-artifact@v1
+        ./tasks test
+        ./tasks test-race
+    - uses: actions/upload-artifact@v2
       with:
         name: binaries
         path: bin
-  build_azure:
+  build_azure_function:
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     strategy:
       matrix:
-        go-version: [1.13.x]
+        go-version: [1.16.x]
         platform: [ubuntu-latest]
         include:
           - platform: ubuntu-latest
@@ -80,8 +82,10 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
-    - name: build azure
-      run: go run ./hack/tasks.go -- build_azure
+    - name: build tasks
+      run: go build -o tasks ./hack/tasks.go
+    - name: build azure function
+      run: ./tasks build_azure_function
   release:
     needs:
     - build_cli
@@ -103,6 +107,7 @@ jobs:
     - name: copy latest version
       run: |
         mv bin/cli bin/${{ steps.version.outputs.replaced }}
+        mv bin/azure bin/${{ steps.version.outputs.replaced }}
         cp -r bin/${{ steps.version.outputs.replaced }} bin/latest
         echo "${{ steps.version.outputs.replaced }}" > bin/latest/version
     - uses: jakejarvis/s3-sync-action@master

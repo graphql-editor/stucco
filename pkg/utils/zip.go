@@ -169,7 +169,7 @@ func ZipAppendFromReader(r io.ReaderAt, size int64, files []ZipData) (io.Reader,
 
 // AddPathToZip appends contents of directory to zip, optionaly skipping files/directories matching gitignore like lines
 func AddPathToZip(path string, ignoreGlobs []string, w *zip.Writer) error {
-	return filepath.Walk(path, func(p string, fi fs.FileInfo, err error) error {
+	return filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -178,19 +178,23 @@ func AddPathToZip(path string, ignoreGlobs []string, w *zip.Writer) error {
 			return err
 		}
 		if cp == "." {
-			if !fi.IsDir() {
+			if !d.IsDir() {
 				return fmt.Errorf("%s must be a directory", path)
 			}
 			return nil
 		}
 		gitIgnore := ignore.CompileIgnoreLines(ignoreGlobs...)
 		if gitIgnore.MatchesPath(cp) {
-			if fi.IsDir() {
+			if d.IsDir() {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if !fi.IsDir() {
+		if !d.IsDir() {
+			fi, err := d.Info()
+			if err != nil {
+				return err
+			}
 			var f *os.File
 			f, err = os.Open(p)
 			if err != nil {
