@@ -86,6 +86,10 @@ jobs:
       run: go build -o tasks ./hack/tasks.go
     - name: build azure function
       run: ./tasks build_azure_function
+    - uses: actions/upload-artifact@v2
+      with:
+        name: binaries
+        path: bin
   release:
     needs:
     - build_cli
@@ -93,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: pull artifacts
-      uses: actions/download-artifact@v1
+      uses: actions/download-artifact@v2
       with:
         name: binaries
         path: bin
