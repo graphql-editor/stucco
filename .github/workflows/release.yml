@@ -85,7 +85,7 @@ jobs:
     - name: build tasks
       run: go build -o tasks ./hack/tasks.go
     - name: build azure function
-      run: ./tasks build_azure_function
+      run: ./tasks -version ${{ steps.version.outputs.replaced }} build_azure_function
     - uses: actions/upload-artifact@v2
       with:
         name: binaries
