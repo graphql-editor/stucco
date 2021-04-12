@@ -110,11 +110,12 @@ func NewStartCommand() *cobra.Command {
 	var schema string
 	var worker string
 	var listen string
-	var key string
 	var saAccount string
 	var saKey string
 	var saConnectionString string
 	var saStuccoFiles string
+	var cert string
+	var key string
 	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Run azure router",
@@ -133,6 +134,13 @@ func NewStartCommand() *cobra.Command {
 			if schema != "" {
 				cfg.Schema = schema
 			}
+			var azureAttribs map[string]interface{}
+			if cert != "" || key != "" {
+				azureAttribs = map[string]interface{}{
+					"cert": cert,
+					"key":  key,
+				}
+			}
 			h, err := server.New(server.Config{
 				Config: cfg.Config,
 				Drivers: server.Drivers{
@@ -142,17 +150,8 @@ func NewStartCommand() *cobra.Command {
 							Provider: "azure",
 							Runtime:  "function",
 						},
-						Type: server.Azure,
-						Attributes: map[string]interface{}{
-							"worker":      worker,
-							"functionKey": key,
-							"storage": map[string]interface{}{
-								"account":          saAccount,
-								"key":              saKey,
-								"connectionString": saConnectionString,
-								"stuccoFiles":      saStuccoFiles,
-							},
-						},
+						Type:       server.Azure,
+						Attributes: azureAttribs,
 					},
 				},
 				DefaultEnvironment: router.Environment{
@@ -173,7 +172,6 @@ func NewStartCommand() *cobra.Command {
 		},
 	}
 	startCommand.Flags().StringVarP(&config, "config", "c", defaults.config, "Path or url to stucco config")
-	startCommand.Flags().StringVarP(&key, "function-key", "k", "", "If function is deployed with function authLevel function key is required")
 	startCommand.Flags().StringVarP(&listen, "listen", "l", defaults.listenAddress, "Router listen address")
 	startCommand.Flags().StringVarP(&schema, "schema", "s", defaults.schema, "Path or url to stucco schema")
 	startCommand.Flags().StringVarP(&worker, "worker", "w", defaults.worker, "Address of azure function worker")
@@ -181,5 +179,7 @@ func NewStartCommand() *cobra.Command {
 	startCommand.Flags().StringVar(&saKey, "storage-account-key", defaults.storage.key, "Key to storage account")
 	startCommand.Flags().StringVar(&saConnectionString, "storage-connection-string", defaults.storage.connectionString, "Connection string to azure web jobs storage")
 	startCommand.Flags().StringVar(&saStuccoFiles, "stucco-files-container", defaults.storage.stuccoFiles, "A name of container with stucco files in Azure Storage")
+	startCommand.Flags().StringVar(&cert, "cert", "", "Certficate for client cert auth")
+	startCommand.Flags().StringVar(&key, "key", "", "Key for client cert auth")
 	return startCommand
 }

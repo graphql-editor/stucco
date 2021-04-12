@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	ignore "github.com/sabhiram/go-gitignore"
@@ -19,6 +20,7 @@ type ZipData struct {
 	Data     io.Reader
 	Filename string
 	Info     os.FileInfo
+	Symlink  bool
 }
 
 // AddFileToZip adds file represented by ZipData to zip archive
@@ -35,6 +37,11 @@ func (z *ZipData) AddFileToZip(zipWriter *zip.Writer) error {
 		header = &zip.FileHeader{
 			Method:   zip.Deflate,
 			Modified: time.Now(),
+		}
+		var m os.FileMode
+		m = 0755
+		if z.Symlink {
+			m &= os.ModeSymlink
 		}
 		header.SetMode(0755)
 	}
@@ -195,18 +202,47 @@ func AddPathToZip(path string, ignoreGlobs []string, w *zip.Writer) error {
 			if err != nil {
 				return err
 			}
-			var f *os.File
-			f, err = os.Open(p)
-			if err != nil {
-				return err
+			var dc io.ReadCloser
+			if fi.Mode()&os.ModeSymlink != 0 {
+				target, err := os.Readlink(filepath.Join(path, cp))
+				if err != nil {
+					return err
+				}
+				pathAbs, err := filepath.Abs(path)
+				if err != nil {
+					return err
+				}
+				pabs, err := filepath.Abs(filepath.Dir(filepath.Join(path, cp)))
+				if err != nil {
+					return err
+				}
+				r := filepath.Clean(filepath.Join(pabs, target))
+				if err != nil {
+					return err
+				}
+				tabs, err := filepath.Abs(r)
+				if err != nil {
+					return err
+				}
+				if !strings.HasPrefix(tabs, pathAbs) {
+					return fmt.Errorf("link %s target (%s) is outside of archive", cp, target)
+				}
+				dc = io.NopCloser(strings.NewReader(target))
+			} else {
+				var f *os.File
+				f, err = os.Open(p)
+				if err != nil {
+					return err
+				}
+				dc = f
 			}
 			zd := ZipData{
 				Filename: cp,
-				Data:     f,
 				Info:     fi,
+				Data:     dc,
 			}
 			err = zd.AddFileToZip(w)
-			f.Close()
+			dc.Close()
 		}
 		return err
 	})

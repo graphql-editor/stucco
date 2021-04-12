@@ -2,7 +2,6 @@ package security
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,9 +12,9 @@ import (
 
 // CertAuth is a certificate auth for function
 type CertAuth struct {
-	Cert []byte
-	Key  []byte
-	CA   []byte
+	Cert         []byte
+	Key          []byte
+	Renegotation tls.RenegotiationSupport
 }
 
 const (
@@ -62,42 +61,33 @@ func (c *CertAuth) UnmarshalJSON(b []byte) error {
 	cert := struct {
 		Cert string `json:"cert"`
 		Key  string `json:"key"`
-		CA   string `json:"ca"`
 	}{}
 	if err := json.Unmarshal(b, &cert); err != nil {
 		return err
 	}
-	for _, v := range []struct {
-		dst *[]byte
-		src string
-	}{
-		{dst: &c.Cert, src: cert.Cert},
-		{dst: &c.Key, src: cert.Key},
-		{dst: &c.CA, src: cert.CA},
-	} {
-		var err error
-		*v.dst, err = loadPem(v.src)
-		if err != nil {
-			return err
-		}
-	}
+	c.Cert = []byte(cert.Cert)
+	c.Key = []byte(cert.Key)
 	return nil
 }
 
 // RoundTripper returns round tripper for cert auth
 func (c CertAuth) RoundTripper() (http.RoundTripper, error) {
-	pool := x509.NewCertPool()
-	if !pool.AppendCertsFromPEM(c.CA) {
-		return nil, errors.New("could not append ca")
+	cert, err := loadPem(string(c.Cert))
+	if err != nil {
+		return nil, err
 	}
-	clientCert, err := tls.X509KeyPair(c.Cert, c.Key)
+	key, err := loadPem(string(c.Key))
+	if err != nil {
+		return nil, err
+	}
+	clientCert, err := tls.X509KeyPair(cert, key)
 	if err != nil {
 		return nil, err
 	}
 	return &http.Transport{
 		TLSClientConfig: &tls.Config{
-			RootCAs:      pool,
-			Certificates: []tls.Certificate{clientCert},
+			Certificates:  []tls.Certificate{clientCert},
+			Renegotiation: c.Renegotation,
 		},
 	}, nil
 }

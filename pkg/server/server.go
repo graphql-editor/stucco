@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +19,7 @@ import (
 	"github.com/graphql-editor/stucco/pkg/handlers"
 	azuredriver "github.com/graphql-editor/stucco/pkg/providers/azure/driver"
 	"github.com/graphql-editor/stucco/pkg/router"
+	"github.com/graphql-editor/stucco/pkg/security"
 	gqlhandler "github.com/graphql-go/handler"
 )
 
@@ -100,13 +102,25 @@ func (d Driver) pluginLoad() (Driver, error) {
 	return d, nil
 }
 
+type azureClient struct {
+	rt http.RoundTripper
+	azuredriver.ProtobufClient
+}
+
+// New returns new driver using protobuf protocol
+func (a azureClient) New(u, f string) driver.Driver {
+	if a.HTTPClient == nil && a.rt != nil {
+		a.HTTPClient = &http.Client{
+			Transport: a.rt,
+		}
+	}
+	return a.ProtobufClient.New(u, f)
+}
+
 func (d Driver) azureLoad() (Driver, error) {
 	var worker string
+	var cert string
 	var key string
-	var saAccount string
-	var saKey string
-	var saConnectionString string
-	var saStuccoFiles string
 	set := func(dst *string, k string, m map[string]interface{}) {
 		if m == nil {
 			return
@@ -116,30 +130,26 @@ func (d Driver) azureLoad() (Driver, error) {
 		}
 	}
 	set(&worker, "worker", d.Attributes)
-	set(&key, "functionKey", d.Attributes)
-	if v, ok := d.Attributes["storage"].(map[string]interface{}); ok {
-		set(&saAccount, "account", v)
-		set(&saKey, "key", v)
-		set(&saConnectionString, "connectionString", v)
-		set(&saStuccoFiles, "stuccoFiles", v)
-	}
+	set(&cert, "cert", d.Attributes)
+	set(&key, "key", d.Attributes)
+	cli := azureClient{}
 	dri := &azuredriver.Driver{
-		BaseURL: worker,
+		BaseURL:      worker,
+		WorkerClient: &cli,
 	}
-	var kr azuredriver.KeyReader
-	if saAccount != "" && saKey != "" || saConnectionString != "" {
-		kr = &azuredriver.StorageHostKeyReader{
-			Driver:           dri,
-			Account:          saAccount,
-			Key:              saKey,
-			ConnectionString: saConnectionString,
+	if cert != "" && key != "" {
+		auth := security.Auth{
+			Cert: &security.CertAuth{
+				Cert:         []byte(cert),
+				Key:          []byte(key),
+				Renegotation: tls.RenegotiateOnceAsClient,
+			},
 		}
-	}
-	if kr == nil && key != "" {
-		kr = staticKey(key)
-	}
-	dri.WorkerClient = &azuredriver.ProtobufClient{
-		KeyReader: kr,
+		rt, err := auth.RoundTripper()
+		if err != nil {
+			return Driver{}, err
+		}
+		cli.rt = rt
 	}
 	driver.Register(d.Config, dri)
 	return d, nil

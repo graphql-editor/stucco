@@ -18,21 +18,6 @@ type WorkerClient interface {
 	New(url, fname string) driver.Driver
 }
 
-// KeyReader returns access key for function
-type KeyReader interface {
-	GetKey(function string) (string, error)
-}
-
-type envKeyReader struct{}
-
-func (envKeyReader) GetKey(function string) (string, error) {
-	authCode := os.Getenv("STUCCO_AZURE_WORKER_KEY")
-	if funcCode := os.Getenv("STUCCO_AZURE_" + normalizeFuncName(function) + "_KEY"); funcCode != "" {
-		authCode = funcCode
-	}
-	return authCode, nil
-}
-
 // HTTPClient used by azure client
 type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
@@ -42,25 +27,12 @@ type HTTPClient interface {
 type ProtobufClient struct {
 	HTTPClient
 	FunctionName string
-	KeyReader
 }
 
 // Post implemention for azure worker protobuf communication
 func (p ProtobufClient) Post(url, contentType string, body io.Reader) (resp *http.Response, err error) {
-	// TODO: This should be done using Azure AD in the future
 	req, err := http.NewRequest(http.MethodPost, url, body)
-	var authCode string
 	if err == nil {
-		kr := p.KeyReader
-		if kr == nil {
-			kr = envKeyReader{}
-		}
-		authCode, err = kr.GetKey(p.FunctionName)
-	}
-	if err == nil {
-		if authCode != "" {
-			req.Header.Add("X-Functions-Key", authCode)
-		}
 		req.Header.Add("content-type", contentType)
 		client := p.HTTPClient
 		if client == nil {

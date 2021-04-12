@@ -21,7 +21,7 @@
     "description": {
       "defaultExecutablePath": "node",
       "workingDirectory": "",
-      "arguments": ["run.js"]
+      "arguments": ["run.js", "--cert", "./cert.pem", "--key", "./key.pem"]
     },
 	"enableForwardingHttpRequest": true
   }

@@ -34,7 +34,10 @@ var stuccoJSFunctionJSONTemplate = template.Must(template.New("function.json").P
 }`))
 
 // StuccoJS runtime
-type StuccoJS struct{}
+type StuccoJS struct {
+	OsType       OsType
+	MajorVersion int
+}
 
 var baseNameSeparators = regexp.MustCompile(`[./\\]`)
 
@@ -59,7 +62,7 @@ func (s StuccoJS) Function(f types.Function) (files []File, err error) {
 
 // IgnoreFiles returns a list of Glob patterns to be ignored while creating runtime bundle
 func (s StuccoJS) IgnoreFiles() []string {
-	return append([]string{"node_modules", "dist/*"}, commonIgnoreList...)
+	return append([]string{"/dist/*"}, commonIgnoreList...)
 }
 
 // GlobalFiles returns shared config files for runtime
@@ -86,7 +89,7 @@ func (s StuccoJS) GlobalFiles() ([]File, error) {
 				  "customHandler": {
 					"description": {
 					  "defaultExecutablePath": "node",
-					  "arguments": ["./node_modules/.bin/stucco-js", "azure", "serve"]
+					  "arguments": ["./node_modules/stucco-js/lib/cli/cli.js", "azure", "serve"]
 					},
 					"enableForwardingHttpRequest": true
 				  },

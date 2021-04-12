@@ -41,7 +41,7 @@ func NewZipRouterCommand() *cobra.Command {
 				klog.Fatal(err)
 			}
 			extraFiles := []utils.ZipData{
-				{Filename: "config.json", Data: bytes.NewReader(configData)},
+				{Filename: "stucco.json", Data: bytes.NewReader(configData)},
 				{Filename: "schema.graphql", Data: bytes.NewReader(schemaData)},
 			}
 			if keyData != nil {

@@ -9,7 +9,8 @@ const archMapping = {
 }
 const hostarch = archMapping[arch()] !== undefined ? archMapping[arch()] : arch()
 const ext = hostos === 'windows' ? '.exe' : ''
-const stucco = spawn(join('stucco', hostos, hostarch, 'stucco' + ext), ['azure', 'start'])
+const args = ['azure', 'start']
+const stucco = spawn(join('stucco', hostos, hostarch, 'stucco' + ext), args.concat(process.argv.slice(2)))
 process.stdin.pipe(stucco.stdin)
 stucco.stdout.pipe(process.stdout)
 stucco.stderr.pipe(process.stderr)

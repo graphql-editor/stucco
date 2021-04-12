@@ -31,29 +31,13 @@ func TestProtobufNewClient(t *testing.T) {
 		HTTPClient: http.DefaultClient,
 	}.New("http://mockurl", "funcname"))
 	var mockHTTPClient mockHTTPClient
-	os.Setenv("STUCCO_AZURE_WORKER_KEY", "secret")
-	defer os.Unsetenv("STUCCO_AZURE_WORKER_KEY")
-	os.Setenv("STUCCO_AZURE_FUNCTION_NAME_KEY", "specialsecret")
-	defer os.Unsetenv("STUCCO_AZURE_FUNCTION_NAME_KEY")
 	mockHTTPClient.On("Do", mock.MatchedBy(func(v interface{}) bool {
 		req, ok := v.(*http.Request)
-		return ok &&
-			"secret" == req.Header.Get("X-Functions-Key") &&
-			"http://mockurl" == req.URL.String()
-	})).Return(nil, nil)
-	mockHTTPClient.On("Do", mock.MatchedBy(func(v interface{}) bool {
-		req, ok := v.(*http.Request)
-		return ok &&
-			"specialsecret" == req.Header.Get("X-Functions-Key") &&
-			"http://mockurl/functionname" == req.URL.String()
+		return ok && "http://mockurl" == req.URL.String()
 	})).Return(nil, nil)
 	azuredriver.ProtobufClient{
 		HTTPClient: &mockHTTPClient,
 	}.Post("http://mockurl", "some/content", nil)
-	azuredriver.ProtobufClient{
-		HTTPClient:   &mockHTTPClient,
-		FunctionName: "function.name",
-	}.Post("http://mockurl/functionname", "some/content", nil)
 }
 
 type mockWorkerClient struct {
