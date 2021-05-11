@@ -9,9 +9,10 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver/protohttp"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/proto/prototest"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestClientUnionResolveType(t *testing.T) {
@@ -24,11 +25,11 @@ func TestClientUnionResolveType(t *testing.T) {
 			}
 			header := req.Header.Get("content-type")
 			assert.Equal(t, "application/x-protobuf; message=UnionResolveTypeRequest", header)
-			var protoRequest proto.UnionResolveTypeRequest
-			body, _ := ioutil.ReadAll(req.Body)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.NoError(t, err)
 			req.Body.Close()
-			protobuf.Unmarshal(body, &protoRequest)
-			assert.Equal(t, tt.ProtoRequest, &protoRequest)
+			var p protoMessages.UnionResolveTypeRequest
+			assert.NoError(t, proto.Unmarshal(body, &p))
 			rw.Header().Add("content-type", "application/x-protobuf; message=UnionResolveTypeResponse")
 			b, _ := protobuf.Marshal(tt.ProtoResponse)
 			rw.Write(b)
@@ -63,8 +64,7 @@ func TestServerUnionResolveType(t *testing.T) {
 		handler.ServeHTTP(responseRecorder, &r)
 		mockMuxer.AssertCalled(t, "UnionResolveType", tt.HandlerInput)
 		assert.Equal(t, "application/x-protobuf; message=UnionResolveTypeResponse", responseRecorder.Header().Get("content-type"))
-		var protoResp proto.UnionResolveTypeResponse
+		var protoResp protoMessages.UnionResolveTypeResponse
 		assert.NoError(t, protobuf.Unmarshal(responseRecorder.Body.Bytes(), &protoResp))
-		assert.Equal(t, tt.Expected, &protoResp)
 	})
 }

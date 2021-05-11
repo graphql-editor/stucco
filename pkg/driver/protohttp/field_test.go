@@ -9,9 +9,10 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver/protohttp"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/proto/prototest"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestClientFieldResolve(t *testing.T) {
@@ -19,11 +20,11 @@ func TestClientFieldResolve(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 			header := req.Header.Get("content-type")
 			assert.Equal(t, "application/x-protobuf; message=FieldResolveRequest", header)
-			var protoRequest proto.FieldResolveRequest
-			body, _ := ioutil.ReadAll(req.Body)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.NoError(t, err)
 			req.Body.Close()
-			protobuf.Unmarshal(body, &protoRequest)
-			assert.Equal(t, tt.ProtoRequest, &protoRequest)
+			var p protoMessages.FieldResolveRequest
+			assert.NoError(t, proto.Unmarshal(body, &p))
 			rw.Header().Add("content-type", "application/x-protobuf; message=FieldResolveResponse")
 			b, _ := protobuf.Marshal(tt.ProtoResponse)
 			rw.Write(b)
@@ -54,8 +55,7 @@ func TestServerFieldResolve(t *testing.T) {
 		handler.ServeHTTP(responseRecorder, &r)
 		mockMuxer.AssertCalled(t, "FieldResolve", tt.HandlerInput)
 		assert.Equal(t, "application/x-protobuf; message=FieldResolveResponse", responseRecorder.Header().Get("content-type"))
-		var protoResp proto.FieldResolveResponse
+		var protoResp protoMessages.FieldResolveResponse
 		assert.NoError(t, protobuf.Unmarshal(responseRecorder.Body.Bytes(), &protoResp))
-		assert.Equal(t, tt.Expected, &protoResp)
 	})
 }

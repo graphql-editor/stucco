@@ -6,8 +6,8 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // ScalarParse over http
@@ -15,7 +15,7 @@ func (c *Client) ScalarParse(input driver.ScalarParseInput) driver.ScalarParseOu
 	var out driver.ScalarParseOutput
 	req, err := protodriver.MakeScalarParseRequest(input)
 	if err == nil {
-		resp := new(proto.ScalarParseResponse)
+		resp := new(protoMessages.ScalarParseResponse)
 		if err = c.do(message{
 			contentType: scalarParseRequestMessage,
 			proto:       req,
@@ -39,7 +39,7 @@ func (c *Client) ScalarSerialize(input driver.ScalarSerializeInput) driver.Scala
 	var out driver.ScalarSerializeOutput
 	req, err := protodriver.MakeScalarSerializeRequest(input)
 	if err == nil {
-		resp := new(proto.ScalarSerializeResponse)
+		resp := new(protoMessages.ScalarSerializeResponse)
 		if err = c.do(message{
 			contentType: scalarSerializeRequestMessage,
 			proto:       req,
@@ -58,9 +58,9 @@ func (c *Client) ScalarSerialize(input driver.ScalarSerializeInput) driver.Scala
 	return out
 }
 
-func (h *Handler) scalarParse(req *http.Request) *proto.ScalarParseResponse {
-	resp := new(proto.ScalarParseResponse)
-	protoReq := new(proto.ScalarParseRequest)
+func (h *Handler) scalarParse(req *http.Request) *protoMessages.ScalarParseResponse {
+	resp := new(protoMessages.ScalarParseResponse)
+	protoReq := new(protoMessages.ScalarParseRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -78,16 +78,16 @@ func (h *Handler) scalarParse(req *http.Request) *proto.ScalarParseResponse {
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}
 	return resp
 }
 
-func (h *Handler) scalarSerialize(req *http.Request) *proto.ScalarSerializeResponse {
-	resp := new(proto.ScalarSerializeResponse)
-	protoReq := new(proto.ScalarSerializeRequest)
+func (h *Handler) scalarSerialize(req *http.Request) *protoMessages.ScalarSerializeResponse {
+	resp := new(protoMessages.ScalarSerializeResponse)
+	protoReq := new(protoMessages.ScalarSerializeRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -105,7 +105,7 @@ func (h *Handler) scalarSerialize(req *http.Request) *proto.ScalarSerializeRespo
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

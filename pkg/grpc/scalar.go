@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // ScalarParse executes server side ScalarParse rpc
 func (m *Client) ScalarParse(input driver.ScalarParseInput) (s driver.ScalarParseOutput) {
 	req, err := protodriver.MakeScalarParseRequest(input)
 	if err == nil {
-		var resp *proto.ScalarParseResponse
+		var resp *protoMessages.ScalarParseResponse
 		resp, err = m.Client.ScalarParse(context.Background(), req)
 		if err == nil {
 			s = protodriver.MakeScalarParseOutput(resp)
@@ -29,7 +29,7 @@ func (m *Client) ScalarParse(input driver.ScalarParseInput) (s driver.ScalarPars
 func (m *Client) ScalarSerialize(input driver.ScalarSerializeInput) (s driver.ScalarSerializeOutput) {
 	req, err := protodriver.MakeScalarSerializeRequest(input)
 	if err == nil {
-		var resp *proto.ScalarSerializeResponse
+		var resp *protoMessages.ScalarSerializeResponse
 		resp, err = m.Client.ScalarSerialize(context.Background(), req)
 		if err == nil {
 			s = protodriver.MakeScalarSerializeOutput(resp)
@@ -58,17 +58,17 @@ func (f ScalarParseHandlerFunc) Handle(input driver.ScalarParseInput) (interface
 }
 
 // ScalarParse  calls user defined function for parsing a scalar.
-func (m *Server) ScalarParse(ctx context.Context, input *proto.ScalarParseRequest) (s *proto.ScalarParseResponse, _ error) {
+func (m *Server) ScalarParse(ctx context.Context, input *protoMessages.ScalarParseRequest) (s *protoMessages.ScalarParseResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
-			s = &proto.ScalarParseResponse{
-				Error: &proto.Error{
+			s = &protoMessages.ScalarParseResponse{
+				Error: &protoMessages.Error{
 					Msg: fmt.Sprintf("%v", r),
 				},
 			}
 		}
 	}()
-	s = new(proto.ScalarParseResponse)
+	s = new(protoMessages.ScalarParseResponse)
 	v, err := protodriver.MakeScalarParseInput(input)
 	if err == nil {
 		var resp interface{}
@@ -78,7 +78,7 @@ func (m *Server) ScalarParse(ctx context.Context, input *proto.ScalarParseReques
 		}
 	}
 	if err != nil {
-		s.Error = &proto.Error{Msg: err.Error()}
+		s.Error = &protoMessages.Error{Msg: err.Error()}
 	}
 	return
 }
@@ -99,17 +99,17 @@ func (f ScalarSerializeHandlerFunc) Handle(input driver.ScalarSerializeInput) (i
 }
 
 // ScalarSerialize executes user handler for scalar serialization
-func (m *Server) ScalarSerialize(ctx context.Context, input *proto.ScalarSerializeRequest) (s *proto.ScalarSerializeResponse, _ error) {
+func (m *Server) ScalarSerialize(ctx context.Context, input *protoMessages.ScalarSerializeRequest) (s *protoMessages.ScalarSerializeResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
-			s = &proto.ScalarSerializeResponse{
-				Error: &proto.Error{
+			s = &protoMessages.ScalarSerializeResponse{
+				Error: &protoMessages.Error{
 					Msg: fmt.Sprintf("%v", r),
 				},
 			}
 		}
 	}()
-	s = new(proto.ScalarSerializeResponse)
+	s = new(protoMessages.ScalarSerializeResponse)
 	val, err := protodriver.MakeScalarSerializeInput(input)
 	if err == nil {
 		var resp interface{}
@@ -119,7 +119,7 @@ func (m *Server) ScalarSerialize(ctx context.Context, input *proto.ScalarSeriali
 		}
 	}
 	if err != nil {
-		s.Error = &proto.Error{Msg: err.Error()}
+		s.Error = &protoMessages.Error{Msg: err.Error()}
 	}
 	return
 }

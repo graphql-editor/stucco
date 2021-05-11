@@ -6,8 +6,8 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // InterfaceResolveType over http
@@ -15,7 +15,7 @@ func (c *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) dr
 	var out driver.InterfaceResolveTypeOutput
 	req, err := protodriver.MakeInterfaceResolveTypeRequest(input)
 	if err == nil {
-		resp := new(proto.InterfaceResolveTypeResponse)
+		resp := new(protoMessages.InterfaceResolveTypeResponse)
 		if err = c.do(message{
 			contentType: interfaceResolveTypeRequestMessage,
 			proto:       req,
@@ -34,9 +34,9 @@ func (c *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) dr
 	return out
 }
 
-func (h *Handler) interfaceResolveType(req *http.Request) *proto.InterfaceResolveTypeResponse {
-	resp := new(proto.InterfaceResolveTypeResponse)
-	protoReq := new(proto.InterfaceResolveTypeRequest)
+func (h *Handler) interfaceResolveType(req *http.Request) *protoMessages.InterfaceResolveTypeResponse {
+	resp := new(protoMessages.InterfaceResolveTypeResponse)
+	protoReq := new(protoMessages.InterfaceResolveTypeRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -54,7 +54,7 @@ func (h *Handler) interfaceResolveType(req *http.Request) *proto.InterfaceResolv
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

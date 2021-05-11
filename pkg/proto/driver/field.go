@@ -2,11 +2,11 @@ package protodriver
 
 import (
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
-func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *proto.FieldResolveInfo, err error) {
+func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *protoMessages.FieldResolveInfo, err error) {
 	variableValues, err := mapOfAnyToMapOfValue(input.VariableValues)
 	if err != nil {
 		return
@@ -19,14 +19,14 @@ func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *proto.FieldRes
 	if err != nil {
 		return
 	}
-	var rt *proto.Value
+	var rt *protoMessages.Value
 	if input.RootValue != nil {
 		rt, err = anyToValue(input.RootValue)
 		if err != nil {
 			return
 		}
 	}
-	r = &proto.FieldResolveInfo{
+	r = &protoMessages.FieldResolveInfo{
 		FieldName:      input.FieldName,
 		Path:           rp,
 		ReturnType:     makeProtoTypeRef(input.ReturnType),
@@ -39,7 +39,7 @@ func makeProtoFieldResolveInfo(input driver.FieldResolveInfo) (r *proto.FieldRes
 }
 
 // MakeFieldResolveRequest creates a new proto FieldResolveRequest from driver input
-func MakeFieldResolveRequest(input driver.FieldResolveInput) (r *proto.FieldResolveRequest, err error) {
+func MakeFieldResolveRequest(input driver.FieldResolveInput) (r *protoMessages.FieldResolveRequest, err error) {
 	source, err := anyToValue(input.Source)
 	if err != nil {
 		return
@@ -56,8 +56,8 @@ func MakeFieldResolveRequest(input driver.FieldResolveInput) (r *proto.FieldReso
 	if err != nil {
 		return
 	}
-	r = &proto.FieldResolveRequest{
-		Function: &proto.Function{
+	r = &protoMessages.FieldResolveRequest{
+		Function: &protoMessages.Function{
 			Name: input.Function.Name,
 		},
 		Source:    source,
@@ -69,7 +69,7 @@ func MakeFieldResolveRequest(input driver.FieldResolveInput) (r *proto.FieldReso
 }
 
 // MakeFieldResolveResponse creates new driver.FieldResolveOutput from proto response
-func MakeFieldResolveOutput(resp *proto.FieldResolveResponse) (out driver.FieldResolveOutput) {
+func MakeFieldResolveOutput(resp *protoMessages.FieldResolveResponse) (out driver.FieldResolveOutput) {
 	var err error
 	out.Response, err = valueToAny(nil, resp.GetResponse())
 	if err != nil {
@@ -80,7 +80,7 @@ func MakeFieldResolveOutput(resp *proto.FieldResolveResponse) (out driver.FieldR
 	return out
 }
 
-func makeDriverFieldResolveInfo(input *proto.FieldResolveInfo) (f driver.FieldResolveInfo, err error) {
+func makeDriverFieldResolveInfo(input *protoMessages.FieldResolveInfo) (f driver.FieldResolveInfo, err error) {
 	variables := input.GetVariableValues()
 	variableValues, err := mapOfValueToMapOfAny(nil, variables)
 	if err != nil {
@@ -106,8 +106,8 @@ func makeDriverFieldResolveInfo(input *proto.FieldResolveInfo) (f driver.FieldRe
 	return
 }
 
-// MakeFieldResolveInput creates driver.FieldResolveInput from proto.FieldResolverequest
-func MakeFieldResolveInput(input *proto.FieldResolveRequest) (f driver.FieldResolveInput, err error) {
+// MakeFieldResolveInput creates driver.FieldResolveInput from protoMessages.FieldResolverequest
+func MakeFieldResolveInput(input *protoMessages.FieldResolveRequest) (f driver.FieldResolveInput, err error) {
 	variables := initVariablesWithDefaults(
 		input.GetInfo().GetVariableValues(),
 		input.GetInfo().GetOperation(),
@@ -140,14 +140,14 @@ func MakeFieldResolveInput(input *proto.FieldResolveRequest) (f driver.FieldReso
 	return
 }
 
-// MakeFieldResolveResponse creates a proto.FieldResolveResponse from a value
-func MakeFieldResolveResponse(resp interface{}) proto.FieldResolveResponse {
-	protoResponse := proto.FieldResolveResponse{}
+// MakeFieldResolveResponse creates a protoMessages.FieldResolveResponse from a value
+func MakeFieldResolveResponse(resp interface{}) protoMessages.FieldResolveResponse {
+	protoResponse := protoMessages.FieldResolveResponse{}
 	v, err := anyToValue(resp)
 	if err == nil {
 		protoResponse.Response = v
 	} else {
-		protoResponse.Error = &proto.Error{
+		protoResponse.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

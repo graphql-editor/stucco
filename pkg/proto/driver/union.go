@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
-func makeProtoUnionResolveTypeInfo(input driver.UnionResolveTypeInfo) (r *proto.UnionResolveTypeInfo, err error) {
+func makeProtoUnionResolveTypeInfo(input driver.UnionResolveTypeInfo) (r *protoMessages.UnionResolveTypeInfo, err error) {
 	variables := input.VariableValues
 	variableValues, err := mapOfAnyToMapOfValue(variables)
 	if err != nil {
@@ -22,7 +22,7 @@ func makeProtoUnionResolveTypeInfo(input driver.UnionResolveTypeInfo) (r *proto.
 	if err != nil {
 		return
 	}
-	r = &proto.UnionResolveTypeInfo{
+	r = &protoMessages.UnionResolveTypeInfo{
 		FieldName:      input.FieldName,
 		Path:           rp,
 		ReturnType:     makeProtoTypeRef(input.ReturnType),
@@ -33,8 +33,8 @@ func makeProtoUnionResolveTypeInfo(input driver.UnionResolveTypeInfo) (r *proto.
 	return
 }
 
-// MakeUnionResolveTypeRequest creates new proto.UnionResolveTypeRequest from driver.UnionResolveTypeInput
-func MakeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.UnionResolveTypeRequest, err error) {
+// MakeUnionResolveTypeRequest creates new protoMessages.UnionResolveTypeRequest from driver.UnionResolveTypeInput
+func MakeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *protoMessages.UnionResolveTypeRequest, err error) {
 	info, err := makeProtoUnionResolveTypeInfo(input.Info)
 	if err != nil {
 		return
@@ -46,8 +46,8 @@ func MakeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.U
 	if input.Function.Name == "" {
 		return nil, fmt.Errorf("function name is required")
 	}
-	r = &proto.UnionResolveTypeRequest{
-		Function: &proto.Function{
+	r = &protoMessages.UnionResolveTypeRequest{
+		Function: &protoMessages.Function{
 			Name: input.Function.Name,
 		},
 		Value: value,
@@ -56,8 +56,8 @@ func MakeUnionResolveTypeRequest(input driver.UnionResolveTypeInput) (r *proto.U
 	return
 }
 
-// MakeUnionResolveTypeOutput creates new driver.UnionResolveTypeOutput from proto.UnionResolveTypeResponse
-func MakeUnionResolveTypeOutput(resp *proto.UnionResolveTypeResponse) driver.UnionResolveTypeOutput {
+// MakeUnionResolveTypeOutput creates new driver.UnionResolveTypeOutput from protoMessages.UnionResolveTypeResponse
+func MakeUnionResolveTypeOutput(resp *protoMessages.UnionResolveTypeResponse) driver.UnionResolveTypeOutput {
 	out := driver.UnionResolveTypeOutput{}
 	if err := resp.GetError(); err != nil {
 		out.Error = &driver.Error{
@@ -69,7 +69,7 @@ func MakeUnionResolveTypeOutput(resp *proto.UnionResolveTypeResponse) driver.Uni
 	return out
 }
 
-func makeDriverUnionResolveTypeInfo(input *proto.UnionResolveTypeInfo) (i driver.UnionResolveTypeInfo, err error) {
+func makeDriverUnionResolveTypeInfo(input *protoMessages.UnionResolveTypeInfo) (i driver.UnionResolveTypeInfo, err error) {
 	variables := input.GetVariableValues()
 	variableValues, err := mapOfValueToMapOfAny(nil, variables)
 	if err != nil {
@@ -95,8 +95,8 @@ func makeDriverUnionResolveTypeInfo(input *proto.UnionResolveTypeInfo) (i driver
 	return
 }
 
-// MakeUnionResolveTypeInput creates new driver.UnionResolveTypeInput from proto.UnionResolveTypeRequest
-func MakeUnionResolveTypeInput(input *proto.UnionResolveTypeRequest) (i driver.UnionResolveTypeInput, err error) {
+// MakeUnionResolveTypeInput creates new driver.UnionResolveTypeInput from protoMessages.UnionResolveTypeRequest
+func MakeUnionResolveTypeInput(input *protoMessages.UnionResolveTypeRequest) (i driver.UnionResolveTypeInput, err error) {
 	val, err := valueToAny(nil, input.GetValue())
 	if err != nil {
 		return
@@ -115,11 +115,11 @@ func MakeUnionResolveTypeInput(input *proto.UnionResolveTypeRequest) (i driver.U
 	return
 }
 
-// MakeUnionResolveTypeResponse creates new proto.UnionResolveTypeResponse from type string
-func MakeUnionResolveTypeResponse(resp string) proto.UnionResolveTypeResponse {
-	return proto.UnionResolveTypeResponse{
-		Type: &proto.TypeRef{
-			TestTyperef: &proto.TypeRef_Name{
+// MakeUnionResolveTypeResponse creates new protoMessages.UnionResolveTypeResponse from type string
+func MakeUnionResolveTypeResponse(resp string) protoMessages.UnionResolveTypeResponse {
+	return protoMessages.UnionResolveTypeResponse{
+		Type: &protoMessages.TypeRef{
+			TestTyperef: &protoMessages.TypeRef_Name{
 				Name: resp,
 			},
 		},

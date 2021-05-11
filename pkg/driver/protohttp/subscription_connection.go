@@ -6,8 +6,8 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // SubscriptionConnection implements driver.SubscriptionConnection over HTTP
@@ -15,7 +15,7 @@ func (c *Client) SubscriptionConnection(input driver.SubscriptionConnectionInput
 	var out driver.SubscriptionConnectionOutput
 	req, err := protodriver.MakeSubscriptionConnectionRequest(input)
 	if err == nil {
-		resp := new(proto.SubscriptionConnectionResponse)
+		resp := new(protoMessages.SubscriptionConnectionResponse)
 		if err = c.do(message{
 			contentType: subscriptionConnectionRequestMessage,
 			proto:       req,
@@ -34,9 +34,9 @@ func (c *Client) SubscriptionConnection(input driver.SubscriptionConnectionInput
 	return out
 }
 
-func (h *Handler) subscriptionConnection(req *http.Request) *proto.SubscriptionConnectionResponse {
-	resp := new(proto.SubscriptionConnectionResponse)
-	protoReq := new(proto.SubscriptionConnectionRequest)
+func (h *Handler) subscriptionConnection(req *http.Request) *protoMessages.SubscriptionConnectionResponse {
+	resp := new(protoMessages.SubscriptionConnectionResponse)
+	protoReq := new(protoMessages.SubscriptionConnectionRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -54,7 +54,7 @@ func (h *Handler) subscriptionConnection(req *http.Request) *proto.SubscriptionC
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

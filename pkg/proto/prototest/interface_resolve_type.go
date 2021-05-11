@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // InterfaceResolveTypeClientTest is basic struct for testing clients implementing proto
 type InterfaceResolveTypeClientTest struct {
 	Title         string
 	Input         driver.InterfaceResolveTypeInput
-	ProtoRequest  *proto.InterfaceResolveTypeRequest
-	ProtoResponse *proto.InterfaceResolveTypeResponse
+	ProtoRequest  *protoMessages.InterfaceResolveTypeRequest
+	ProtoResponse *protoMessages.InterfaceResolveTypeResponse
 	ProtoError    error
 	Expected      driver.InterfaceResolveTypeOutput
 }
@@ -29,20 +29,20 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.InterfaceResolveTypeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.InterfaceResolveTypeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Info: &proto.InterfaceResolveTypeInfo{},
+				Info: &protoMessages.InterfaceResolveTypeInfo{},
 			},
-			ProtoResponse: &proto.InterfaceResolveTypeResponse{
-				Type: &proto.TypeRef{
-					TestTyperef: &proto.TypeRef_Name{Name: "SomeType"},
+			ProtoResponse: &protoMessages.InterfaceResolveTypeResponse{
+				Type: &protoMessages.TypeRef{
+					TestTyperef: &protoMessages.TypeRef_Name{Name: "SomeType"},
 				},
 			},
 			Expected: driver.InterfaceResolveTypeOutput{
@@ -67,16 +67,16 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.InterfaceResolveTypeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.InterfaceResolveTypeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Info: &proto.InterfaceResolveTypeInfo{},
+				Info: &protoMessages.InterfaceResolveTypeInfo{},
 			},
 			ProtoError: fmt.Errorf("proto error"),
 			Expected: driver.InterfaceResolveTypeOutput{
@@ -92,19 +92,19 @@ func InterfaceResolveTypeClientTestData() []InterfaceResolveTypeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.InterfaceResolveTypeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.InterfaceResolveTypeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Info: &proto.InterfaceResolveTypeInfo{},
+				Info: &protoMessages.InterfaceResolveTypeInfo{},
 			},
-			ProtoResponse: &proto.InterfaceResolveTypeResponse{
-				Error: &proto.Error{
+			ProtoResponse: &protoMessages.InterfaceResolveTypeResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},
@@ -129,11 +129,11 @@ func RunInterfaceResolveTypeClientTests(t *testing.T, f func(t *testing.T, tt In
 // InterfaceResolveTypeServerTest is basic struct for testing servers implementing proto
 type InterfaceResolveTypeServerTest struct {
 	Title         string
-	Input         *proto.InterfaceResolveTypeRequest
+	Input         *protoMessages.InterfaceResolveTypeRequest
 	HandlerInput  driver.InterfaceResolveTypeInput
 	HandlerOutput string
 	HandlerError  error
-	Expected      *proto.InterfaceResolveTypeResponse
+	Expected      *protoMessages.InterfaceResolveTypeResponse
 }
 
 // InterfaceResolveTypeServerTestData is a data for testing interface resolution of proto servers
@@ -141,22 +141,22 @@ func InterfaceResolveTypeServerTestData() []InterfaceResolveTypeServerTest {
 	return []InterfaceResolveTypeServerTest{
 		{
 			Title:         "CallsUserHandler",
-			Input:         new(proto.InterfaceResolveTypeRequest),
+			Input:         new(protoMessages.InterfaceResolveTypeRequest),
 			HandlerInput:  driver.InterfaceResolveTypeInput{},
 			HandlerOutput: "SomeType",
-			Expected: &proto.InterfaceResolveTypeResponse{
-				Type: &proto.TypeRef{
-					TestTyperef: &proto.TypeRef_Name{Name: "SomeType"},
+			Expected: &protoMessages.InterfaceResolveTypeResponse{
+				Type: &protoMessages.TypeRef{
+					TestTyperef: &protoMessages.TypeRef_Name{Name: "SomeType"},
 				},
 			},
 		},
 		{
 			Title:        "ReturnsUserError",
-			Input:        new(proto.InterfaceResolveTypeRequest),
+			Input:        new(protoMessages.InterfaceResolveTypeRequest),
 			HandlerInput: driver.InterfaceResolveTypeInput{},
 			HandlerError: fmt.Errorf("user error"),
-			Expected: &proto.InterfaceResolveTypeResponse{
-				Error: &proto.Error{
+			Expected: &protoMessages.InterfaceResolveTypeResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},

@@ -2,8 +2,9 @@ package grpc
 
 import (
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // SubscriptionListen returns a subscription event reader.
@@ -19,23 +20,23 @@ func (m *Client) SubscriptionListen(input driver.SubscriptionListenInput) (out d
 }
 
 type subscriptionListenEmitter struct {
-	srv proto.Driver_SubscriptionListenServer
+	srv protoDriverService.Driver_SubscriptionListenServer
 }
 
 func (s subscriptionListenEmitter) Emit() error {
-	return s.srv.Send(&proto.SubscriptionListenMessage{
+	return s.srv.Send(&protoMessages.SubscriptionListenMessage{
 		Next: true,
 	})
 }
 
 func (s subscriptionListenEmitter) Close() error {
-	return s.srv.Send(&proto.SubscriptionListenMessage{
+	return s.srv.Send(&protoMessages.SubscriptionListenMessage{
 		Next: false,
 	})
 }
 
-// SubscriptionListen implements proto.DriverServer
-func (m *Server) SubscriptionListen(req *proto.SubscriptionListenRequest, srv proto.Driver_SubscriptionListenServer) error {
+// SubscriptionListen implements protoMessages.DriverServer
+func (m *Server) SubscriptionListen(req *protoMessages.SubscriptionListenRequest, srv protoDriverService.Driver_SubscriptionListenServer) error {
 	input, err := protodriver.MakeSubscriptionListenInput(req)
 	if err == nil {
 		err = m.SubscriptionListenHandler.Handle(input, subscriptionListenEmitter{

@@ -4,16 +4,16 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
-// MakeScalarParseRequest creates new proto.ScalarParseRequest from driver.ScalarParseInput
-func MakeScalarParseRequest(input driver.ScalarParseInput) (req *proto.ScalarParseRequest, err error) {
+// MakeScalarParseRequest creates new protoMessages.ScalarParseRequest from driver.ScalarParseInput
+func MakeScalarParseRequest(input driver.ScalarParseInput) (req *protoMessages.ScalarParseRequest, err error) {
 	v, err := anyToValue(input.Value)
 	if err == nil {
-		req = &proto.ScalarParseRequest{
-			Function: &proto.Function{
+		req = &protoMessages.ScalarParseRequest{
+			Function: &protoMessages.Function{
 				Name: input.Function.Name,
 			},
 			Value: v,
@@ -22,8 +22,8 @@ func MakeScalarParseRequest(input driver.ScalarParseInput) (req *proto.ScalarPar
 	return
 }
 
-// MakeScalarParseOutput creates new driver.ScalarParseOutput from proto.ScalarParseResponse
-func MakeScalarParseOutput(resp *proto.ScalarParseResponse) driver.ScalarParseOutput {
+// MakeScalarParseOutput creates new driver.ScalarParseOutput from protoMessages.ScalarParseResponse
+func MakeScalarParseOutput(resp *protoMessages.ScalarParseResponse) driver.ScalarParseOutput {
 	var out driver.ScalarParseOutput
 	var err error
 	var r interface{}
@@ -41,12 +41,12 @@ func MakeScalarParseOutput(resp *proto.ScalarParseResponse) driver.ScalarParseOu
 	return out
 }
 
-// MakeScalarSerializeRequest creates new proto.ScalarSerializeRequest from driver.ScalarSerializeInput
-func MakeScalarSerializeRequest(input driver.ScalarSerializeInput) (req *proto.ScalarSerializeRequest, err error) {
+// MakeScalarSerializeRequest creates new protoMessages.ScalarSerializeRequest from driver.ScalarSerializeInput
+func MakeScalarSerializeRequest(input driver.ScalarSerializeInput) (req *protoMessages.ScalarSerializeRequest, err error) {
 	v, err := anyToValue(input.Value)
 	if err == nil {
-		req = &proto.ScalarSerializeRequest{
-			Function: &proto.Function{
+		req = &protoMessages.ScalarSerializeRequest{
+			Function: &protoMessages.Function{
 				Name: input.Function.Name,
 			},
 			Value: v,
@@ -55,8 +55,8 @@ func MakeScalarSerializeRequest(input driver.ScalarSerializeInput) (req *proto.S
 	return
 }
 
-// MakeScalarSerializeOutput creates new driver.ScalarSerializeOutput from proto.ScalarSerializeResponse
-func MakeScalarSerializeOutput(resp *proto.ScalarSerializeResponse) driver.ScalarSerializeOutput {
+// MakeScalarSerializeOutput creates new driver.ScalarSerializeOutput from protoMessages.ScalarSerializeResponse
+func MakeScalarSerializeOutput(resp *protoMessages.ScalarSerializeResponse) driver.ScalarSerializeOutput {
 	var out driver.ScalarSerializeOutput
 	var err error
 	var r interface{}
@@ -74,8 +74,8 @@ func MakeScalarSerializeOutput(resp *proto.ScalarSerializeResponse) driver.Scala
 	return out
 }
 
-// MakeScalarParseInput creates new driver.ScalarParseInput from proto.ScalarParseRequest
-func MakeScalarParseInput(req *proto.ScalarParseRequest) (driver.ScalarParseInput, error) {
+// MakeScalarParseInput creates new driver.ScalarParseInput from protoMessages.ScalarParseRequest
+func MakeScalarParseInput(req *protoMessages.ScalarParseRequest) (driver.ScalarParseInput, error) {
 	var input driver.ScalarParseInput
 	val, err := valueToAny(nil, req.GetValue())
 	if err == nil {
@@ -89,12 +89,12 @@ func MakeScalarParseInput(req *proto.ScalarParseRequest) (driver.ScalarParseInpu
 	return input, err
 }
 
-// MakeScalarParseResponse creates new proto.ScalarParseResposne from any value
-func MakeScalarParseResponse(value interface{}) proto.ScalarParseResponse {
-	var protoResponse proto.ScalarParseResponse
+// MakeScalarParseResponse creates new protoMessages.ScalarParseResposne from any value
+func MakeScalarParseResponse(value interface{}) protoMessages.ScalarParseResponse {
+	var protoResponse protoMessages.ScalarParseResponse
 	v, err := anyToValue(value)
 	if err != nil {
-		protoResponse.Error = &proto.Error{
+		protoResponse.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	} else {
@@ -103,8 +103,8 @@ func MakeScalarParseResponse(value interface{}) proto.ScalarParseResponse {
 	return protoResponse
 }
 
-// MakeScalarSerializeInput creates new driver.ScalarSerializeInput from proto.ScalarSerializeRequest
-func MakeScalarSerializeInput(req *proto.ScalarSerializeRequest) (driver.ScalarSerializeInput, error) {
+// MakeScalarSerializeInput creates new driver.ScalarSerializeInput from protoMessages.ScalarSerializeRequest
+func MakeScalarSerializeInput(req *protoMessages.ScalarSerializeRequest) (driver.ScalarSerializeInput, error) {
 	var input driver.ScalarSerializeInput
 	val, err := valueToAny(nil, req.GetValue())
 	if err == nil {
@@ -118,12 +118,12 @@ func MakeScalarSerializeInput(req *proto.ScalarSerializeRequest) (driver.ScalarS
 	return input, err
 }
 
-// MakeScalarSerializeResponse creates new proto.ScalarSerializeResposne from any value
-func MakeScalarSerializeResponse(value interface{}) proto.ScalarSerializeResponse {
-	var protoResponse proto.ScalarSerializeResponse
+// MakeScalarSerializeResponse creates new protoMessages.ScalarSerializeResposne from any value
+func MakeScalarSerializeResponse(value interface{}) protoMessages.ScalarSerializeResponse {
+	var protoResponse protoMessages.ScalarSerializeResponse
 	v, err := anyToValue(value)
 	if err != nil {
-		protoResponse.Error = &proto.Error{
+		protoResponse.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	} else {

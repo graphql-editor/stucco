@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // UnionResolveTypeClientTest is basic struct for testing clients implementing proto
 type UnionResolveTypeClientTest struct {
 	Title         string
 	Input         driver.UnionResolveTypeInput
-	ProtoRequest  *proto.UnionResolveTypeRequest
-	ProtoResponse *proto.UnionResolveTypeResponse
+	ProtoRequest  *protoMessages.UnionResolveTypeRequest
+	ProtoResponse *protoMessages.UnionResolveTypeResponse
 	ProtoError    error
 	Expected      driver.UnionResolveTypeOutput
 }
@@ -29,20 +29,20 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.UnionResolveTypeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.UnionResolveTypeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Info: &proto.UnionResolveTypeInfo{},
+				Info: &protoMessages.UnionResolveTypeInfo{},
 			},
-			ProtoResponse: &proto.UnionResolveTypeResponse{
-				Type: &proto.TypeRef{
-					TestTyperef: &proto.TypeRef_Name{Name: "SomeType"},
+			ProtoResponse: &protoMessages.UnionResolveTypeResponse{
+				Type: &protoMessages.TypeRef{
+					TestTyperef: &protoMessages.TypeRef_Name{Name: "SomeType"},
 				},
 			},
 			Expected: driver.UnionResolveTypeOutput{
@@ -67,16 +67,16 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.UnionResolveTypeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.UnionResolveTypeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Info: &proto.UnionResolveTypeInfo{},
+				Info: &protoMessages.UnionResolveTypeInfo{},
 			},
 			ProtoError: fmt.Errorf("proto error"),
 			Expected: driver.UnionResolveTypeOutput{
@@ -92,19 +92,19 @@ func UnionResolveTypeClientTestData() []UnionResolveTypeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.UnionResolveTypeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.UnionResolveTypeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Info: &proto.UnionResolveTypeInfo{},
+				Info: &protoMessages.UnionResolveTypeInfo{},
 			},
-			ProtoResponse: &proto.UnionResolveTypeResponse{
-				Error: &proto.Error{
+			ProtoResponse: &protoMessages.UnionResolveTypeResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},
@@ -129,11 +129,11 @@ func RunUnionResolveTypeClientTests(t *testing.T, f func(t *testing.T, tt UnionR
 // UnionResolveTypeServerTest is basic struct for testing servers implementing proto
 type UnionResolveTypeServerTest struct {
 	Title         string
-	Input         *proto.UnionResolveTypeRequest
+	Input         *protoMessages.UnionResolveTypeRequest
 	HandlerInput  driver.UnionResolveTypeInput
 	HandlerOutput string
 	HandlerError  error
-	Expected      *proto.UnionResolveTypeResponse
+	Expected      *protoMessages.UnionResolveTypeResponse
 }
 
 // UnionResolveTypeServerTestData is a data for testing union resolution of proto servers
@@ -141,22 +141,22 @@ func UnionResolveTypeServerTestData() []UnionResolveTypeServerTest {
 	return []UnionResolveTypeServerTest{
 		{
 			Title:         "CallsUserHandler",
-			Input:         new(proto.UnionResolveTypeRequest),
+			Input:         new(protoMessages.UnionResolveTypeRequest),
 			HandlerInput:  driver.UnionResolveTypeInput{},
 			HandlerOutput: "SomeType",
-			Expected: &proto.UnionResolveTypeResponse{
-				Type: &proto.TypeRef{
-					TestTyperef: &proto.TypeRef_Name{Name: "SomeType"},
+			Expected: &protoMessages.UnionResolveTypeResponse{
+				Type: &protoMessages.TypeRef{
+					TestTyperef: &protoMessages.TypeRef_Name{Name: "SomeType"},
 				},
 			},
 		},
 		{
 			Title:        "ReturnsUserError",
-			Input:        new(proto.UnionResolveTypeRequest),
+			Input:        new(protoMessages.UnionResolveTypeRequest),
 			HandlerInput: driver.UnionResolveTypeInput{},
 			HandlerError: fmt.Errorf("user error"),
-			Expected: &proto.UnionResolveTypeResponse{
-				Error: &proto.Error{
+			Expected: &protoMessages.UnionResolveTypeResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},

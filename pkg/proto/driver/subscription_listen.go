@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // MakeSubscriptionListenRequest creates a new proto SubscriptionListenRequest from driver input
-func MakeSubscriptionListenRequest(input driver.SubscriptionListenInput) (r *proto.SubscriptionListenRequest, err error) {
-	ret := proto.SubscriptionListenRequest{
-		Function: &proto.Function{
+func MakeSubscriptionListenRequest(input driver.SubscriptionListenInput) (r *protoMessages.SubscriptionListenRequest, err error) {
+	ret := protoMessages.SubscriptionListenRequest{
+		Function: &protoMessages.Function{
 			Name: input.Function.Name,
 		},
 		Query:         input.Query,
@@ -19,7 +20,7 @@ func MakeSubscriptionListenRequest(input driver.SubscriptionListenInput) (r *pro
 	}
 	for k, v := range input.VariableValues {
 		if ret.VariableValues == nil {
-			ret.VariableValues = make(map[string]*proto.Value)
+			ret.VariableValues = make(map[string]*protoMessages.Value)
 		}
 		ret.VariableValues[k], err = anyToValue(v)
 		if err != nil {
@@ -51,7 +52,7 @@ type subscriptionReader struct {
 }
 
 // NewSubscriptionReader creates new subscription reader for SubscriptionListen
-func NewSubscriptionReader(client proto.DriverClient, req *proto.SubscriptionListenRequest) (driver.SubscriptionListenReader, error) {
+func NewSubscriptionReader(client protoDriverService.DriverClient, req *protoMessages.SubscriptionListenRequest) (driver.SubscriptionListenReader, error) {
 	var r subscriptionReader
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	subClient, err := client.SubscriptionListen(r.ctx, req)
@@ -109,8 +110,8 @@ func (r *subscriptionReader) Close() error {
 	return nil
 }
 
-// MakeSubscriptionListenInput creates driver.SubscriptionListenInput from proto.SubscriptionListenRequest
-func MakeSubscriptionListenInput(input *proto.SubscriptionListenRequest) (f driver.SubscriptionListenInput, err error) {
+// MakeSubscriptionListenInput creates driver.SubscriptionListenInput from protoMessages.SubscriptionListenRequest
+func MakeSubscriptionListenInput(input *protoMessages.SubscriptionListenRequest) (f driver.SubscriptionListenInput, err error) {
 	f = driver.SubscriptionListenInput{
 		Function: types.Function{
 			Name: input.GetFunction().GetName(),

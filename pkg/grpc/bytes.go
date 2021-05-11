@@ -11,12 +11,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/graphql-editor/stucco/pkg/proto"
+	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"k8s.io/klog"
 )
 
 type byteStream interface {
-	Recv() (*proto.ByteStream, error)
+	Recv() (*protoMessages.ByteStream, error)
 }
 
 // ScanInvalid implements bufio.SplitFunc for bufio.Scanner, it reads up to 0xFF (invalid unicode)
@@ -61,7 +62,7 @@ func streamBytes(dst io.WriteCloser, stream byteStream) error {
 // Info verbosity is 3
 // Debug verbosity is 5
 func (m *Client) Stdout(ctx context.Context, name string) error {
-	stream, err := m.Client.Stdout(ctx, new(proto.ByteStreamRequest))
+	stream, err := m.Client.Stdout(ctx, new(protoMessages.ByteStreamRequest))
 	if err != nil {
 		return err
 	}
@@ -107,7 +108,7 @@ func (m *Client) Stdout(ctx context.Context, name string) error {
 // message property from json. Otherwise if byte stream has prefix [WARN] or [ERROR] logs the contents of stream to
 // matching klog Severity. If not matched, logs the whole byte stream unmodified to Error severity.
 func (m *Client) Stderr(ctx context.Context, name string) error {
-	stream, err := m.Client.Stderr(ctx, new(proto.ByteStreamRequest))
+	stream, err := m.Client.Stderr(ctx, new(protoMessages.ByteStreamRequest))
 	if err != nil {
 		return err
 	}
@@ -148,7 +149,7 @@ func (m *Client) Stderr(ctx context.Context, name string) error {
 }
 
 type byteStreamServer interface {
-	Send(*proto.ByteStream) error
+	Send(*protoMessages.ByteStream) error
 }
 
 type byteStreamWriter struct {
@@ -156,7 +157,7 @@ type byteStreamWriter struct {
 }
 
 func (b byteStreamWriter) Write(p []byte) (int, error) {
-	err := b.Send(&proto.ByteStream{
+	err := b.Send(&protoMessages.ByteStream{
 		Data: p,
 	})
 	n := len(p)
@@ -168,10 +169,10 @@ func (b byteStreamWriter) Write(p []byte) (int, error) {
 
 // StdoutHandlerFunc is a type of function that must be implemented in server implementation
 // to handle ByteStreamRequest for stdout.
-type StdoutHandlerFunc func(*proto.ByteStreamRequest, proto.Driver_StdoutServer) error
+type StdoutHandlerFunc func(*protoMessages.ByteStreamRequest, protoDriverService.Driver_StdoutServer) error
 
 // Handle for implementing StdoutHandler interface
-func (f StdoutHandlerFunc) Handle(p *proto.ByteStreamRequest, d proto.Driver_StdoutServer) error {
+func (f StdoutHandlerFunc) Handle(p *protoMessages.ByteStreamRequest, d protoDriverService.Driver_StdoutServer) error {
 	return f(p, d)
 }
 
@@ -195,7 +196,7 @@ func (h *hookFile) open(f *os.File) (*os.File, error) {
 	return h.pw, nil
 }
 
-func (h *hookFile) handle(s *proto.ByteStreamRequest, stream byteStreamServer) error {
+func (h *hookFile) handle(s *protoMessages.ByteStreamRequest, stream byteStreamServer) error {
 	h.lock.Lock()
 	pr := h.pr
 	oldFile := h.oldFile
@@ -232,7 +233,7 @@ func (p *PipeStdout) Open() error {
 }
 
 // Handle is a blocking method that sends all Writes to os.Stdout through GRPC
-func (p *PipeStdout) Handle(req *proto.ByteStreamRequest, srv proto.Driver_StdoutServer) error {
+func (p *PipeStdout) Handle(req *protoMessages.ByteStreamRequest, srv protoDriverService.Driver_StdoutServer) error {
 	return p.hookFile.handle(req, srv)
 }
 
@@ -247,10 +248,10 @@ func (p *PipeStdout) Close() error {
 
 // StderrHandlerFunc is a type of function that must be implemented in server implementation
 // to handle ByteStreamRequest for stderr.
-type StderrHandlerFunc func(*proto.ByteStreamRequest, proto.Driver_StderrServer) error
+type StderrHandlerFunc func(*protoMessages.ByteStreamRequest, protoDriverService.Driver_StderrServer) error
 
 // Handle for implementing StderrHandler interface
-func (f StderrHandlerFunc) Handle(p *proto.ByteStreamRequest, d proto.Driver_StderrServer) error {
+func (f StderrHandlerFunc) Handle(p *protoMessages.ByteStreamRequest, d protoDriverService.Driver_StderrServer) error {
 	return f(p, d)
 }
 
@@ -270,7 +271,7 @@ func (p *PipeStderr) Open() error {
 }
 
 // Handle is a blocking method that sends all Writes to os.Stderr through GRPC
-func (p *PipeStderr) Handle(req *proto.ByteStreamRequest, srv proto.Driver_StderrServer) error {
+func (p *PipeStderr) Handle(req *protoMessages.ByteStreamRequest, srv protoDriverService.Driver_StderrServer) error {
 	return p.hookFile.handle(req, srv)
 }
 
@@ -284,7 +285,7 @@ func (p *PipeStderr) Close() error {
 }
 
 // Stdout handles a stdout bytestream request for server
-func (m *Server) Stdout(s *proto.ByteStreamRequest, ss proto.Driver_StdoutServer) error {
+func (m *Server) Stdout(s *protoMessages.ByteStreamRequest, ss protoDriverService.Driver_StdoutServer) error {
 	if m.StdoutHandler != nil {
 		return m.StdoutHandler.Handle(s, ss)
 	}
@@ -292,7 +293,7 @@ func (m *Server) Stdout(s *proto.ByteStreamRequest, ss proto.Driver_StdoutServer
 }
 
 // Stderr handles a stderr bytestream request for server
-func (m *Server) Stderr(s *proto.ByteStreamRequest, ss proto.Driver_StderrServer) error {
+func (m *Server) Stderr(s *protoMessages.ByteStreamRequest, ss protoDriverService.Driver_StderrServer) error {
 	if m.StderrHandler != nil {
 		return m.StderrHandler.Handle(s, ss)
 	}

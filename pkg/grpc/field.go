@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // FieldResolve marshals a field resolution request through GRPC to a function
@@ -14,7 +14,7 @@ import (
 func (m *Client) FieldResolve(input driver.FieldResolveInput) (f driver.FieldResolveOutput) {
 	req, err := protodriver.MakeFieldResolveRequest(input)
 	if err == nil {
-		var resp *proto.FieldResolveResponse
+		var resp *protoMessages.FieldResolveResponse
 		resp, err = m.Client.FieldResolve(context.Background(), req)
 		if err == nil {
 			f = protodriver.MakeFieldResolveOutput(resp)
@@ -42,11 +42,11 @@ func (f FieldResolveHandlerFunc) Handle(input driver.FieldResolveInput) (interfa
 }
 
 // FieldResolve function calls user implemented handler for field resolution
-func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequest) (f *proto.FieldResolveResponse, _ error) {
+func (m *Server) FieldResolve(ctx context.Context, input *protoMessages.FieldResolveRequest) (f *protoMessages.FieldResolveResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
-			f = &proto.FieldResolveResponse{
-				Error: &proto.Error{
+			f = &protoMessages.FieldResolveResponse{
+				Error: &protoMessages.Error{
 					Msg: fmt.Sprintf("%v", r),
 				},
 			}
@@ -54,7 +54,7 @@ func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequ
 	}()
 	req, err := protodriver.MakeFieldResolveInput(input)
 	if err == nil {
-		f = new(proto.FieldResolveResponse)
+		f = new(protoMessages.FieldResolveResponse)
 		var resp interface{}
 		resp, err = m.FieldResolveHandler.Handle(req)
 		if err == nil {
@@ -62,7 +62,7 @@ func (m *Server) FieldResolve(ctx context.Context, input *proto.FieldResolveRequ
 		}
 	}
 	if err != nil {
-		f.Error = &proto.Error{
+		f.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

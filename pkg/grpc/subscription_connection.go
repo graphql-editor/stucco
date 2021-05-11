@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // SubscriptionConnection marshals a field resolution request through GRPC to a function
@@ -14,7 +14,7 @@ import (
 func (m *Client) SubscriptionConnection(input driver.SubscriptionConnectionInput) (f driver.SubscriptionConnectionOutput) {
 	req, err := protodriver.MakeSubscriptionConnectionRequest(input)
 	if err == nil {
-		var resp *proto.SubscriptionConnectionResponse
+		var resp *protoMessages.SubscriptionConnectionResponse
 		resp, err = m.Client.SubscriptionConnection(context.Background(), req)
 		if err == nil {
 			f = protodriver.MakeSubscriptionConnectionOutput(resp)
@@ -42,11 +42,11 @@ func (f SubscriptionConnectionHandlerFunc) Handle(input driver.SubscriptionConne
 }
 
 // SubscriptionConnection function calls user implemented handler for subscription connection creation
-func (m *Server) SubscriptionConnection(ctx context.Context, input *proto.SubscriptionConnectionRequest) (s *proto.SubscriptionConnectionResponse, _ error) {
+func (m *Server) SubscriptionConnection(ctx context.Context, input *protoMessages.SubscriptionConnectionRequest) (s *protoMessages.SubscriptionConnectionResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
-			s = &proto.SubscriptionConnectionResponse{
-				Error: &proto.Error{
+			s = &protoMessages.SubscriptionConnectionResponse{
+				Error: &protoMessages.Error{
 					Msg: fmt.Sprintf("%v", r),
 				},
 			}
@@ -54,7 +54,7 @@ func (m *Server) SubscriptionConnection(ctx context.Context, input *proto.Subscr
 	}()
 	req, err := protodriver.MakeSubscriptionConnectionInput(input)
 	if err == nil {
-		s = new(proto.SubscriptionConnectionResponse)
+		s = new(protoMessages.SubscriptionConnectionResponse)
 		var resp interface{}
 		resp, err = m.SubscriptionConnectionHandler.Handle(req)
 		if err == nil {
@@ -62,7 +62,7 @@ func (m *Server) SubscriptionConnection(ctx context.Context, input *proto.Subscr
 		}
 	}
 	if err != nil {
-		s.Error = &proto.Error{
+		s.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

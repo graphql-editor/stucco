@@ -6,8 +6,8 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // FieldResolve over http
@@ -15,7 +15,7 @@ func (c *Client) FieldResolve(input driver.FieldResolveInput) driver.FieldResolv
 	var out driver.FieldResolveOutput
 	req, err := protodriver.MakeFieldResolveRequest(input)
 	if err == nil {
-		resp := new(proto.FieldResolveResponse)
+		resp := new(protoMessages.FieldResolveResponse)
 		if err = c.do(message{
 			contentType: fieldResolveRequestMessage,
 			proto:       req,
@@ -34,9 +34,9 @@ func (c *Client) FieldResolve(input driver.FieldResolveInput) driver.FieldResolv
 	return out
 }
 
-func (h *Handler) fieldResolve(req *http.Request) *proto.FieldResolveResponse {
-	resp := new(proto.FieldResolveResponse)
-	protoReq := new(proto.FieldResolveRequest)
+func (h *Handler) fieldResolve(req *http.Request) *protoMessages.FieldResolveResponse {
+	resp := new(protoMessages.FieldResolveResponse)
+	protoReq := new(protoMessages.FieldResolveRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -54,7 +54,7 @@ func (h *Handler) fieldResolve(req *http.Request) *proto.FieldResolveResponse {
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

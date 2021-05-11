@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
-func makeProtoInterfaceResolveTypeInfo(input driver.InterfaceResolveTypeInfo) (r *proto.InterfaceResolveTypeInfo, err error) {
+func makeProtoInterfaceResolveTypeInfo(input driver.InterfaceResolveTypeInfo) (r *protoMessages.InterfaceResolveTypeInfo, err error) {
 	variables := input.VariableValues
 	variableValues, err := mapOfAnyToMapOfValue(variables)
 	if err != nil {
@@ -22,7 +22,7 @@ func makeProtoInterfaceResolveTypeInfo(input driver.InterfaceResolveTypeInfo) (r
 	if err != nil {
 		return
 	}
-	r = &proto.InterfaceResolveTypeInfo{
+	r = &protoMessages.InterfaceResolveTypeInfo{
 		FieldName:      input.FieldName,
 		Path:           rp,
 		ReturnType:     makeProtoTypeRef(input.ReturnType),
@@ -33,8 +33,8 @@ func makeProtoInterfaceResolveTypeInfo(input driver.InterfaceResolveTypeInfo) (r
 	return
 }
 
-// MakeInterfaceResolveTypeRequest creates new proto.InterfaceResolveTypeRequest from driver.InterfaceResolveTypeInput
-func MakeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r *proto.InterfaceResolveTypeRequest, err error) {
+// MakeInterfaceResolveTypeRequest creates new protoMessages.InterfaceResolveTypeRequest from driver.InterfaceResolveTypeInput
+func MakeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r *protoMessages.InterfaceResolveTypeRequest, err error) {
 	info, err := makeProtoInterfaceResolveTypeInfo(input.Info)
 	if err != nil {
 		return
@@ -46,8 +46,8 @@ func MakeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r 
 	if input.Function.Name == "" {
 		return nil, fmt.Errorf("function name is required")
 	}
-	r = &proto.InterfaceResolveTypeRequest{
-		Function: &proto.Function{
+	r = &protoMessages.InterfaceResolveTypeRequest{
+		Function: &protoMessages.Function{
 			Name: input.Function.Name,
 		},
 		Value: value,
@@ -56,8 +56,8 @@ func MakeInterfaceResolveTypeRequest(input driver.InterfaceResolveTypeInput) (r 
 	return
 }
 
-// MakeInterfaceResolveTypeOutput creates new driver.InterfaceResolveTypeOutput from proto.InterfaceResolveTypeResponse
-func MakeInterfaceResolveTypeOutput(resp *proto.InterfaceResolveTypeResponse) driver.InterfaceResolveTypeOutput {
+// MakeInterfaceResolveTypeOutput creates new driver.InterfaceResolveTypeOutput from protoMessages.InterfaceResolveTypeResponse
+func MakeInterfaceResolveTypeOutput(resp *protoMessages.InterfaceResolveTypeResponse) driver.InterfaceResolveTypeOutput {
 	out := driver.InterfaceResolveTypeOutput{}
 	if err := resp.GetError(); err != nil {
 		out.Error = &driver.Error{
@@ -69,7 +69,7 @@ func MakeInterfaceResolveTypeOutput(resp *proto.InterfaceResolveTypeResponse) dr
 	return out
 }
 
-func makeDriverInterfaceResolveTypeInfo(input *proto.InterfaceResolveTypeInfo) (i driver.InterfaceResolveTypeInfo, err error) {
+func makeDriverInterfaceResolveTypeInfo(input *protoMessages.InterfaceResolveTypeInfo) (i driver.InterfaceResolveTypeInfo, err error) {
 	variables := input.GetVariableValues()
 	variableValues, err := mapOfValueToMapOfAny(nil, variables)
 	if err != nil {
@@ -95,8 +95,8 @@ func makeDriverInterfaceResolveTypeInfo(input *proto.InterfaceResolveTypeInfo) (
 	return
 }
 
-// MakeInterfaceResolveTypeInput creates new driver.InterfaceResolveTypeInput from proto.InterfaceResolveTypeRequest
-func MakeInterfaceResolveTypeInput(input *proto.InterfaceResolveTypeRequest) (i driver.InterfaceResolveTypeInput, err error) {
+// MakeInterfaceResolveTypeInput creates new driver.InterfaceResolveTypeInput from protoMessages.InterfaceResolveTypeRequest
+func MakeInterfaceResolveTypeInput(input *protoMessages.InterfaceResolveTypeRequest) (i driver.InterfaceResolveTypeInput, err error) {
 	val, err := valueToAny(nil, input.GetValue())
 	if err != nil {
 		return
@@ -115,11 +115,11 @@ func MakeInterfaceResolveTypeInput(input *proto.InterfaceResolveTypeRequest) (i 
 	return
 }
 
-// MakeInterfaceResolveTypeResponse creates new proto.InterfaceResolveTypeResponse from type string
-func MakeInterfaceResolveTypeResponse(resp string) proto.InterfaceResolveTypeResponse {
-	return proto.InterfaceResolveTypeResponse{
-		Type: &proto.TypeRef{
-			TestTyperef: &proto.TypeRef_Name{
+// MakeInterfaceResolveTypeResponse creates new protoMessages.InterfaceResolveTypeResponse from type string
+func MakeInterfaceResolveTypeResponse(resp string) protoMessages.InterfaceResolveTypeResponse {
+	return protoMessages.InterfaceResolveTypeResponse{
+		Type: &protoMessages.TypeRef{
+			TestTyperef: &protoMessages.TypeRef_Name{
 				Name: resp,
 			},
 		},

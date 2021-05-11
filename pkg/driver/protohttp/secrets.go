@@ -6,15 +6,15 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // SetSecrets using http
 func (c *Client) SetSecrets(input driver.SetSecretsInput) driver.SetSecretsOutput {
 	var out driver.SetSecretsOutput
 	req := protodriver.MakeSetSecretsRequest(input)
-	resp := new(proto.SetSecretsResponse)
+	resp := new(protoMessages.SetSecretsResponse)
 	var err error
 	if err = c.do(message{
 		contentType: setSecretsRequestMessage,
@@ -33,9 +33,9 @@ func (c *Client) SetSecrets(input driver.SetSecretsInput) driver.SetSecretsOutpu
 	return out
 }
 
-func (h *Handler) setSecrets(req *http.Request) *proto.SetSecretsResponse {
-	resp := new(proto.SetSecretsResponse)
-	protoReq := new(proto.SetSecretsRequest)
+func (h *Handler) setSecrets(req *http.Request) *protoMessages.SetSecretsResponse {
+	resp := new(protoMessages.SetSecretsResponse)
+	protoReq := new(protoMessages.SetSecretsRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -45,7 +45,7 @@ func (h *Handler) setSecrets(req *http.Request) *proto.SetSecretsResponse {
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

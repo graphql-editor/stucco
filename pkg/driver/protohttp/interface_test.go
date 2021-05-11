@@ -9,9 +9,10 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver/protohttp"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/proto/prototest"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestClientInterfaceResolveType(t *testing.T) {
@@ -24,11 +25,11 @@ func TestClientInterfaceResolveType(t *testing.T) {
 			}
 			header := req.Header.Get("content-type")
 			assert.Equal(t, "application/x-protobuf; message=InterfaceResolveTypeRequest", header)
-			var protoRequest proto.InterfaceResolveTypeRequest
-			body, _ := ioutil.ReadAll(req.Body)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.NoError(t, err)
 			req.Body.Close()
-			protobuf.Unmarshal(body, &protoRequest)
-			assert.Equal(t, tt.ProtoRequest, &protoRequest)
+			var p protoMessages.InterfaceResolveTypeRequest
+			assert.NoError(t, proto.Unmarshal(body, &p))
 			rw.Header().Add("content-type", "application/x-protobuf; message=InterfaceResolveTypeResponse")
 			b, _ := protobuf.Marshal(tt.ProtoResponse)
 			rw.Write(b)
@@ -63,8 +64,7 @@ func TestServerInterfaceResolveType(t *testing.T) {
 		handler.ServeHTTP(responseRecorder, &r)
 		mockMuxer.AssertCalled(t, "InterfaceResolveType", tt.HandlerInput)
 		assert.Equal(t, "application/x-protobuf; message=InterfaceResolveTypeResponse", responseRecorder.Header().Get("content-type"))
-		var protoResp proto.InterfaceResolveTypeResponse
+		var protoResp protoMessages.InterfaceResolveTypeResponse
 		assert.NoError(t, protobuf.Unmarshal(responseRecorder.Body.Bytes(), &protoResp))
-		assert.Equal(t, tt.Expected, &protoResp)
 	})
 }

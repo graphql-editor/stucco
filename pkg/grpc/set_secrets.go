@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // SetSecrets sets a marshals secrets through GRPC
 func (m *Client) SetSecrets(input driver.SetSecretsInput) driver.SetSecretsOutput {
 	var out driver.SetSecretsOutput
 	req := protodriver.MakeSetSecretsRequest(input)
-	var resp *proto.SetSecretsResponse
+	var resp *protoMessages.SetSecretsResponse
 	resp, err := m.Client.SetSecrets(context.Background(), req)
 	if err == nil {
 		out = protodriver.MakeSetSecretsOutput(resp)
@@ -39,11 +39,11 @@ func (s SetSecretsHandlerFunc) Handle(input driver.SetSecretsInput) error {
 }
 
 // SetSecrets calls user SetSecrets handler
-func (m *Server) SetSecrets(ctx context.Context, input *proto.SetSecretsRequest) (o *proto.SetSecretsResponse, _ error) {
+func (m *Server) SetSecrets(ctx context.Context, input *protoMessages.SetSecretsRequest) (o *protoMessages.SetSecretsResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
-			o = &proto.SetSecretsResponse{
-				Error: &proto.Error{
+			o = &protoMessages.SetSecretsResponse{
+				Error: &protoMessages.Error{
 					Msg: fmt.Sprintf("%v", r),
 				},
 			}

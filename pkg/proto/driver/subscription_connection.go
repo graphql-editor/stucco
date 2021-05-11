@@ -2,14 +2,14 @@ package protodriver
 
 import (
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // MakeSubscriptionConnectionRequest creates a new proto SubscriptionConnectionRequest from driver input
-func MakeSubscriptionConnectionRequest(input driver.SubscriptionConnectionInput) (r *proto.SubscriptionConnectionRequest, err error) {
-	ret := proto.SubscriptionConnectionRequest{
-		Function: &proto.Function{
+func MakeSubscriptionConnectionRequest(input driver.SubscriptionConnectionInput) (r *protoMessages.SubscriptionConnectionRequest, err error) {
+	ret := protoMessages.SubscriptionConnectionRequest{
+		Function: &protoMessages.Function{
 			Name: input.Function.Name,
 		},
 		Query:         input.Query,
@@ -17,7 +17,7 @@ func MakeSubscriptionConnectionRequest(input driver.SubscriptionConnectionInput)
 	}
 	for k, v := range input.VariableValues {
 		if ret.VariableValues == nil {
-			ret.VariableValues = make(map[string]*proto.Value)
+			ret.VariableValues = make(map[string]*protoMessages.Value)
 		}
 		ret.VariableValues[k], err = anyToValue(v)
 		if err != nil {
@@ -33,7 +33,7 @@ func MakeSubscriptionConnectionRequest(input driver.SubscriptionConnectionInput)
 }
 
 // MakeSubscriptionConnectionOutput creates new driver.SubscriptionConnectionOutput from proto response
-func MakeSubscriptionConnectionOutput(resp *proto.SubscriptionConnectionResponse) (out driver.SubscriptionConnectionOutput) {
+func MakeSubscriptionConnectionOutput(resp *protoMessages.SubscriptionConnectionResponse) (out driver.SubscriptionConnectionOutput) {
 	var err error
 	out.Response, err = valueToAny(nil, resp.GetResponse())
 	if err != nil {
@@ -44,8 +44,8 @@ func MakeSubscriptionConnectionOutput(resp *proto.SubscriptionConnectionResponse
 	return out
 }
 
-// MakeSubscriptionConnectionInput creates driver.SubscriptionConnectionInput from proto.SubscriptionConnectionRequest
-func MakeSubscriptionConnectionInput(input *proto.SubscriptionConnectionRequest) (f driver.SubscriptionConnectionInput, err error) {
+// MakeSubscriptionConnectionInput creates driver.SubscriptionConnectionInput from protoMessages.SubscriptionConnectionRequest
+func MakeSubscriptionConnectionInput(input *protoMessages.SubscriptionConnectionRequest) (f driver.SubscriptionConnectionInput, err error) {
 	f = driver.SubscriptionConnectionInput{
 		Function: types.Function{
 			Name: input.GetFunction().GetName(),
@@ -69,14 +69,14 @@ func MakeSubscriptionConnectionInput(input *proto.SubscriptionConnectionRequest)
 	return
 }
 
-// MakeSubscriptionConnectionResponse creates a proto.SubscriptionConnectionRespone from a value
-func MakeSubscriptionConnectionResponse(resp interface{}) proto.SubscriptionConnectionResponse {
-	protoResponse := proto.SubscriptionConnectionResponse{}
+// MakeSubscriptionConnectionResponse creates a protoMessages.SubscriptionConnectionRespone from a value
+func MakeSubscriptionConnectionResponse(resp interface{}) protoMessages.SubscriptionConnectionResponse {
+	protoResponse := protoMessages.SubscriptionConnectionResponse{}
 	v, err := anyToValue(resp)
 	if err == nil {
 		protoResponse.Response = v
 	} else {
-		protoResponse.Error = &proto.Error{
+		protoResponse.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

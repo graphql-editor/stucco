@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/graphql-editor/stucco/pkg/proto"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"k8s.io/klog"
 )
 
@@ -28,20 +28,20 @@ type field struct {
 	name   string
 	index  []int
 	tagged bool
-	encode func(v reflect.Value) (*proto.Value, error)
+	encode func(v reflect.Value) (*protoMessages.Value, error)
 }
 
-func wrap(f func(reflect.Value, *proto.Value), mv func() *proto.Value) func(reflect.Value) (*proto.Value, error) {
-	return func(v reflect.Value) (*proto.Value, error) {
+func wrap(f func(reflect.Value, *protoMessages.Value), mv func() *protoMessages.Value) func(reflect.Value) (*protoMessages.Value, error) {
+	return func(v reflect.Value) (*protoMessages.Value, error) {
 		pv := mv()
 		f(v, pv)
 		return pv, nil
 	}
 }
 
-func encodeFuncForType(t reflect.Type) func(reflect.Value) (*proto.Value, error) {
+func encodeFuncForType(t reflect.Type) func(reflect.Value) (*protoMessages.Value, error) {
 	if t.Implements(marshalerInterface) {
-		return func(v reflect.Value) (*proto.Value, error) {
+		return func(v reflect.Value) (*protoMessages.Value, error) {
 			return v.Interface().(ValueMarshaler).MarshalValue()
 		}
 	}
@@ -56,63 +56,63 @@ func encodeFuncForType(t reflect.Type) func(reflect.Value) (*proto.Value, error)
 	case reflect.Ptr:
 		klog.Warning("pointer to pointer types are not supported")
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return wrap(intToValue, func() *proto.Value {
-			return &proto.Value{
-				TestValue: &proto.Value_I{},
+		return wrap(intToValue, func() *protoMessages.Value {
+			return &protoMessages.Value{
+				TestValue: &protoMessages.Value_I{},
 			}
 		})
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return wrap(uintToValue, func() *proto.Value {
-			return &proto.Value{
-				TestValue: &proto.Value_U{},
+		return wrap(uintToValue, func() *protoMessages.Value {
+			return &protoMessages.Value{
+				TestValue: &protoMessages.Value_U{},
 			}
 		})
 	case reflect.Float32, reflect.Float64:
-		return wrap(floatToValue, func() *proto.Value {
-			return &proto.Value{
-				TestValue: &proto.Value_F{},
+		return wrap(floatToValue, func() *protoMessages.Value {
+			return &protoMessages.Value{
+				TestValue: &protoMessages.Value_F{},
 			}
 		})
 	case reflect.String:
-		return wrap(stringToValue, func() *proto.Value {
-			return &proto.Value{
-				TestValue: &proto.Value_S{},
+		return wrap(stringToValue, func() *protoMessages.Value {
+			return &protoMessages.Value{
+				TestValue: &protoMessages.Value_S{},
 			}
 		})
 	case reflect.Bool:
-		return wrap(boolToValue, func() *proto.Value {
-			return &proto.Value{
-				TestValue: &proto.Value_B{},
+		return wrap(boolToValue, func() *protoMessages.Value {
+			return &protoMessages.Value{
+				TestValue: &protoMessages.Value_B{},
 			}
 		})
 	case reflect.Slice, reflect.Array:
 		if t.Elem().Kind() == reflect.Uint8 {
-			return func(v reflect.Value) (*proto.Value, error) {
-				pv := &proto.Value{
-					TestValue: &proto.Value_Any{},
+			return func(v reflect.Value) (*protoMessages.Value, error) {
+				pv := &protoMessages.Value{
+					TestValue: &protoMessages.Value_Any{},
 				}
 				bytesToValue(v, pv)
 				return pv, nil
 			}
 		} else {
-			return func(v reflect.Value) (*proto.Value, error) {
-				pv := &proto.Value{
-					TestValue: &proto.Value_A{},
+			return func(v reflect.Value) (*protoMessages.Value, error) {
+				pv := &protoMessages.Value{
+					TestValue: &protoMessages.Value_A{},
 				}
 				return pv, sliceOrArrayToValue(v, pv)
 			}
 		}
 	case reflect.Map:
-		return func(v reflect.Value) (*proto.Value, error) {
-			pv := &proto.Value{
-				TestValue: &proto.Value_O{},
+		return func(v reflect.Value) (*protoMessages.Value, error) {
+			pv := &protoMessages.Value{
+				TestValue: &protoMessages.Value_O{},
 			}
 			return pv, mapToValue(v, pv)
 		}
 	case reflect.Struct:
-		return func(v reflect.Value) (*proto.Value, error) {
-			pv := &proto.Value{
-				TestValue: &proto.Value_O{},
+		return func(v reflect.Value) (*protoMessages.Value, error) {
+			pv := &protoMessages.Value{
+				TestValue: &protoMessages.Value_O{},
 			}
 			return pv, structToValue(v, pv)
 		}
@@ -214,15 +214,15 @@ func cachedTypeFields(t reflect.Type) []field {
 	return f.([]field)
 }
 
-func structToValue(v reflect.Value, pv *proto.Value) error {
+func structToValue(v reflect.Value, pv *protoMessages.Value) error {
 	if v = getValue(v); v.IsValid() {
 		fields := cachedTypeFields(v.Type())
 		if len(fields) == 0 {
 			// empty struct or struct with only unexported fields
 			return nil
 		}
-		obj := &proto.ObjectValue{
-			Props: make(map[string]*proto.Value, len(fields)),
+		obj := &protoMessages.ObjectValue{
+			Props: make(map[string]*protoMessages.Value, len(fields)),
 		}
 		for i := 0; i < len(fields); i++ {
 			fv := v.Field(fields[i].index[0])
@@ -235,7 +235,7 @@ func structToValue(v reflect.Value, pv *proto.Value) error {
 				return err
 			}
 		}
-		pv.TestValue.(*proto.Value_O).O = obj
+		pv.TestValue.(*protoMessages.Value_O).O = obj
 	}
 	return nil
 }

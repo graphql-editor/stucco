@@ -15,7 +15,8 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/grpc"
-	"github.com/graphql-editor/stucco/pkg/proto"
+	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	googlegrpc "google.golang.org/grpc"
@@ -60,13 +61,13 @@ type byteStreamMock struct {
 	googlegrpc.ClientStream
 }
 
-func (m *byteStreamMock) Recv() (*proto.ByteStream, error) {
+func (m *byteStreamMock) Recv() (*protoMessages.ByteStream, error) {
 	m.Called()
 	d, ok := <-m.data
 	if !ok {
 		return nil, io.EOF
 	}
-	return &proto.ByteStream{
+	return &protoMessages.ByteStream{
 		Data: d,
 	}, nil
 }
@@ -93,7 +94,7 @@ func TestClientLogging(t *testing.T) {
 	for ioName, stream := range streams {
 		stream.On("Recv")
 		driverClientMock.
-			On(ioName, mock.Anything, new(proto.ByteStreamRequest)).
+			On(ioName, mock.Anything, new(protoMessages.ByteStreamRequest)).
 			Return(stream, nil)
 	}
 	client := grpc.Client{
@@ -202,7 +203,7 @@ type mockByteStreamSend struct {
 	googlegrpc.ServerStream
 }
 
-func (m *mockByteStreamSend) Send(stream *proto.ByteStream) error {
+func (m *mockByteStreamSend) Send(stream *protoMessages.ByteStream) error {
 	called := m.Called(stream)
 	return called.Error(0)
 }
@@ -225,11 +226,11 @@ func TestIOHookHandlers(t *testing.T) {
 			}()
 			t.Run("HandleStreams", func(t *testing.T) {
 				t.Parallel()
-				assert.NoError(t, handler.Handle(new(proto.ByteStreamRequest), mockByteStreamSend))
+				assert.NoError(t, handler.Handle(new(protoMessages.ByteStreamRequest), mockByteStreamSend))
 			})
 			for i := range data {
 				msg := data[i]
-				expectedStream := &proto.ByteStream{
+				expectedStream := &protoMessages.ByteStream{
 					Data: []byte(msg),
 				}
 				mockByteStreamSend.On("Send", expectedStream).Return(nil)
@@ -242,7 +243,7 @@ func TestIOHookHandlers(t *testing.T) {
 		for _, tt := range data {
 			assert.True(t, bytes.HasPrefix(b, []byte(tt)), string(b), tt)
 			b = b[len(tt):]
-			mockByteStreamSend.AssertCalled(t, "Send", &proto.ByteStream{
+			mockByteStreamSend.AssertCalled(t, "Send", &protoMessages.ByteStream{
 				Data: []byte(tt),
 			})
 		}
@@ -264,11 +265,11 @@ func TestIOHookHandlers(t *testing.T) {
 			}()
 			t.Run("HandleStreams", func(t *testing.T) {
 				t.Parallel()
-				assert.NoError(t, handler.Handle(new(proto.ByteStreamRequest), mockByteStreamSend))
+				assert.NoError(t, handler.Handle(new(protoMessages.ByteStreamRequest), mockByteStreamSend))
 			})
 			for i := range data {
 				msg := data[i]
-				expectedStream := &proto.ByteStream{
+				expectedStream := &protoMessages.ByteStream{
 					Data: []byte(msg),
 				}
 				mockByteStreamSend.On("Send", expectedStream).Return(nil)
@@ -281,7 +282,7 @@ func TestIOHookHandlers(t *testing.T) {
 		for _, tt := range data {
 			assert.True(t, bytes.HasPrefix(b, []byte(tt)), string(b), tt)
 			b = b[len(tt):]
-			mockByteStreamSend.AssertCalled(t, "Send", &proto.ByteStream{
+			mockByteStreamSend.AssertCalled(t, "Send", &protoMessages.ByteStream{
 				Data: []byte(tt),
 			})
 		}
@@ -292,25 +293,25 @@ type mockByteStreamHandlerFuncs struct {
 	mock.Mock
 }
 
-func (m *mockByteStreamHandlerFuncs) Stdout(p *proto.ByteStreamRequest, d proto.Driver_StdoutServer) error {
+func (m *mockByteStreamHandlerFuncs) Stdout(p *protoMessages.ByteStreamRequest, d protoDriverService.Driver_StdoutServer) error {
 	return m.Called(p, d).Error(0)
 }
 
-func (m *mockByteStreamHandlerFuncs) Stderr(p *proto.ByteStreamRequest, d proto.Driver_StderrServer) error {
+func (m *mockByteStreamHandlerFuncs) Stderr(p *protoMessages.ByteStreamRequest, d protoDriverService.Driver_StderrServer) error {
 	return m.Called(p, d).Error(0)
 }
 
 func TestHandlerFuncs(t *testing.T) {
 	mockByteStreamHandlerFuncs := new(mockByteStreamHandlerFuncs)
-	byteStreamRequest := new(proto.ByteStreamRequest)
+	byteStreamRequest := new(protoMessages.ByteStreamRequest)
 	mockByteStreamHandlerFuncs.On(
 		"Stdout",
 		byteStreamRequest,
-		proto.Driver_StdoutServer(nil),
+		protoDriverService.Driver_StdoutServer(nil),
 	).Return(nil).Once()
 	mockByteStreamHandlerFuncs.On("Stderr",
 		byteStreamRequest,
-		proto.Driver_StderrServer(nil),
+		protoDriverService.Driver_StderrServer(nil),
 	).Return(nil).Once()
 	grpc.StdoutHandlerFunc(mockByteStreamHandlerFuncs.Stdout).Handle(
 		byteStreamRequest,
@@ -324,27 +325,27 @@ func TestHandlerFuncs(t *testing.T) {
 		t,
 		"Stdout",
 		byteStreamRequest,
-		(proto.Driver_StdoutServer)(nil),
+		(protoDriverService.Driver_StdoutServer)(nil),
 	)
 	mockByteStreamHandlerFuncs.AssertCalled(
 		t,
 		"Stderr",
 		byteStreamRequest,
-		proto.Driver_StdoutServer(nil),
+		protoDriverService.Driver_StdoutServer(nil),
 	)
 }
 
 func TestServerCallsIOHandlers(t *testing.T) {
 	mockByteStreamHandlerFuncs := new(mockByteStreamHandlerFuncs)
-	byteStreamRequest := new(proto.ByteStreamRequest)
+	byteStreamRequest := new(protoMessages.ByteStreamRequest)
 	mockByteStreamHandlerFuncs.On(
 		"Stdout",
 		byteStreamRequest,
-		proto.Driver_StdoutServer(nil),
+		protoDriverService.Driver_StdoutServer(nil),
 	).Return(nil).Once()
 	mockByteStreamHandlerFuncs.On("Stderr",
 		byteStreamRequest,
-		proto.Driver_StderrServer(nil),
+		protoDriverService.Driver_StderrServer(nil),
 	).Return(nil).Once()
 	srv := grpc.Server{}
 	srv.StdoutHandler = grpc.StdoutHandlerFunc(mockByteStreamHandlerFuncs.Stdout)
@@ -355,18 +356,18 @@ func TestServerCallsIOHandlers(t *testing.T) {
 		t,
 		"Stdout",
 		byteStreamRequest,
-		(proto.Driver_StdoutServer)(nil),
+		(protoDriverService.Driver_StdoutServer)(nil),
 	)
 	mockByteStreamHandlerFuncs.AssertCalled(
 		t,
 		"Stderr",
 		byteStreamRequest,
-		proto.Driver_StdoutServer(nil),
+		protoDriverService.Driver_StdoutServer(nil),
 	)
 }
 
 func TestServerDoesNotRequireIOHandlers(t *testing.T) {
-	byteStreamRequest := new(proto.ByteStreamRequest)
+	byteStreamRequest := new(protoMessages.ByteStreamRequest)
 	srv := grpc.Server{}
 	assert.NoError(t, srv.Stdout(byteStreamRequest, nil))
 	assert.NoError(t, srv.Stderr(byteStreamRequest, nil))

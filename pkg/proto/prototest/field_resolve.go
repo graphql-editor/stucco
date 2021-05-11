@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/graphql-go/graphql/language/ast"
 )
 
@@ -13,8 +13,8 @@ import (
 type FieldResolveClientTest struct {
 	Title         string
 	Input         driver.FieldResolveInput
-	ProtoRequest  *proto.FieldResolveRequest
-	ProtoResponse *proto.FieldResolveResponse
+	ProtoRequest  *protoMessages.FieldResolveRequest
+	ProtoResponse *protoMessages.FieldResolveResponse
 	Expected      driver.FieldResolveOutput
 }
 
@@ -126,7 +126,7 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 												},
 											},
 											VariableDefinitions: []types.VariableDefinition{
-												types.VariableDefinition{
+												{
 													Variable: types.Variable{
 														Name: "variable",
 													},
@@ -144,32 +144,32 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 					},
 				},
 			},
-			ProtoRequest: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{
+				Info: &protoMessages.FieldResolveInfo{
 					FieldName: "field",
-					Path: &proto.ResponsePath{
-						Key: &proto.Value{
-							TestValue: &proto.Value_S{
+					Path: &protoMessages.ResponsePath{
+						Key: &protoMessages.Value{
+							TestValue: &protoMessages.Value_S{
 								S: "field",
 							},
 						},
-						Prev: &proto.ResponsePath{
-							Key: &proto.Value{
-								TestValue: &proto.Value_S{
+						Prev: &protoMessages.ResponsePath{
+							Key: &protoMessages.Value{
+								TestValue: &protoMessages.Value_S{
 									S: "fieldPrev",
 								},
 							},
 						},
 					},
-					ReturnType: &proto.TypeRef{
-						TestTyperef: &proto.TypeRef_List{
-							List: &proto.TypeRef{
-								TestTyperef: &proto.TypeRef_NonNull{
-									NonNull: &proto.TypeRef{
-										TestTyperef: &proto.TypeRef_Name{
+					ReturnType: &protoMessages.TypeRef{
+						TestTyperef: &protoMessages.TypeRef_List{
+							List: &protoMessages.TypeRef{
+								TestTyperef: &protoMessages.TypeRef_NonNull{
+									NonNull: &protoMessages.TypeRef{
+										TestTyperef: &protoMessages.TypeRef_Name{
 											Name: "String",
 										},
 									},
@@ -177,49 +177,49 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 							},
 						},
 					},
-					ParentType: &proto.TypeRef{
-						TestTyperef: &proto.TypeRef_Name{
+					ParentType: &protoMessages.TypeRef{
+						TestTyperef: &protoMessages.TypeRef_Name{
 							Name: "SomeType",
 						},
 					},
-					Operation: &proto.OperationDefinition{
+					Operation: &protoMessages.OperationDefinition{
 						Operation: "query",
 						Name:      "getFieldOfFieldPrev",
-						Directives: []*proto.Directive{
-							&proto.Directive{
+						Directives: []*protoMessages.Directive{
+							{
 								Name: "@somedir",
-								Arguments: map[string]*proto.Value{
-									"arg": &proto.Value{
-										TestValue: &proto.Value_S{
+								Arguments: map[string]*protoMessages.Value{
+									"arg": {
+										TestValue: &protoMessages.Value_S{
 											S: "value",
 										},
 									},
-									"astIntValue": &proto.Value{
-										TestValue: &proto.Value_I{
+									"astIntValue": {
+										TestValue: &protoMessages.Value_I{
 											I: int64(1),
 										},
 									},
-									"astFloatValue": &proto.Value{
-										TestValue: &proto.Value_F{
+									"astFloatValue": {
+										TestValue: &protoMessages.Value_F{
 											F: float64(1.0),
 										},
 									},
-									"astStringValue": &proto.Value{
-										TestValue: &proto.Value_S{
+									"astStringValue": {
+										TestValue: &protoMessages.Value_S{
 											S: "string",
 										},
 									},
-									"astBoolValue": &proto.Value{
-										TestValue: &proto.Value_B{
+									"astBoolValue": {
+										TestValue: &protoMessages.Value_B{
 											B: true,
 										},
 									},
-									"astListValue": &proto.Value{
-										TestValue: &proto.Value_A{
-											A: &proto.ArrayValue{
-												Items: []*proto.Value{
-													&proto.Value{
-														TestValue: &proto.Value_I{
+									"astListValue": {
+										TestValue: &protoMessages.Value_A{
+											A: &protoMessages.ArrayValue{
+												Items: []*protoMessages.Value{
+													{
+														TestValue: &protoMessages.Value_I{
 															I: int64(1),
 														},
 													},
@@ -227,12 +227,12 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 											},
 										},
 									},
-									"astObjectValue": &proto.Value{
-										TestValue: &proto.Value_O{
-											O: &proto.ObjectValue{
-												Props: map[string]*proto.Value{
-													"objectField": &proto.Value{
-														TestValue: &proto.Value_I{
+									"astObjectValue": {
+										TestValue: &protoMessages.Value_O{
+											O: &protoMessages.ObjectValue{
+												Props: map[string]*protoMessages.Value{
+													"objectField": {
+														TestValue: &protoMessages.Value_I{
 															I: int64(1),
 														},
 													},
@@ -240,68 +240,68 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 											},
 										},
 									},
-									"astVariable": &proto.Value{
-										TestValue: &proto.Value_Variable{
+									"astVariable": {
+										TestValue: &protoMessages.Value_Variable{
 											Variable: "someVar",
 										},
 									},
 								},
 							},
 						},
-						SelectionSet: []*proto.Selection{
-							&proto.Selection{
+						SelectionSet: []*protoMessages.Selection{
+							{
 								Name: "subfield",
-								Arguments: map[string]*proto.Value{
-									"arg": &proto.Value{
-										TestValue: &proto.Value_S{
+								Arguments: map[string]*protoMessages.Value{
+									"arg": {
+										TestValue: &protoMessages.Value_S{
 											S: "value",
 										},
 									},
 								},
-								Directives: []*proto.Directive{
-									&proto.Directive{
+								Directives: []*protoMessages.Directive{
+									{
 										Name: "@somedir",
-										Arguments: map[string]*proto.Value{
-											"arg": &proto.Value{
-												TestValue: &proto.Value_S{
+										Arguments: map[string]*protoMessages.Value{
+											"arg": {
+												TestValue: &protoMessages.Value_S{
 													S: "value",
 												},
 											},
 										},
 									},
 								},
-								SelectionSet: []*proto.Selection{
-									&proto.Selection{
-										Definition: &proto.FragmentDefinition{
-											Directives: []*proto.Directive{
-												&proto.Directive{
+								SelectionSet: []*protoMessages.Selection{
+									{
+										Definition: &protoMessages.FragmentDefinition{
+											Directives: []*protoMessages.Directive{
+												{
 													Name: "@somedir",
-													Arguments: map[string]*proto.Value{
-														"arg": &proto.Value{
-															TestValue: &proto.Value_S{
+													Arguments: map[string]*protoMessages.Value{
+														"arg": {
+															TestValue: &protoMessages.Value_S{
 																S: "value",
 															},
 														},
 													},
 												},
 											},
-											TypeCondition: &proto.TypeRef{
-												TestTyperef: &proto.TypeRef_Name{
+											TypeCondition: &protoMessages.TypeRef{
+												TestTyperef: &protoMessages.TypeRef_Name{
 													Name: "SomeType",
 												},
 											},
-											SelectionSet: []*proto.Selection{
-												&proto.Selection{
+											SelectionSet: []*protoMessages.Selection{
+												{
 													Name: "someField",
 												},
 											},
-											VariableDefinitions: []*proto.VariableDefinition{
-												&proto.VariableDefinition{
-													Variable: &proto.Variable{
+											VariableDefinitions: []*protoMessages.VariableDefinition{
+												{
+													Variable: &protoMessages.Variable{
 														Name: "variable",
 													},
-													DefaultValue: &proto.Value{
-														TestValue: &proto.Value_S{
+													DefaultValue: &protoMessages.Value{
+														TestValue: &protoMessages.Value_S{
 															S: "default",
 														},
 													},
@@ -313,28 +313,28 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 							},
 						},
 					},
-					VariableValues: map[string]*proto.Value{
-						"var": &proto.Value{
-							TestValue: &proto.Value_S{
+					VariableValues: map[string]*protoMessages.Value{
+						"var": {
+							TestValue: &protoMessages.Value_S{
 								S: "value",
 							},
 						},
 					},
 				},
-				Source: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Source: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Protocol: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Protocol: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			ProtoResponse: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},
@@ -386,106 +386,106 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 					"emptyIsMarshaled": nil,
 				},
 			},
-			ProtoRequest: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{},
-				Source: &proto.Value{
-					TestValue: &proto.Value_O{
-						O: &proto.ObjectValue{
-							Props: map[string]*proto.Value{
-								"interfaceValue": &proto.Value{
-									TestValue: &proto.Value_I{
+				Info: &protoMessages.FieldResolveInfo{},
+				Source: &protoMessages.Value{
+					TestValue: &protoMessages.Value_O{
+						O: &protoMessages.ObjectValue{
+							Props: map[string]*protoMessages.Value{
+								"interfaceValue": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"ptrValue": &proto.Value{
-									TestValue: &proto.Value_I{
+								"ptrValue": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"intValue": &proto.Value{
-									TestValue: &proto.Value_I{
+								"intValue": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"int8Value": &proto.Value{
-									TestValue: &proto.Value_I{
+								"int8Value": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"int16Value": &proto.Value{
-									TestValue: &proto.Value_I{
+								"int16Value": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"int32Value": &proto.Value{
-									TestValue: &proto.Value_I{
+								"int32Value": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"int64Value": &proto.Value{
-									TestValue: &proto.Value_I{
+								"int64Value": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"uintValue": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uintValue": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"uint8Value": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uint8Value": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"uint16Value": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uint16Value": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"uint32Value": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uint32Value": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"uint64Value": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uint64Value": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"float32Value": &proto.Value{
-									TestValue: &proto.Value_F{
+								"float32Value": {
+									TestValue: &protoMessages.Value_F{
 										F: float64(1.0),
 									},
 								},
-								"float64Value": &proto.Value{
-									TestValue: &proto.Value_F{
+								"float64Value": {
+									TestValue: &protoMessages.Value_F{
 										F: float64(1.0),
 									},
 								},
-								"stringValue": &proto.Value{
-									TestValue: &proto.Value_S{
+								"stringValue": {
+									TestValue: &protoMessages.Value_S{
 										S: "string",
 									},
 								},
-								"boolValue": &proto.Value{
-									TestValue: &proto.Value_B{
+								"boolValue": {
+									TestValue: &protoMessages.Value_B{
 										B: true,
 									},
 								},
-								"sliceValue": &proto.Value{
-									TestValue: &proto.Value_A{
-										A: &proto.ArrayValue{
-											Items: []*proto.Value{
-												&proto.Value{
-													TestValue: &proto.Value_I{
+								"sliceValue": {
+									TestValue: &protoMessages.Value_A{
+										A: &protoMessages.ArrayValue{
+											Items: []*protoMessages.Value{
+												{
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												&proto.Value{
-													TestValue: &proto.Value_S{
+												{
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -493,29 +493,29 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"nilSlicePtrValue": &proto.Value{
-									TestValue: &proto.Value_Nil{
+								"nilSlicePtrValue": {
+									TestValue: &protoMessages.Value_Nil{
 										Nil: true,
 									},
 								},
-								"emptySlice": &proto.Value{
-									TestValue: &proto.Value_A{
-										A: &proto.ArrayValue{
+								"emptySlice": {
+									TestValue: &protoMessages.Value_A{
+										A: &protoMessages.ArrayValue{
 											Items: nil,
 										},
 									},
 								},
-								"arrayValue": &proto.Value{
-									TestValue: &proto.Value_A{
-										A: &proto.ArrayValue{
-											Items: []*proto.Value{
-												&proto.Value{
-													TestValue: &proto.Value_I{
+								"arrayValue": {
+									TestValue: &protoMessages.Value_A{
+										A: &protoMessages.ArrayValue{
+											Items: []*protoMessages.Value{
+												{
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												&proto.Value{
-													TestValue: &proto.Value_S{
+												{
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -523,27 +523,27 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"bytesValue": &proto.Value{
-									TestValue: &proto.Value_Any{
+								"bytesValue": {
+									TestValue: &protoMessages.Value_Any{
 										Any: []byte("somebytes"),
 									},
 								},
-								"structValue": &proto.Value{
-									TestValue: &proto.Value_O{
-										O: &proto.ObjectValue{
-											Props: map[string]*proto.Value{
-												"IntValue": &proto.Value{
-													TestValue: &proto.Value_I{
+								"structValue": {
+									TestValue: &protoMessages.Value_O{
+										O: &protoMessages.ObjectValue{
+											Props: map[string]*protoMessages.Value{
+												"IntValue": {
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												"StringValue": &proto.Value{
-													TestValue: &proto.Value_S{
+												"StringValue": {
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
-												"taggedValue": &proto.Value{
-													TestValue: &proto.Value_S{
+												"taggedValue": {
+													TestValue: &protoMessages.Value_S{
 														S: "tagged",
 													},
 												},
@@ -551,17 +551,17 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"mapValue": &proto.Value{
-									TestValue: &proto.Value_O{
-										O: &proto.ObjectValue{
-											Props: map[string]*proto.Value{
-												"intValue": &proto.Value{
-													TestValue: &proto.Value_I{
+								"mapValue": {
+									TestValue: &protoMessages.Value_O{
+										O: &protoMessages.ObjectValue{
+											Props: map[string]*protoMessages.Value{
+												"intValue": {
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												"stringValue": &proto.Value{
-													TestValue: &proto.Value_S{
+												"stringValue": {
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -569,20 +569,20 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"nilMapPtrValue": &proto.Value{
-									TestValue: &proto.Value_Nil{
+								"nilMapPtrValue": {
+									TestValue: &protoMessages.Value_Nil{
 										Nil: true,
 									},
 								},
-								"emptyMap": &proto.Value{
-									TestValue: &proto.Value_O{
-										O: &proto.ObjectValue{
+								"emptyMap": {
+									TestValue: &protoMessages.Value_O{
+										O: &protoMessages.ObjectValue{
 											Props: nil,
 										},
 									},
 								},
-								"emptyIsMarshaled": &proto.Value{
-									TestValue: &proto.Value_Nil{
+								"emptyIsMarshaled": {
+									TestValue: &protoMessages.Value_Nil{
 										Nil: true,
 									},
 								},
@@ -590,15 +590,15 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						},
 					},
 				},
-				Protocol: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Protocol: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			ProtoResponse: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},
@@ -615,7 +615,7 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 				},
 				Info: driver.FieldResolveInfo{},
 				Source: []*ast.ObjectField{
-					&ast.ObjectField{
+					{
 						Name: &ast.Name{
 							Value: "intField",
 						},
@@ -623,7 +623,7 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 							Value: "1",
 						},
 					},
-					&ast.ObjectField{
+					{
 						Name: &ast.Name{
 							Value: "stringField",
 						},
@@ -633,22 +633,22 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 					},
 				},
 			},
-			ProtoRequest: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{},
-				Source: &proto.Value{
-					TestValue: &proto.Value_O{
-						O: &proto.ObjectValue{
-							Props: map[string]*proto.Value{
-								"intField": &proto.Value{
-									TestValue: &proto.Value_I{
+				Info: &protoMessages.FieldResolveInfo{},
+				Source: &protoMessages.Value{
+					TestValue: &protoMessages.Value_O{
+						O: &protoMessages.ObjectValue{
+							Props: map[string]*protoMessages.Value{
+								"intField": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"stringField": &proto.Value{
-									TestValue: &proto.Value_S{
+								"stringField": {
+									TestValue: &protoMessages.Value_S{
 										S: "string",
 									},
 								},
@@ -656,15 +656,15 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						},
 					},
 				},
-				Protocol: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Protocol: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			ProtoResponse: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},
@@ -681,63 +681,63 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 				},
 				Info: driver.FieldResolveInfo{},
 			},
-			ProtoRequest: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{},
-				Source: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Info: &protoMessages.FieldResolveInfo{},
+				Source: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
-				Protocol: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Protocol: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_O{
-						O: &proto.ObjectValue{
-							Props: map[string]*proto.Value{
-								"intValue": &proto.Value{
-									TestValue: &proto.Value_I{
+			ProtoResponse: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_O{
+						O: &protoMessages.ObjectValue{
+							Props: map[string]*protoMessages.Value{
+								"intValue": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"uintValue": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uintValue": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"floatValue": &proto.Value{
-									TestValue: &proto.Value_F{
+								"floatValue": {
+									TestValue: &protoMessages.Value_F{
 										F: float64(1.0),
 									},
 								},
-								"stringValue": &proto.Value{
-									TestValue: &proto.Value_S{
+								"stringValue": {
+									TestValue: &protoMessages.Value_S{
 										S: "string",
 									},
 								},
-								"boolValue": &proto.Value{
-									TestValue: &proto.Value_B{
+								"boolValue": {
+									TestValue: &protoMessages.Value_B{
 										B: true,
 									},
 								},
-								"sliceValue": &proto.Value{
-									TestValue: &proto.Value_A{
-										A: &proto.ArrayValue{
-											Items: []*proto.Value{
-												&proto.Value{
-													TestValue: &proto.Value_I{
+								"sliceValue": {
+									TestValue: &protoMessages.Value_A{
+										A: &protoMessages.ArrayValue{
+											Items: []*protoMessages.Value{
+												{
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												&proto.Value{
-													TestValue: &proto.Value_S{
+												{
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -745,22 +745,22 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"bytesValue": &proto.Value{
-									TestValue: &proto.Value_Any{
+								"bytesValue": {
+									TestValue: &protoMessages.Value_Any{
 										Any: []byte("somebytes"),
 									},
 								},
-								"mapValue": &proto.Value{
-									TestValue: &proto.Value_O{
-										O: &proto.ObjectValue{
-											Props: map[string]*proto.Value{
-												"intValue": &proto.Value{
-													TestValue: &proto.Value_I{
+								"mapValue": {
+									TestValue: &protoMessages.Value_O{
+										O: &protoMessages.ObjectValue{
+											Props: map[string]*protoMessages.Value{
+												"intValue": {
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												"stringValue": &proto.Value{
-													TestValue: &proto.Value_S{
+												"stringValue": {
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -768,8 +768,8 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 										},
 									},
 								},
-								"emptyIsMarshaled": &proto.Value{
-									TestValue: &proto.Value_Nil{
+								"emptyIsMarshaled": {
+									TestValue: &protoMessages.Value_Nil{
 										Nil: true,
 									},
 								},
@@ -810,11 +810,11 @@ func RunFieldResolveClientTests(t *testing.T, f func(t *testing.T, tt FieldResol
 // FieldResolveServerTest is basic struct for testing servers implementing proto
 type FieldResolveServerTest struct {
 	Title           string
-	Input           *proto.FieldResolveRequest
+	Input           *protoMessages.FieldResolveRequest
 	HandlerInput    driver.FieldResolveInput
 	HandlerResponse interface{}
 	HandlerError    error
-	Expected        *proto.FieldResolveResponse
+	Expected        *protoMessages.FieldResolveResponse
 }
 
 // FieldResolveServerTestData is a data for testing field resolution of proto servers
@@ -822,51 +822,51 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 	return []FieldResolveServerTest{
 		{
 			Title: "PassesCorrectSource",
-			Input: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{},
-				Source: &proto.Value{
-					TestValue: &proto.Value_O{
-						O: &proto.ObjectValue{
-							Props: map[string]*proto.Value{
-								"intValue": &proto.Value{
-									TestValue: &proto.Value_I{
+				Info: &protoMessages.FieldResolveInfo{},
+				Source: &protoMessages.Value{
+					TestValue: &protoMessages.Value_O{
+						O: &protoMessages.ObjectValue{
+							Props: map[string]*protoMessages.Value{
+								"intValue": {
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
-								"uintValue": &proto.Value{
-									TestValue: &proto.Value_U{
+								"uintValue": {
+									TestValue: &protoMessages.Value_U{
 										U: uint64(1),
 									},
 								},
-								"floatValue": &proto.Value{
-									TestValue: &proto.Value_F{
+								"floatValue": {
+									TestValue: &protoMessages.Value_F{
 										F: float64(1.0),
 									},
 								},
-								"stringValue": &proto.Value{
-									TestValue: &proto.Value_S{
+								"stringValue": {
+									TestValue: &protoMessages.Value_S{
 										S: "string",
 									},
 								},
-								"boolValue": &proto.Value{
-									TestValue: &proto.Value_B{
+								"boolValue": {
+									TestValue: &protoMessages.Value_B{
 										B: true,
 									},
 								},
-								"sliceValue": &proto.Value{
-									TestValue: &proto.Value_A{
-										A: &proto.ArrayValue{
-											Items: []*proto.Value{
-												&proto.Value{
-													TestValue: &proto.Value_I{
+								"sliceValue": {
+									TestValue: &protoMessages.Value_A{
+										A: &protoMessages.ArrayValue{
+											Items: []*protoMessages.Value{
+												{
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												&proto.Value{
-													TestValue: &proto.Value_S{
+												{
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -874,29 +874,29 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 										},
 									},
 								},
-								"emptySlice": &proto.Value{
-									TestValue: &proto.Value_A{
-										A: &proto.ArrayValue{
+								"emptySlice": {
+									TestValue: &protoMessages.Value_A{
+										A: &protoMessages.ArrayValue{
 											Items: nil,
 										},
 									},
 								},
-								"bytesValue": &proto.Value{
-									TestValue: &proto.Value_Any{
+								"bytesValue": {
+									TestValue: &protoMessages.Value_Any{
 										Any: []byte("somebytes"),
 									},
 								},
-								"mapValue": &proto.Value{
-									TestValue: &proto.Value_O{
-										O: &proto.ObjectValue{
-											Props: map[string]*proto.Value{
-												"intValue": &proto.Value{
-													TestValue: &proto.Value_I{
+								"mapValue": {
+									TestValue: &protoMessages.Value_O{
+										O: &protoMessages.ObjectValue{
+											Props: map[string]*protoMessages.Value{
+												"intValue": {
+													TestValue: &protoMessages.Value_I{
 														I: int64(1),
 													},
 												},
-												"stringValue": &proto.Value{
-													TestValue: &proto.Value_S{
+												"stringValue": {
+													TestValue: &protoMessages.Value_S{
 														S: "string",
 													},
 												},
@@ -904,15 +904,15 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 										},
 									},
 								},
-								"emptyMap": &proto.Value{
-									TestValue: &proto.Value_O{
-										O: &proto.ObjectValue{
+								"emptyMap": {
+									TestValue: &protoMessages.Value_O{
+										O: &protoMessages.ObjectValue{
 											Props: nil,
 										},
 									},
 								},
-								"emptyIsMarshaled": &proto.Value{
-									TestValue: &proto.Value_Nil{
+								"emptyIsMarshaled": {
+									TestValue: &protoMessages.Value_Nil{
 										Nil: true,
 									},
 								},
@@ -944,9 +944,9 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				},
 			},
 			HandlerResponse: "response",
-			Expected: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			Expected: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},
@@ -954,32 +954,32 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 		},
 		{
 			Title: "PassesCorrectInfoObject",
-			Input: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{
+				Info: &protoMessages.FieldResolveInfo{
 					FieldName: "field",
-					Path: &proto.ResponsePath{
-						Key: &proto.Value{
-							TestValue: &proto.Value_S{
+					Path: &protoMessages.ResponsePath{
+						Key: &protoMessages.Value{
+							TestValue: &protoMessages.Value_S{
 								S: "field",
 							},
 						},
-						Prev: &proto.ResponsePath{
-							Key: &proto.Value{
-								TestValue: &proto.Value_S{
+						Prev: &protoMessages.ResponsePath{
+							Key: &protoMessages.Value{
+								TestValue: &protoMessages.Value_S{
 									S: "fieldPrev",
 								},
 							},
 						},
 					},
-					ReturnType: &proto.TypeRef{
-						TestTyperef: &proto.TypeRef_List{
-							List: &proto.TypeRef{
-								TestTyperef: &proto.TypeRef_NonNull{
-									NonNull: &proto.TypeRef{
-										TestTyperef: &proto.TypeRef_Name{
+					ReturnType: &protoMessages.TypeRef{
+						TestTyperef: &protoMessages.TypeRef_List{
+							List: &protoMessages.TypeRef{
+								TestTyperef: &protoMessages.TypeRef_NonNull{
+									NonNull: &protoMessages.TypeRef{
+										TestTyperef: &protoMessages.TypeRef_Name{
 											Name: "String",
 										},
 									},
@@ -987,80 +987,80 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 							},
 						},
 					},
-					ParentType: &proto.TypeRef{
-						TestTyperef: &proto.TypeRef_Name{
+					ParentType: &protoMessages.TypeRef{
+						TestTyperef: &protoMessages.TypeRef_Name{
 							Name: "SomeType",
 						},
 					},
-					Operation: &proto.OperationDefinition{
+					Operation: &protoMessages.OperationDefinition{
 						Operation: "query",
 						Name:      "getFieldOfFieldPrev",
-						Directives: []*proto.Directive{
-							&proto.Directive{
+						Directives: []*protoMessages.Directive{
+							{
 								Name: "@somedir",
-								Arguments: map[string]*proto.Value{
-									"arg": &proto.Value{
-										TestValue: &proto.Value_S{
+								Arguments: map[string]*protoMessages.Value{
+									"arg": {
+										TestValue: &protoMessages.Value_S{
 											S: "value",
 										},
 									},
 								},
 							},
 						},
-						SelectionSet: []*proto.Selection{
-							&proto.Selection{
+						SelectionSet: []*protoMessages.Selection{
+							{
 								Name: "subfield",
-								Arguments: map[string]*proto.Value{
-									"arg": &proto.Value{
-										TestValue: &proto.Value_S{
+								Arguments: map[string]*protoMessages.Value{
+									"arg": {
+										TestValue: &protoMessages.Value_S{
 											S: "value",
 										},
 									},
 								},
-								Directives: []*proto.Directive{
-									&proto.Directive{
+								Directives: []*protoMessages.Directive{
+									{
 										Name: "@somedir",
-										Arguments: map[string]*proto.Value{
-											"arg": &proto.Value{
-												TestValue: &proto.Value_S{
+										Arguments: map[string]*protoMessages.Value{
+											"arg": {
+												TestValue: &protoMessages.Value_S{
 													S: "value",
 												},
 											},
 										},
 									},
 								},
-								SelectionSet: []*proto.Selection{
-									&proto.Selection{
-										Definition: &proto.FragmentDefinition{
-											Directives: []*proto.Directive{
-												&proto.Directive{
+								SelectionSet: []*protoMessages.Selection{
+									{
+										Definition: &protoMessages.FragmentDefinition{
+											Directives: []*protoMessages.Directive{
+												{
 													Name: "@somedir",
-													Arguments: map[string]*proto.Value{
-														"arg": &proto.Value{
-															TestValue: &proto.Value_S{
+													Arguments: map[string]*protoMessages.Value{
+														"arg": {
+															TestValue: &protoMessages.Value_S{
 																S: "value",
 															},
 														},
 													},
 												},
 											},
-											TypeCondition: &proto.TypeRef{
-												TestTyperef: &proto.TypeRef_Name{
+											TypeCondition: &protoMessages.TypeRef{
+												TestTyperef: &protoMessages.TypeRef_Name{
 													Name: "SomeType",
 												},
 											},
-											SelectionSet: []*proto.Selection{
-												&proto.Selection{
+											SelectionSet: []*protoMessages.Selection{
+												{
 													Name: "someField",
 												},
 											},
-											VariableDefinitions: []*proto.VariableDefinition{
-												&proto.VariableDefinition{
-													Variable: &proto.Variable{
+											VariableDefinitions: []*protoMessages.VariableDefinition{
+												{
+													Variable: &protoMessages.Variable{
 														Name: "variable",
 													},
-													DefaultValue: &proto.Value{
-														TestValue: &proto.Value_S{
+													DefaultValue: &protoMessages.Value{
+														TestValue: &protoMessages.Value_S{
 															S: "default",
 														},
 													},
@@ -1072,9 +1072,9 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 							},
 						},
 					},
-					VariableValues: map[string]*proto.Value{
-						"var": &proto.Value{
-							TestValue: &proto.Value_S{
+					VariableValues: map[string]*protoMessages.Value{
+						"var": {
+							TestValue: &protoMessages.Value_S{
 								S: "value",
 							},
 						},
@@ -1148,7 +1148,7 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 												},
 											},
 											VariableDefinitions: []types.VariableDefinition{
-												types.VariableDefinition{
+												{
 													Variable: types.Variable{
 														Name: "variable",
 													},
@@ -1167,9 +1167,9 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				},
 			},
 			HandlerResponse: "response",
-			Expected: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			Expected: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},
@@ -1177,21 +1177,21 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 		},
 		{
 			Title: "HandlesIndexResponse",
-			Input: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{
+				Info: &protoMessages.FieldResolveInfo{
 					FieldName: "field",
-					Path: &proto.ResponsePath{
-						Key: &proto.Value{
-							TestValue: &proto.Value_S{
+					Path: &protoMessages.ResponsePath{
+						Key: &protoMessages.Value{
+							TestValue: &protoMessages.Value_S{
 								S: "field",
 							},
 						},
-						Prev: &proto.ResponsePath{
-							Key: &proto.Value{
-								TestValue: &proto.Value_I{
+						Prev: &protoMessages.ResponsePath{
+							Key: &protoMessages.Value{
+								TestValue: &protoMessages.Value_I{
 									I: int64(1),
 								},
 							},
@@ -1214,9 +1214,9 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				},
 			},
 			HandlerResponse: "response",
-			Expected: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			Expected: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},
@@ -1224,45 +1224,45 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 		},
 		{
 			Title: "ServerReturnsVariableValue",
-			Input: &proto.FieldResolveRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.FieldResolveRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Info: &proto.FieldResolveInfo{
+				Info: &protoMessages.FieldResolveInfo{
 					FieldName: "field",
-					Operation: &proto.OperationDefinition{
-						VariableDefinitions: []*proto.VariableDefinition{
-							&proto.VariableDefinition{
-								Variable: &proto.Variable{
+					Operation: &protoMessages.OperationDefinition{
+						VariableDefinitions: []*protoMessages.VariableDefinition{
+							{
+								Variable: &protoMessages.Variable{
 									Name: "someVar",
 								},
-								DefaultValue: &proto.Value{
-									TestValue: &proto.Value_I{
+								DefaultValue: &protoMessages.Value{
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
 							},
-							&proto.VariableDefinition{
-								Variable: &proto.Variable{
+							{
+								Variable: &protoMessages.Variable{
 									Name: "someOtherVar",
 								},
-								DefaultValue: &proto.Value{
-									TestValue: &proto.Value_I{
+								DefaultValue: &protoMessages.Value{
+									TestValue: &protoMessages.Value_I{
 										I: int64(1),
 									},
 								},
 							},
 						},
-						Directives: []*proto.Directive{
-							&proto.Directive{
-								Arguments: map[string]*proto.Value{
-									"arg": &proto.Value{
-										TestValue: &proto.Value_Variable{
+						Directives: []*protoMessages.Directive{
+							{
+								Arguments: map[string]*protoMessages.Value{
+									"arg": {
+										TestValue: &protoMessages.Value_Variable{
 											Variable: "someVar",
 										},
 									},
-									"arg2": &proto.Value{
-										TestValue: &proto.Value_Variable{
+									"arg2": {
+										TestValue: &protoMessages.Value_Variable{
 											Variable: "someOtherVar",
 										},
 									},
@@ -1270,9 +1270,9 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 							},
 						},
 					},
-					VariableValues: map[string]*proto.Value{
-						"someOtherVar": &proto.Value{
-							TestValue: &proto.Value_I{
+					VariableValues: map[string]*protoMessages.Value{
+						"someOtherVar": {
+							TestValue: &protoMessages.Value_I{
 								I: int64(2),
 							},
 						},
@@ -1286,13 +1286,13 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				Info: driver.FieldResolveInfo{
 					Operation: &types.OperationDefinition{
 						VariableDefinitions: []types.VariableDefinition{
-							types.VariableDefinition{
+							{
 								Variable: types.Variable{
 									Name: "someVar",
 								},
 								DefaultValue: int64(1),
 							},
-							types.VariableDefinition{
+							{
 								Variable: types.Variable{
 									Name: "someOtherVar",
 								},
@@ -1315,9 +1315,9 @@ func FieldResolveServerTestData() []FieldResolveServerTest {
 				},
 			},
 			HandlerResponse: "response",
-			Expected: &proto.FieldResolveResponse{
-				Response: &proto.Value{
-					TestValue: &proto.Value_S{
+			Expected: &protoMessages.FieldResolveResponse{
+				Response: &protoMessages.Value{
+					TestValue: &protoMessages.Value_S{
 						S: "response",
 					},
 				},

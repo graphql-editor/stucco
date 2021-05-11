@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 func (m *Client) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput) {
 	req, err := protodriver.MakeUnionResolveTypeRequest(input)
 	if err == nil {
-		var resp *proto.UnionResolveTypeResponse
+		var resp *protoMessages.UnionResolveTypeResponse
 		resp, err = m.Client.UnionResolveType(context.Background(), req)
 		if err == nil {
 			f = protodriver.MakeUnionResolveTypeOutput(resp)
@@ -41,11 +41,11 @@ func (f UnionResolveTypeHandlerFunc) Handle(in driver.UnionResolveTypeInput) (st
 }
 
 // UnionResolveType executes union type resolution request agains user defined function
-func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolveTypeRequest) (f *proto.UnionResolveTypeResponse, _ error) {
+func (m *Server) UnionResolveType(ctx context.Context, input *protoMessages.UnionResolveTypeRequest) (f *protoMessages.UnionResolveTypeResponse, _ error) {
 	defer func() {
 		if r := recover(); r != nil {
-			f = &proto.UnionResolveTypeResponse{
-				Error: &proto.Error{
+			f = &protoMessages.UnionResolveTypeResponse{
+				Error: &protoMessages.Error{
 					Msg: fmt.Sprintf("%v", r),
 				},
 			}
@@ -55,13 +55,13 @@ func (m *Server) UnionResolveType(ctx context.Context, input *proto.UnionResolve
 	if err == nil {
 		var resp string
 		resp, err = m.UnionResolveTypeHandler.Handle(req)
-		f = new(proto.UnionResolveTypeResponse)
+		f = new(protoMessages.UnionResolveTypeResponse)
 		if err == nil {
 			*f = protodriver.MakeUnionResolveTypeResponse(resp)
 		}
 	}
 	if err != nil {
-		f.Error = &proto.Error{Msg: err.Error()}
+		f.Error = &protoMessages.Error{Msg: err.Error()}
 	}
 	return
 }

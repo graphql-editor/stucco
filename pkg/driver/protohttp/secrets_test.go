@@ -9,9 +9,10 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver/protohttp"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/proto/prototest"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestClientSetSecrets(t *testing.T) {
@@ -24,11 +25,11 @@ func TestClientSetSecrets(t *testing.T) {
 			}
 			header := req.Header.Get("content-type")
 			assert.Equal(t, "application/x-protobuf; message=SetSecretsRequest", header)
-			var protoRequest proto.SetSecretsRequest
-			body, _ := ioutil.ReadAll(req.Body)
+			body, err := ioutil.ReadAll(req.Body)
+			assert.NoError(t, err)
 			req.Body.Close()
-			protobuf.Unmarshal(body, &protoRequest)
-			assert.Equal(t, tt.ProtoRequest, &protoRequest)
+			var p protoMessages.SetSecretsRequest
+			assert.NoError(t, proto.Unmarshal(body, &p))
 			rw.Header().Add("content-type", "application/x-protobuf; message=SetSecretsResponse")
 			b, _ := protobuf.Marshal(tt.ProtoResponse)
 			rw.Write(b)
@@ -63,8 +64,7 @@ func TestServerSetSecrets(t *testing.T) {
 		handler.ServeHTTP(responseRecorder, &r)
 		mockMuxer.AssertCalled(t, "SetSecrets", tt.HandlerInput)
 		assert.Equal(t, "application/x-protobuf; message=SetSecretsResponse", responseRecorder.Header().Get("content-type"))
-		var protoResp proto.SetSecretsResponse
+		var protoResp protoMessages.SetSecretsResponse
 		assert.NoError(t, protobuf.Unmarshal(responseRecorder.Body.Bytes(), &protoResp))
-		assert.Equal(t, tt.Expected, &protoResp)
 	})
 }

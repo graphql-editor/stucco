@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/graphql-editor/stucco/pkg/grpc"
-	"github.com/graphql-editor/stucco/pkg/proto"
+	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
 	"github.com/hashicorp/go-plugin"
 	googlegrpc "google.golang.org/grpc"
 )
@@ -26,7 +26,7 @@ type GRPC struct {
 }
 
 // RegisterDriverServer registers an concrete implementation of a grpc server for a protocol.
-var RegisterDriverServer = proto.RegisterDriverServer
+var RegisterDriverServer = protoDriverService.RegisterDriverServer
 
 // GRPCServer returns a server implementation for go-plugin
 func (g *GRPC) GRPCServer(broker *plugin.GRPCBroker, s *googlegrpc.Server) error {
@@ -46,7 +46,7 @@ func (g *GRPC) GRPCServer(broker *plugin.GRPCBroker, s *googlegrpc.Server) error
 }
 
 // NewDriverClient creates a grpc client for protocol using connection
-var NewDriverClient = proto.NewDriverClient
+var NewDriverClient = protoDriverService.NewDriverClient
 
 // GRPCClient returns a client implementation for go-plugin
 func (g *GRPC) GRPCClient(ctx context.Context, broker *plugin.GRPCBroker, c *googlegrpc.ClientConn) (interface{}, error) {

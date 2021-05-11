@@ -6,8 +6,8 @@ import (
 
 	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // UnionResolveType over http
@@ -15,7 +15,7 @@ func (c *Client) UnionResolveType(input driver.UnionResolveTypeInput) driver.Uni
 	var out driver.UnionResolveTypeOutput
 	req, err := protodriver.MakeUnionResolveTypeRequest(input)
 	if err == nil {
-		resp := new(proto.UnionResolveTypeResponse)
+		resp := new(protoMessages.UnionResolveTypeResponse)
 		if err = c.do(message{
 			contentType: unionResolveTypeRequestMessage,
 			proto:       req,
@@ -34,9 +34,9 @@ func (c *Client) UnionResolveType(input driver.UnionResolveTypeInput) driver.Uni
 	return out
 }
 
-func (h *Handler) unionResolveType(req *http.Request) *proto.UnionResolveTypeResponse {
-	resp := new(proto.UnionResolveTypeResponse)
-	protoReq := new(proto.UnionResolveTypeRequest)
+func (h *Handler) unionResolveType(req *http.Request) *protoMessages.UnionResolveTypeResponse {
+	resp := new(protoMessages.UnionResolveTypeResponse)
+	protoReq := new(protoMessages.UnionResolveTypeRequest)
 	var err error
 	var b []byte
 	if b, err = ioutil.ReadAll(req.Body); err == nil {
@@ -54,7 +54,7 @@ func (h *Handler) unionResolveType(req *http.Request) *proto.UnionResolveTypeRes
 		}
 	}
 	if err != nil {
-		resp.Error = &proto.Error{
+		resp.Error = &protoMessages.Error{
 			Msg: err.Error(),
 		}
 	}

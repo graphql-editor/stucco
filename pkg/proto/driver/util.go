@@ -6,56 +6,56 @@ import (
 	"reflect"
 	"strconv"
 
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 	"github.com/graphql-go/graphql/language/ast"
 )
 
 var (
 	mapStringInterfaceReflectType = reflect.TypeOf((map[string]interface{})(nil))
-	nilValue                      = &proto.Value{
-		TestValue: &proto.Value_Nil{
+	nilValue                      = &protoMessages.Value{
+		TestValue: &protoMessages.Value_Nil{
 			Nil: true,
 		},
 	}
 )
 
-func valueForType(t reflect.Type) *proto.Value {
-	var pv *proto.Value
+func valueForType(t reflect.Type) *protoMessages.Value {
+	var pv *protoMessages.Value
 	switch t.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		pv = &proto.Value{
-			TestValue: &proto.Value_I{},
+		pv = &protoMessages.Value{
+			TestValue: &protoMessages.Value_I{},
 		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		pv = &proto.Value{
-			TestValue: &proto.Value_U{},
+		pv = &protoMessages.Value{
+			TestValue: &protoMessages.Value_U{},
 		}
 	case reflect.Float32, reflect.Float64:
-		pv = &proto.Value{
-			TestValue: &proto.Value_F{},
+		pv = &protoMessages.Value{
+			TestValue: &protoMessages.Value_F{},
 		}
 	case reflect.String:
-		pv = &proto.Value{
-			TestValue: &proto.Value_S{},
+		pv = &protoMessages.Value{
+			TestValue: &protoMessages.Value_S{},
 		}
 	case reflect.Bool:
-		pv = &proto.Value{
-			TestValue: &proto.Value_B{},
+		pv = &protoMessages.Value{
+			TestValue: &protoMessages.Value_B{},
 		}
 	case reflect.Slice, reflect.Array:
 		if t.Elem().Kind() == reflect.Uint8 {
-			pv = &proto.Value{
-				TestValue: &proto.Value_Any{},
+			pv = &protoMessages.Value{
+				TestValue: &protoMessages.Value_Any{},
 			}
 		} else {
-			pv = &proto.Value{
-				TestValue: &proto.Value_A{},
+			pv = &protoMessages.Value{
+				TestValue: &protoMessages.Value_A{},
 			}
 		}
 	case reflect.Map, reflect.Struct:
-		pv = &proto.Value{
-			TestValue: &proto.Value_O{},
+		pv = &protoMessages.Value{
+			TestValue: &protoMessages.Value_O{},
 		}
 	}
 	return pv
@@ -71,44 +71,44 @@ func getValue(v reflect.Value) reflect.Value {
 	return v
 }
 
-func intToValue(v reflect.Value, pv *proto.Value) {
-	pv.TestValue.(*proto.Value_I).I = v.Int()
+func intToValue(v reflect.Value, pv *protoMessages.Value) {
+	pv.TestValue.(*protoMessages.Value_I).I = v.Int()
 }
 
-func uintToValue(v reflect.Value, pv *proto.Value) {
-	pv.TestValue.(*proto.Value_U).U = v.Uint()
+func uintToValue(v reflect.Value, pv *protoMessages.Value) {
+	pv.TestValue.(*protoMessages.Value_U).U = v.Uint()
 }
 
-func floatToValue(v reflect.Value, pv *proto.Value) {
-	pv.TestValue.(*proto.Value_F).F = v.Float()
+func floatToValue(v reflect.Value, pv *protoMessages.Value) {
+	pv.TestValue.(*protoMessages.Value_F).F = v.Float()
 }
 
-func stringToValue(v reflect.Value, pv *proto.Value) {
-	pv.TestValue.(*proto.Value_S).S = v.String()
+func stringToValue(v reflect.Value, pv *protoMessages.Value) {
+	pv.TestValue.(*protoMessages.Value_S).S = v.String()
 }
 
-func boolToValue(v reflect.Value, pv *proto.Value) {
-	pv.TestValue.(*proto.Value_B).B = v.Bool()
+func boolToValue(v reflect.Value, pv *protoMessages.Value) {
+	pv.TestValue.(*protoMessages.Value_B).B = v.Bool()
 }
 
-func bytesToValue(v reflect.Value, pv *proto.Value) {
+func bytesToValue(v reflect.Value, pv *protoMessages.Value) {
 	bytesCopy := reflect.MakeSlice(
 		reflect.SliceOf(v.Type().Elem()),
 		v.Len(),
 		v.Len(),
 	)
 	reflect.Copy(bytesCopy, v)
-	pv.TestValue.(*proto.Value_Any).Any = bytesCopy.Interface().([]byte)
+	pv.TestValue.(*protoMessages.Value_Any).Any = bytesCopy.Interface().([]byte)
 }
 
-func sliceOrArrayToValue(v reflect.Value, pv *proto.Value) error {
+func sliceOrArrayToValue(v reflect.Value, pv *protoMessages.Value) error {
 	if v.Type().Elem().Kind() == reflect.Uint8 {
 		bytesToValue(v, pv)
 		return nil
 	}
-	arr := new(proto.ArrayValue)
+	arr := new(protoMessages.ArrayValue)
 	if v.Len() != 0 {
-		arr.Items = make([]*proto.Value, 0, v.Len())
+		arr.Items = make([]*protoMessages.Value, 0, v.Len())
 		for i := 0; i < v.Len(); i++ {
 			item, err := anyToValueReflected(v.Index(i))
 			if err != nil {
@@ -117,17 +117,17 @@ func sliceOrArrayToValue(v reflect.Value, pv *proto.Value) error {
 			arr.Items = append(arr.Items, item)
 		}
 	}
-	pv.TestValue.(*proto.Value_A).A = arr
+	pv.TestValue.(*protoMessages.Value_A).A = arr
 	return nil
 }
 
-func mapToValue(v reflect.Value, pv *proto.Value) error {
+func mapToValue(v reflect.Value, pv *protoMessages.Value) error {
 	if v.Type().Key().Kind() != reflect.String {
 		return fmt.Errorf("map key must be of string type")
 	}
-	obj := new(proto.ObjectValue)
+	obj := new(protoMessages.ObjectValue)
 	if v.Len() > 0 {
-		obj.Props = make(map[string]*proto.Value)
+		obj.Props = make(map[string]*protoMessages.Value)
 		for _, k := range v.MapKeys() {
 			v, err := anyToValueReflected(v.MapIndex(k))
 			if err != nil {
@@ -136,13 +136,13 @@ func mapToValue(v reflect.Value, pv *proto.Value) error {
 			obj.Props[k.String()] = v
 		}
 	}
-	pv.TestValue.(*proto.Value_O).O = obj
+	pv.TestValue.(*protoMessages.Value_O).O = obj
 	return nil
 }
 
-// ValueMarshaler interface for client types that can return it's own proto.Value
+// ValueMarshaler interface for client types that can return it's own protoMessages.Value
 type ValueMarshaler interface {
-	MarshalValue() (*proto.Value, error)
+	MarshalValue() (*protoMessages.Value, error)
 }
 
 type variable string
@@ -151,7 +151,7 @@ var variableType = reflect.TypeOf(variable(""))
 
 var marshalerInterface = reflect.TypeOf((*ValueMarshaler)(nil)).Elem()
 
-func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
+func anyToValueReflected(v reflect.Value) (*protoMessages.Value, error) {
 	if !v.IsValid() {
 		// Zero value, possibly nil
 		return nilValue, nil
@@ -174,8 +174,8 @@ func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 	}
 	t := v.Type()
 	if t == variableType {
-		return &proto.Value{
-			TestValue: &proto.Value_Variable{
+		return &protoMessages.Value{
+			TestValue: &protoMessages.Value_Variable{
 				Variable: v.String(),
 			},
 		}, nil
@@ -213,11 +213,11 @@ func anyToValueReflected(v reflect.Value) (*proto.Value, error) {
 	return pv, err
 }
 
-func anyToValue(v interface{}) (*proto.Value, error) {
+func anyToValue(v interface{}) (*protoMessages.Value, error) {
 	return anyToValueReflected(reflect.ValueOf(v))
 }
 
-func mapOfValueToMapOfAny(variables map[string]*proto.Value, m map[string]*proto.Value) (many map[string]interface{}, err error) {
+func mapOfValueToMapOfAny(variables map[string]*protoMessages.Value, m map[string]*protoMessages.Value) (many map[string]interface{}, err error) {
 	if len(m) == 0 {
 		return
 	}
@@ -231,11 +231,11 @@ func mapOfValueToMapOfAny(variables map[string]*proto.Value, m map[string]*proto
 	return
 }
 
-func mapOfAnyToMapOfValue(m map[string]interface{}) (mval map[string]*proto.Value, err error) {
+func mapOfAnyToMapOfValue(m map[string]interface{}) (mval map[string]*protoMessages.Value, err error) {
 	if len(m) == 0 {
 		return
 	}
-	mval = make(map[string]*proto.Value, len(m))
+	mval = make(map[string]*protoMessages.Value, len(m))
 	for k, v := range m {
 		mval[k], err = anyToValue(v)
 		if err != nil {
@@ -245,22 +245,22 @@ func mapOfAnyToMapOfValue(m map[string]interface{}) (mval map[string]*proto.Valu
 	return
 }
 
-func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface{}, err error) {
+func valueToAny(variables map[string]*protoMessages.Value, pv *protoMessages.Value) (v interface{}, err error) {
 	if pv == nil || pv.GetTestValue() == nil {
 		return
 	}
 	switch tv := pv.GetTestValue().(type) {
-	case *proto.Value_I:
+	case *protoMessages.Value_I:
 		v = tv.I
-	case *proto.Value_U:
+	case *protoMessages.Value_U:
 		v = tv.U
-	case *proto.Value_F:
+	case *protoMessages.Value_F:
 		v = tv.F
-	case *proto.Value_S:
+	case *protoMessages.Value_S:
 		v = tv.S
-	case *proto.Value_B:
+	case *protoMessages.Value_B:
 		v = tv.B
-	case *proto.Value_A:
+	case *protoMessages.Value_A:
 		var arr []interface{}
 		if tv.A.GetItems() != nil {
 			arr = make([]interface{}, 0, len(tv.A.GetItems()))
@@ -273,7 +273,7 @@ func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface
 			}
 		}
 		v = arr
-	case *proto.Value_O:
+	case *protoMessages.Value_O:
 		// There is no way to provide an output type for value decoding,
 		// so just treat all always as map. Type information is lost.
 		var m map[string]interface{}
@@ -288,41 +288,41 @@ func valueToAny(variables map[string]*proto.Value, pv *proto.Value) (v interface
 			}
 		}
 		v = m
-	case *proto.Value_Any:
+	case *protoMessages.Value_Any:
 		v = tv.Any
-	case *proto.Value_Variable:
+	case *protoMessages.Value_Variable:
 		if variables != nil {
 			if variableValue, ok := variables[tv.Variable]; ok {
 				v, err = valueToAny(variables, variableValue)
 			}
 		}
-	case *proto.Value_Nil:
+	case *protoMessages.Value_Nil:
 		v = nil
 	}
 	return
 }
 
-func makeProtoVariable(v types.Variable) *proto.Variable {
-	return &proto.Variable{Name: v.Name}
+func makeProtoVariable(v types.Variable) *protoMessages.Variable {
+	return &protoMessages.Variable{Name: v.Name}
 }
 
-func makeDriverVariable(v *proto.Variable) types.Variable {
+func makeDriverVariable(v *protoMessages.Variable) types.Variable {
 	return types.Variable{Name: v.GetName()}
 }
 
-func makeProtoVariableDefinition(v types.VariableDefinition) (vd *proto.VariableDefinition, err error) {
+func makeProtoVariableDefinition(v types.VariableDefinition) (vd *protoMessages.VariableDefinition, err error) {
 	dv, err := anyToValue(v.DefaultValue)
 	if err != nil {
 		return
 	}
-	vd = &proto.VariableDefinition{
+	vd = &protoMessages.VariableDefinition{
 		Variable:     makeProtoVariable(v.Variable),
 		DefaultValue: dv,
 	}
 	return
 }
 
-func makeDriverVariableDefinition(v *proto.VariableDefinition) (vd types.VariableDefinition, err error) {
+func makeDriverVariableDefinition(v *protoMessages.VariableDefinition) (vd types.VariableDefinition, err error) {
 	dv, err := valueToAny(nil, v.GetDefaultValue())
 	if err != nil {
 		return
@@ -334,13 +334,13 @@ func makeDriverVariableDefinition(v *proto.VariableDefinition) (vd types.Variabl
 	return
 }
 
-func makeProtoVariableDefinitions(v []types.VariableDefinition) (vd []*proto.VariableDefinition, err error) {
+func makeProtoVariableDefinitions(v []types.VariableDefinition) (vd []*protoMessages.VariableDefinition, err error) {
 	if len(v) == 0 {
 		return nil, nil
 	}
-	r := make([]*proto.VariableDefinition, 0, len(v))
+	r := make([]*protoMessages.VariableDefinition, 0, len(v))
 	for _, vv := range v {
-		var d *proto.VariableDefinition
+		var d *protoMessages.VariableDefinition
 		d, err = makeProtoVariableDefinition(vv)
 		if err != nil {
 			return
@@ -351,7 +351,7 @@ func makeProtoVariableDefinitions(v []types.VariableDefinition) (vd []*proto.Var
 	return
 }
 
-func makeDriverVariableDefinitions(v []*proto.VariableDefinition) (vd []types.VariableDefinition, err error) {
+func makeDriverVariableDefinitions(v []*protoMessages.VariableDefinition) (vd []types.VariableDefinition, err error) {
 	if len(v) == 0 {
 		return nil, nil
 	}
@@ -368,19 +368,19 @@ func makeDriverVariableDefinitions(v []*proto.VariableDefinition) (vd []types.Va
 	return
 }
 
-func makeProtoDirective(v types.Directive) (dd *proto.Directive, err error) {
+func makeProtoDirective(v types.Directive) (dd *protoMessages.Directive, err error) {
 	args, err := mapOfAnyToMapOfValue(v.Arguments)
 	if err != nil {
 		return
 	}
-	dd = &proto.Directive{
+	dd = &protoMessages.Directive{
 		Name:      v.Name,
 		Arguments: args,
 	}
 	return
 }
 
-func makeDriverDirective(variables map[string]*proto.Value, v *proto.Directive) (d types.Directive, err error) {
+func makeDriverDirective(variables map[string]*protoMessages.Value, v *protoMessages.Directive) (d types.Directive, err error) {
 	args, err := mapOfValueToMapOfAny(variables, v.GetArguments())
 	if err != nil {
 		return
@@ -392,13 +392,13 @@ func makeDriverDirective(variables map[string]*proto.Value, v *proto.Directive) 
 	return
 }
 
-func makeProtoDirectives(v types.Directives) (dd []*proto.Directive, err error) {
+func makeProtoDirectives(v types.Directives) (dd []*protoMessages.Directive, err error) {
 	if v == nil {
 		return nil, nil
 	}
-	r := make([]*proto.Directive, 0, len(v))
+	r := make([]*protoMessages.Directive, 0, len(v))
 	for _, dir := range v {
-		var d *proto.Directive
+		var d *protoMessages.Directive
 		d, err = makeProtoDirective(dir)
 		if err != nil {
 			return
@@ -409,7 +409,7 @@ func makeProtoDirectives(v types.Directives) (dd []*proto.Directive, err error) 
 	return
 }
 
-func makeDriverDirectives(variables map[string]*proto.Value, v []*proto.Directive) (dd types.Directives, err error) {
+func makeDriverDirectives(variables map[string]*protoMessages.Value, v []*protoMessages.Directive) (dd types.Directives, err error) {
 	if len(v) == 0 {
 		return nil, nil
 	}
@@ -425,7 +425,7 @@ func makeDriverDirectives(variables map[string]*proto.Value, v []*proto.Directiv
 	return
 }
 
-func makeProtoFragmentDefinition(v *types.FragmentDefinition) (fd *proto.FragmentDefinition, err error) {
+func makeProtoFragmentDefinition(v *types.FragmentDefinition) (fd *protoMessages.FragmentDefinition, err error) {
 	if v == nil {
 		return
 	}
@@ -441,7 +441,7 @@ func makeProtoFragmentDefinition(v *types.FragmentDefinition) (fd *proto.Fragmen
 	if err != nil {
 		return
 	}
-	fd = &proto.FragmentDefinition{
+	fd = &protoMessages.FragmentDefinition{
 		Directives:          dirs,
 		TypeCondition:       makeProtoTypeRef(&v.TypeCondition),
 		SelectionSet:        ss,
@@ -450,7 +450,7 @@ func makeProtoFragmentDefinition(v *types.FragmentDefinition) (fd *proto.Fragmen
 	return
 }
 
-func makeDriverFragmentDefinition(variables map[string]*proto.Value, v *proto.FragmentDefinition) (fd *types.FragmentDefinition, err error) {
+func makeDriverFragmentDefinition(variables map[string]*protoMessages.Value, v *protoMessages.FragmentDefinition) (fd *types.FragmentDefinition, err error) {
 	if v == nil {
 		return
 	}
@@ -475,7 +475,7 @@ func makeDriverFragmentDefinition(variables map[string]*proto.Value, v *proto.Fr
 	return
 }
 
-func makeProtoSelection(v types.Selection) (s *proto.Selection, err error) {
+func makeProtoSelection(v types.Selection) (s *protoMessages.Selection, err error) {
 	args, err := mapOfAnyToMapOfValue(v.Arguments)
 	if err != nil {
 		return
@@ -492,7 +492,7 @@ func makeProtoSelection(v types.Selection) (s *proto.Selection, err error) {
 	if err != nil {
 		return
 	}
-	s = &proto.Selection{
+	s = &protoMessages.Selection{
 		Name:         v.Name,
 		Arguments:    args,
 		Directives:   dirs,
@@ -502,7 +502,7 @@ func makeProtoSelection(v types.Selection) (s *proto.Selection, err error) {
 	return
 }
 
-func makeDriverSelection(variables map[string]*proto.Value, v *proto.Selection) (s types.Selection, err error) {
+func makeDriverSelection(variables map[string]*protoMessages.Value, v *protoMessages.Selection) (s types.Selection, err error) {
 	args, err := mapOfValueToMapOfAny(variables, v.GetArguments())
 	if err != nil {
 		return
@@ -529,13 +529,13 @@ func makeDriverSelection(variables map[string]*proto.Value, v *proto.Selection) 
 	return
 }
 
-func makeProtoSelectionSet(v types.Selections) (ss []*proto.Selection, err error) {
+func makeProtoSelectionSet(v types.Selections) (ss []*protoMessages.Selection, err error) {
 	if v == nil {
 		return nil, nil
 	}
-	r := make([]*proto.Selection, 0, len(v))
+	r := make([]*protoMessages.Selection, 0, len(v))
 	for _, sel := range v {
-		var s *proto.Selection
+		var s *protoMessages.Selection
 		s, err = makeProtoSelection(sel)
 		if err != nil {
 			return
@@ -546,7 +546,7 @@ func makeProtoSelectionSet(v types.Selections) (ss []*proto.Selection, err error
 	return
 }
 
-func makeDriverSelectionSet(variables map[string]*proto.Value, v []*proto.Selection) (ss types.Selections, err error) {
+func makeDriverSelectionSet(variables map[string]*protoMessages.Value, v []*protoMessages.Selection) (ss types.Selections, err error) {
 	if len(v) == 0 {
 		return nil, nil
 	}
@@ -561,7 +561,7 @@ func makeDriverSelectionSet(variables map[string]*proto.Value, v []*proto.Select
 	return
 }
 
-func makeProtoOperationDefinition(v *types.OperationDefinition) (o *proto.OperationDefinition, err error) {
+func makeProtoOperationDefinition(v *types.OperationDefinition) (o *protoMessages.OperationDefinition, err error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -578,7 +578,7 @@ func makeProtoOperationDefinition(v *types.OperationDefinition) (o *proto.Operat
 	if err != nil {
 		return
 	}
-	o = &proto.OperationDefinition{
+	o = &protoMessages.OperationDefinition{
 		Operation:           v.Operation,
 		Name:                v.Name,
 		VariableDefinitions: vd,
@@ -588,7 +588,7 @@ func makeProtoOperationDefinition(v *types.OperationDefinition) (o *proto.Operat
 	return
 }
 
-func makeDriverOperationDefinition(variables map[string]*proto.Value, v *proto.OperationDefinition) (od *types.OperationDefinition, err error) {
+func makeDriverOperationDefinition(variables map[string]*protoMessages.Value, v *protoMessages.OperationDefinition) (od *types.OperationDefinition, err error) {
 	if v == nil {
 		return
 	}
@@ -614,29 +614,29 @@ func makeDriverOperationDefinition(variables map[string]*proto.Value, v *proto.O
 	return
 }
 
-func makeProtoTypeRef(v *types.TypeRef) *proto.TypeRef {
+func makeProtoTypeRef(v *types.TypeRef) *protoMessages.TypeRef {
 	if v == nil {
 		return nil
 	}
-	var tt proto.TypeRef
+	var tt protoMessages.TypeRef
 	switch {
 	case v.Name != "":
-		tt.TestTyperef = &proto.TypeRef_Name{
+		tt.TestTyperef = &protoMessages.TypeRef_Name{
 			Name: v.Name,
 		}
 	case v.NonNull != nil:
-		tt.TestTyperef = &proto.TypeRef_NonNull{
+		tt.TestTyperef = &protoMessages.TypeRef_NonNull{
 			NonNull: makeProtoTypeRef(v.NonNull),
 		}
 	case v.List != nil:
-		tt.TestTyperef = &proto.TypeRef_List{
+		tt.TestTyperef = &protoMessages.TypeRef_List{
 			List: makeProtoTypeRef(v.List),
 		}
 	}
 	return &tt
 }
 
-func makeDriverTypeRef(v *proto.TypeRef) *types.TypeRef {
+func makeDriverTypeRef(v *protoMessages.TypeRef) *types.TypeRef {
 	if v == nil {
 		return nil
 	}
@@ -652,22 +652,22 @@ func makeDriverTypeRef(v *proto.TypeRef) *types.TypeRef {
 	return &types.TypeRef{}
 }
 
-func mustMakeDriverTypeRef(v *proto.TypeRef) types.TypeRef {
+func mustMakeDriverTypeRef(v *protoMessages.TypeRef) types.TypeRef {
 	return types.TypeRef{Name: v.GetName()}
 }
 
-func makeProtoResponsePath(v *types.ResponsePath) (*proto.ResponsePath, error) {
+func makeProtoResponsePath(v *types.ResponsePath) (*protoMessages.ResponsePath, error) {
 	if v == nil {
 		return nil, nil
 	}
 	prev, err := makeProtoResponsePath(v.Prev)
-	var k *proto.Value
+	var k *protoMessages.Value
 	if err == nil {
 		k, err = anyToValue(v.Key)
 	}
-	var rp *proto.ResponsePath
+	var rp *protoMessages.ResponsePath
 	if err == nil {
-		rp = &proto.ResponsePath{
+		rp = &protoMessages.ResponsePath{
 			Prev: prev,
 			Key:  k,
 		}
@@ -675,7 +675,7 @@ func makeProtoResponsePath(v *types.ResponsePath) (*proto.ResponsePath, error) {
 	return rp, err
 }
 
-func makeDriverResponsePath(variables map[string]*proto.Value, v *proto.ResponsePath) (*types.ResponsePath, error) {
+func makeDriverResponsePath(variables map[string]*protoMessages.Value, v *protoMessages.ResponsePath) (*types.ResponsePath, error) {
 	if v == nil {
 		return nil, nil
 	}
@@ -757,8 +757,8 @@ func flattenValue(v reflect.Value) (rv reflect.Value, err error) {
 	return
 }
 
-func initVariablesWithDefaults(variables map[string]*proto.Value, opDef *proto.OperationDefinition) map[string]*proto.Value {
-	nv := make(map[string]*proto.Value)
+func initVariablesWithDefaults(variables map[string]*protoMessages.Value, opDef *protoMessages.OperationDefinition) map[string]*protoMessages.Value {
+	nv := make(map[string]*protoMessages.Value)
 	if opDef != nil {
 		varDefs := opDef.VariableDefinitions
 		for _, vd := range varDefs {

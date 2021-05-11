@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // SetSecretsClientTest is basic struct for testing clients implementing proto
@@ -13,8 +13,8 @@ import (
 type SetSecretsClientTest struct {
 	Title         string
 	Input         driver.SetSecretsInput
-	ProtoRequest  *proto.SetSecretsRequest
-	ProtoResponse *proto.SetSecretsResponse
+	ProtoRequest  *protoMessages.SetSecretsRequest
+	ProtoResponse *protoMessages.SetSecretsResponse
 	ProtoError    error
 	Expected      driver.SetSecretsOutput
 }
@@ -29,22 +29,22 @@ func SetSecretsClientTestData() []SetSecretsClientTest {
 					"secret": "value",
 				},
 			},
-			ProtoRequest: &proto.SetSecretsRequest{
-				Secrets: []*proto.Secret{
-					&proto.Secret{
+			ProtoRequest: &protoMessages.SetSecretsRequest{
+				Secrets: []*protoMessages.Secret{
+					&protoMessages.Secret{
 						Key:   "secret",
 						Value: "value",
 					},
 				},
 			},
-			ProtoResponse: new(proto.SetSecretsResponse),
+			ProtoResponse: new(protoMessages.SetSecretsResponse),
 		},
 		{
 			Title:         "ReturnsProtoError",
 			Input:         driver.SetSecretsInput{},
-			ProtoRequest:  new(proto.SetSecretsRequest),
+			ProtoRequest:  new(protoMessages.SetSecretsRequest),
 			ProtoError:    errors.New("proto error"),
-			ProtoResponse: new(proto.SetSecretsResponse),
+			ProtoResponse: new(protoMessages.SetSecretsResponse),
 			Expected: driver.SetSecretsOutput{
 				Error: &driver.Error{
 					Message: "proto error",
@@ -66,10 +66,10 @@ func RunSetSecretsClientTests(t *testing.T, f func(t *testing.T, tt SetSecretsCl
 // SetSecretsServerTest is basic struct for testing clients implementing proto
 type SetSecretsServerTest struct {
 	Title         string
-	Input         *proto.SetSecretsRequest
+	Input         *protoMessages.SetSecretsRequest
 	HandlerInput  driver.SetSecretsInput
 	HandlerOutput error
-	Expected      *proto.SetSecretsResponse
+	Expected      *protoMessages.SetSecretsResponse
 }
 
 // SetSecretsServerTestData is a data for testing secrets of proto clients
@@ -77,9 +77,9 @@ func SetSecretsServerTestData() []SetSecretsServerTest {
 	return []SetSecretsServerTest{
 		{
 			Title: "CallsHandler",
-			Input: &proto.SetSecretsRequest{
-				Secrets: []*proto.Secret{
-					&proto.Secret{
+			Input: &protoMessages.SetSecretsRequest{
+				Secrets: []*protoMessages.Secret{
+					&protoMessages.Secret{
 						Key:   "secret",
 						Value: "value",
 					},
@@ -90,7 +90,7 @@ func SetSecretsServerTestData() []SetSecretsServerTest {
 					"secret": "value",
 				},
 			},
-			Expected: new(proto.SetSecretsResponse),
+			Expected: new(protoMessages.SetSecretsResponse),
 		},
 	}
 }

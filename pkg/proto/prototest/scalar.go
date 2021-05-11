@@ -5,16 +5,16 @@ import (
 	"testing"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
-	"github.com/graphql-editor/stucco/pkg/proto"
 	"github.com/graphql-editor/stucco/pkg/types"
+	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
 // ScalarParseClientTest is basic struct for testing clients implementing proto
 type ScalarParseClientTest struct {
 	Title         string
 	Input         driver.ScalarParseInput
-	ProtoRequest  *proto.ScalarParseRequest
-	ProtoResponse *proto.ScalarParseResponse
+	ProtoRequest  *protoMessages.ScalarParseRequest
+	ProtoResponse *protoMessages.ScalarParseResponse
 	ProtoError    error
 	Expected      driver.ScalarParseOutput
 }
@@ -29,18 +29,18 @@ func ScalarParseClientTestData() []ScalarParseClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.ScalarParseRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.ScalarParseRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.ScalarParseResponse{Value: &proto.Value{
-				TestValue: &proto.Value_S{
+			ProtoResponse: &protoMessages.ScalarParseResponse{Value: &protoMessages.Value{
+				TestValue: &protoMessages.Value_S{
 					S: "scalar",
 				},
 			}},
@@ -53,18 +53,18 @@ func ScalarParseClientTestData() []ScalarParseClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.ScalarParseRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.ScalarParseRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.ScalarParseResponse{
-				Error: &proto.Error{
+			ProtoResponse: &protoMessages.ScalarParseResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},
@@ -89,11 +89,11 @@ func RunScalarParseClientTests(t *testing.T, f func(t *testing.T, tt ScalarParse
 // ScalarParseServerTest is basic struct for testing servers implementing proto
 type ScalarParseServerTest struct {
 	Title         string
-	Input         *proto.ScalarParseRequest
+	Input         *protoMessages.ScalarParseRequest
 	HandlerInput  driver.ScalarParseInput
 	HandlerOutput interface{}
 	HandlerError  error
-	Expected      *proto.ScalarParseResponse
+	Expected      *protoMessages.ScalarParseResponse
 }
 
 // ScalarParseServerTestData is a data for testing scalar resolution of proto servers
@@ -101,8 +101,8 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 	return []ScalarParseServerTest{
 		{
 			Title: "CallsScalarParseHandler",
-			Input: &proto.ScalarParseRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.ScalarParseRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
 			},
@@ -112,16 +112,16 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 				},
 			},
 			HandlerOutput: "scalar",
-			Expected: &proto.ScalarParseResponse{Value: &proto.Value{
-				TestValue: &proto.Value_S{
+			Expected: &protoMessages.ScalarParseResponse{Value: &protoMessages.Value{
+				TestValue: &protoMessages.Value_S{
 					S: "scalar",
 				},
 			}},
 		},
 		{
 			Title: "ReturnsUserError",
-			Input: &proto.ScalarParseRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.ScalarParseRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
 			},
@@ -131,8 +131,8 @@ func ScalarParseServerTestData() []ScalarParseServerTest {
 				},
 			},
 			HandlerError: fmt.Errorf("user error"),
-			Expected: &proto.ScalarParseResponse{
-				Error: &proto.Error{
+			Expected: &protoMessages.ScalarParseResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},
@@ -153,8 +153,8 @@ func RunScalarParseServerTests(t *testing.T, f func(t *testing.T, tt ScalarParse
 type ScalarSerializeClientTest struct {
 	Title         string
 	Input         driver.ScalarSerializeInput
-	ProtoRequest  *proto.ScalarSerializeRequest
-	ProtoResponse *proto.ScalarSerializeResponse
+	ProtoRequest  *protoMessages.ScalarSerializeRequest
+	ProtoResponse *protoMessages.ScalarSerializeResponse
 	ProtoError    error
 	Expected      driver.ScalarSerializeOutput
 }
@@ -169,18 +169,18 @@ func ScalarSerializeClientTestData() []ScalarSerializeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.ScalarSerializeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.ScalarSerializeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.ScalarSerializeResponse{Value: &proto.Value{
-				TestValue: &proto.Value_S{
+			ProtoResponse: &protoMessages.ScalarSerializeResponse{Value: &protoMessages.Value{
+				TestValue: &protoMessages.Value_S{
 					S: "scalar",
 				},
 			}},
@@ -193,18 +193,18 @@ func ScalarSerializeClientTestData() []ScalarSerializeClientTest {
 					Name: "function",
 				},
 			},
-			ProtoRequest: &proto.ScalarSerializeRequest{
-				Function: &proto.Function{
+			ProtoRequest: &protoMessages.ScalarSerializeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
-				Value: &proto.Value{
-					TestValue: &proto.Value_Nil{
+				Value: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
 				},
 			},
-			ProtoResponse: &proto.ScalarSerializeResponse{
-				Error: &proto.Error{
+			ProtoResponse: &protoMessages.ScalarSerializeResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},
@@ -229,11 +229,11 @@ func RunScalarSerializeClientTests(t *testing.T, f func(t *testing.T, tt ScalarS
 // ScalarSerializeServerTest is basic struct for testing servers implementing proto
 type ScalarSerializeServerTest struct {
 	Title         string
-	Input         *proto.ScalarSerializeRequest
+	Input         *protoMessages.ScalarSerializeRequest
 	HandlerInput  driver.ScalarSerializeInput
 	HandlerOutput interface{}
 	HandlerError  error
-	Expected      *proto.ScalarSerializeResponse
+	Expected      *protoMessages.ScalarSerializeResponse
 }
 
 // ScalarSerializeServerTestData is a data for testing scalar resolution of proto servers
@@ -241,8 +241,8 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 	return []ScalarSerializeServerTest{
 		{
 			Title: "CallsScalarSerializeHandler",
-			Input: &proto.ScalarSerializeRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.ScalarSerializeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
 			},
@@ -252,16 +252,16 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 				},
 			},
 			HandlerOutput: "scalar",
-			Expected: &proto.ScalarSerializeResponse{Value: &proto.Value{
-				TestValue: &proto.Value_S{
+			Expected: &protoMessages.ScalarSerializeResponse{Value: &protoMessages.Value{
+				TestValue: &protoMessages.Value_S{
 					S: "scalar",
 				},
 			}},
 		},
 		{
 			Title: "ReturnsUserError",
-			Input: &proto.ScalarSerializeRequest{
-				Function: &proto.Function{
+			Input: &protoMessages.ScalarSerializeRequest{
+				Function: &protoMessages.Function{
 					Name: "function",
 				},
 			},
@@ -271,8 +271,8 @@ func ScalarSerializeServerTestData() []ScalarSerializeServerTest {
 				},
 			},
 			HandlerError: fmt.Errorf("user error"),
-			Expected: &proto.ScalarSerializeResponse{
-				Error: &proto.Error{
+			Expected: &protoMessages.ScalarSerializeResponse{
+				Error: &protoMessages.Error{
 					Msg: "user error",
 				},
 			},

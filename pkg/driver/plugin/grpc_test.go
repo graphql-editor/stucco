@@ -6,7 +6,7 @@ import (
 
 	"github.com/graphql-editor/stucco/pkg/driver/plugin"
 	"github.com/graphql-editor/stucco/pkg/grpc"
-	"github.com/graphql-editor/stucco/pkg/proto"
+	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	googlegrpc "google.golang.org/grpc"
@@ -16,12 +16,12 @@ type mockProto struct {
 	mock.Mock
 }
 
-func (m *mockProto) RegisterDriverServer(s *googlegrpc.Server, d proto.DriverServer) {
-	m.Called(s, d)
+func (m *mockProto) RegisterDriverServer(s googlegrpc.ServiceRegistrar, srv protoDriverService.DriverServer) {
+	m.Called(s, srv)
 }
 
-func (m *mockProto) NewDriverClient(c *googlegrpc.ClientConn) proto.DriverClient {
-	return m.Called(c).Get(0).(proto.DriverClient)
+func (m *mockProto) NewDriverClient(c googlegrpc.ClientConnInterface) protoDriverService.DriverClient {
+	return m.Called(c).Get(0).(protoDriverService.DriverClient)
 }
 
 func TestGRPC(t *testing.T) {
@@ -30,7 +30,7 @@ func TestGRPC(t *testing.T) {
 		gs := googlegrpc.NewServer()
 		plugin.RegisterDriverServer = mockProto.RegisterDriverServer
 		defer func() {
-			plugin.RegisterDriverServer = proto.RegisterDriverServer
+			plugin.RegisterDriverServer = protoDriverService.RegisterDriverServer
 		}()
 		mockProto.On(
 			"RegisterDriverServer",
@@ -49,10 +49,10 @@ func TestGRPC(t *testing.T) {
 	t.Run("GRPCClientCallsNewDriverClient", func(t *testing.T) {
 		mockProto := new(mockProto)
 		conn := &googlegrpc.ClientConn{}
-		driverClient := proto.NewDriverClient(conn)
+		driverClient := protoDriverService.NewDriverClient(conn)
 		plugin.NewDriverClient = mockProto.NewDriverClient
 		defer func() {
-			plugin.NewDriverClient = proto.NewDriverClient
+			plugin.NewDriverClient = protoDriverService.NewDriverClient
 		}()
 		mockProto.On(
 			"NewDriverClient",
