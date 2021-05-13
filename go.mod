@@ -10,9 +10,9 @@ require (
 	github.com/bmatcuk/doublestar v1.3.1 // indirect
 	github.com/buildkite/interpolate v0.0.0-20200526001904-07f35b4ae251 // indirect
 	github.com/fatih/color v1.9.0 // indirect
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.5.0
 	github.com/gorilla/websocket v1.4.0
-	github.com/graphql-editor/stucco_proto v0.0.0-20210511094021-49731d250095
+	github.com/graphql-editor/stucco_proto v0.7.7
 	github.com/graphql-go/graphql v0.7.9
 	github.com/graphql-go/handler v0.2.3
 	github.com/hashicorp/go-hclog v0.14.1
@@ -34,8 +34,8 @@ require (
 	golang.org/x/sys v0.0.0-20200805065543-0cf7623e9dbd // indirect
 	golang.org/x/text v0.3.3 // indirect
 	google.golang.org/genproto v0.0.0-20200709005830-7a2ca40e9dc3 // indirect
-	google.golang.org/grpc v1.32.0
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/grpc v1.37.1
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/yaml.v2 v2.2.8
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 	k8s.io/apiserver v0.18.5
