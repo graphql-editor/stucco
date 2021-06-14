@@ -50,7 +50,7 @@ func latestVersion() (v semver.Version, err error) {
 	if err != nil {
 		return
 	}
-	o, err := gbtb.Output("git", "tag", "--sort=-taggerdate")
+	o, err := gbtb.Output("git", "tag", "--sort=-committerdate")
 	if err != nil {
 		return
 	}
