@@ -54,6 +54,8 @@ jobs:
         ./tasks test
         ./tasks test-race
   build_azure_function:
+    needs:
+    - build_cli
     if: "!contains(github.event.head_commit.message, '[ci skip]')"
     strategy:
       matrix:
