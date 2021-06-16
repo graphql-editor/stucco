@@ -406,10 +406,15 @@ func checkFile(fn string) bool {
 		return false
 	}
 	st, err := os.Stat(fn)
-	if err != nil {
-		return false
+	ok := err == nil && !st.IsDir() && isExecutable(st)
+	if !ok && err != os.ErrNotExist {
+		if err != nil {
+			klog.Infof("ignoring %s: %v", fn, err)
+		} else {
+			klog.Infof("ignoring %s: not an executable file", fn)
+		}
 	}
-	return !st.IsDir() && isExecutable(st)
+	return ok
 }
 
 // ExecCommandContext used to check to create command for checking plugin config
@@ -426,7 +431,10 @@ func checkPlugin(fn string) ([]driver.Config, error) {
 	)
 	out, err := cmd.Output()
 	if err != nil {
-		return nil, err
+		if len(out) > 0 {
+			klog.V(5).Infof("config command failed with output: %v", string(out))
+		}
+		return nil, errors.Wrap(err, "could not execute config")
 	}
 	err = json.Unmarshal(out, &cfgs)
 	return cfgs, err
@@ -492,6 +500,7 @@ func LoadDriverPlugins(cfg Config) func() {
 			}
 			cfgs, err := checkPlugin(path)
 			if err != nil {
+				klog.Infof("ignoring %s: %v", path, err)
 				continue
 			}
 			plugCfg := cfg
