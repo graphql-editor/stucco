@@ -17,10 +17,10 @@ import (
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/driver/plugin"
 	"github.com/graphql-editor/stucco/pkg/handlers"
+	gqlhandler "github.com/graphql-editor/stucco/pkg/handlers"
 	azuredriver "github.com/graphql-editor/stucco/pkg/providers/azure/driver"
 	"github.com/graphql-editor/stucco/pkg/router"
 	"github.com/graphql-editor/stucco/pkg/security"
-	gqlhandler "github.com/graphql-go/handler"
 )
 
 // DriverKind represents one of implemented drivers for handling functions
@@ -292,7 +292,7 @@ func New(c Config) (httpHandler http.Handler, err error) {
 		rt, err = router.NewRouter(c.Config)
 	}
 	if err == nil {
-		httpHandler = handlers.WithProtocolInContext(gqlhandler.New(&gqlhandler.Config{
+		httpHandler = handlers.WithProtocolInContext(gqlhandler.New(gqlhandler.Config{
 			Schema:   &rt.Schema,
 			Pretty:   checkPointerBoolDefaultTrue(c.Pretty),
 			GraphiQL: checkPointerBoolDefaultTrue(c.GraphiQL),
