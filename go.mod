@@ -42,4 +42,4 @@ require (
 	k8s.io/klog v1.0.0
 )
 
-replace github.com/graphql-go/graphql => github.com/graphql-editor/graphql v0.7.10-0.20201221123605-e119ceedc5f1
+replace github.com/graphql-go/graphql => github.com/graphql-editor/graphql v0.7.10-0.20210708124238-2abb08abe289

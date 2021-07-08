@@ -206,6 +206,11 @@ func anyToValueReflected(v reflect.Value) (*protoMessages.Value, error) {
 		err = mapToValue(v, pv)
 	case reflect.Struct:
 		err = structToValue(v, pv)
+	case reflect.Interface:
+		if v.IsNil() {
+			return nilValue, nil
+		}
+		fallthrough
 	default:
 		fmt.Printf("%v\n", v.Interface())
 		return nil, fmt.Errorf("kind %s not supported", v.Kind())
