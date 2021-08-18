@@ -20,9 +20,10 @@ type ResultCallbackFn func(ctx context.Context, params *graphql.Params, result *
 
 // Config new handler
 type Config struct {
-	Schema   *graphql.Schema
-	Pretty   bool
-	GraphiQL bool
+	Schema       *graphql.Schema
+	Pretty       bool
+	GraphiQL     bool
+	RootObjectFn handler.RootObjectFn
 }
 
 // subscriptionHandler is a websocket handler
@@ -104,10 +105,11 @@ func (s subscriptionHandler) Handle(ws *websocket.Conn) {
 
 // Handler implements http.Handler for GraphQL
 type Handler struct {
-	Schema   *graphql.Schema
-	graphiql bool
-	pretty   bool
-	upgrader websocket.Upgrader
+	Schema       *graphql.Schema
+	graphiql     bool
+	pretty       bool
+	upgrader     websocket.Upgrader
+	rootObjectFn handler.RootObjectFn
 }
 
 // ServeHTTP implements http.Handler
@@ -123,6 +125,9 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		VariableValues: opts.Variables,
 		OperationName:  opts.OperationName,
 		Context:        ctx,
+	}
+	if h.rootObjectFn != nil {
+		params.RootObject = h.rootObjectFn(ctx, req)
 	}
 
 	if h.graphiql && req.Method == http.MethodGet {
@@ -182,6 +187,7 @@ func New(cfg Config) *Handler {
 			WriteBufferSize:   1024,
 			EnableCompression: true,
 		},
+		rootObjectFn: cfg.RootObjectFn,
 	}
 	return &h
 }
