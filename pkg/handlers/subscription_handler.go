@@ -162,10 +162,11 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		subHandler := subscriptionHandler{
-			pretty: h.pretty,
-			schema: h.Schema,
-			sub:    sub,
-			req:    req,
+			pretty:     h.pretty,
+			schema:     h.Schema,
+			sub:        sub,
+			req:        req,
+			rootObject: params.RootObject,
 		}
 		subHandler.Handle(conn)
 		return
