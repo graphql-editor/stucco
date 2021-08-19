@@ -93,9 +93,9 @@ func (s subscriptionHandler) Handle(ws *websocket.Conn) {
 		}
 	}
 	if err := s.sub.Reader.Error(); err != nil {
-		w, err := ws.NextWriter(websocket.TextMessage)
-		if err != nil {
-			klog.Error("unknown error", err)
+		w, nerr := ws.NextWriter(websocket.TextMessage)
+		if nerr != nil {
+			klog.Error("unknown error", nerr)
 			return
 		}
 		defer w.Close()
