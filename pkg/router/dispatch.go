@@ -17,6 +17,11 @@ type protocolKey int
 // ProtocolKey used to pass extra data from protocol used for comunication
 const ProtocolKey protocolKey = 0
 
+type subscriptionContextKey int
+
+// SubscriptionPayloadKey payload value for subscription in context
+const SubscriptionPayloadKey subscriptionContextKey = 0
+
 type rawSubscriptionKey int
 
 // RawSubscriptionKey used to pass instruction about how a subscription should be handled.
@@ -227,6 +232,7 @@ func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolvePar
 		}
 		if params.Context != nil {
 			input.Protocol = params.Context.Value(ProtocolKey)
+			input.SubscriptionPayload = params.Context.Value(SubscriptionPayloadKey)
 		}
 		var err error
 		out := d.Driver.FieldResolve(input)

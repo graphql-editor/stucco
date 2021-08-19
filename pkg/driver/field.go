@@ -15,11 +15,12 @@ type FieldResolveInfo struct {
 
 // FieldResolveInput represents data passed to field resolution
 type FieldResolveInput struct {
-	Function  types.Function
-	Source    interface{}      `json:"source,omitempty"`
-	Arguments types.Arguments  `json:"arguments,omitempty"`
-	Info      FieldResolveInfo `json:"info"`
-	Protocol  interface{}      `json:"protocol,omitempty"`
+	Function            types.Function
+	Source              interface{}      `json:"source,omitempty"`
+	Arguments           types.Arguments  `json:"arguments,omitempty"`
+	Info                FieldResolveInfo `json:"info"`
+	Protocol            interface{}      `json:"protocol,omitempty"`
+	SubscriptionPayload interface{}      `json:"subscriptionPayload,omitempty"`
 }
 
 // FieldResolveOutput is a result of a field resolution

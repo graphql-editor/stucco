@@ -28,10 +28,11 @@ type Config struct {
 
 // subscriptionHandler is a websocket handler
 type subscriptionHandler struct {
-	pretty bool
-	schema *graphql.Schema
-	sub    router.BlockingSubscriptionPayload
-	req    *http.Request
+	pretty     bool
+	schema     *graphql.Schema
+	sub        router.BlockingSubscriptionPayload
+	req        *http.Request
+	rootObject map[string]interface{}
 }
 
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
@@ -40,9 +41,14 @@ func (s subscriptionHandler) do(v interface{}) *graphql.Result {
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
 	var ro map[string]interface{}
 	if v != nil {
-		ro = map[string]interface{}{
-			"payload": v,
+		if s.rootObject != nil {
+			ro = s.rootObject
+		} else {
+			ro = map[string]interface{}{
+				"payload": v,
+			}
 		}
+		ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
 	}
 	params := graphql.Params{
 		RootObject:     ro,
