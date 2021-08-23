@@ -13,7 +13,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/router"
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/handler"
-	"github.com/rs/cors"
 )
 
 // ResultCallbackFn called with result
@@ -25,7 +24,7 @@ type Config struct {
 	Pretty       bool
 	GraphiQL     bool
 	RootObjectFn handler.RootObjectFn
-	Origin       []string
+	CheckOrigin  func(req *http.Request) bool
 }
 
 // subscriptionHandler is a websocket handler
@@ -198,11 +197,8 @@ func New(cfg Config) *Handler {
 		},
 		rootObjectFn: cfg.RootObjectFn,
 	}
-	if len(cfg.Origin) >= 0 {
-		corsCheck := cors.New(cors.Options{
-			AllowedOrigins: cfg.Origin,
-		})
-		h.upgrader.CheckOrigin = corsCheck.OriginAllowed
+	if cfg.CheckOrigin != nil {
+		h.upgrader.CheckOrigin = cfg.CheckOrigin
 	}
 	return &h
 }
