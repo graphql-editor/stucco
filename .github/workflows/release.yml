@@ -84,6 +84,13 @@ jobs:
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
+    - name: version
+      id: version
+      uses: frabert/replace-string-action@v1.1
+      with:
+        pattern: 'refs/tags/(.*)'
+        string: '${{ github.ref }}'
+        replace-with: '$1'
     - name: build tasks
       run: go build -o tasks ./hack/tasks.go
     - name: build azure function
