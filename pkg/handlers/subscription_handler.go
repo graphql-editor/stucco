@@ -3,7 +3,9 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -32,27 +34,14 @@ type subscriptionHandler struct {
 	pretty     bool
 	schema     *graphql.Schema
 	sub        router.BlockingSubscriptionPayload
-	req        *http.Request
+	ctx        context.Context
 	rootObject map[string]interface{}
 }
 
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
-	ctx, cancel := context.WithTimeout(s.req.Context(), time.Second*30)
+	ctx, cancel := context.WithTimeout(s.ctx, time.Second*30)
 	defer cancel()
-	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
-	var ro map[string]interface{}
-	if v != nil {
-		if s.rootObject != nil {
-			ro = s.rootObject
-		} else {
-			ro = map[string]interface{}{
-				"payload": v,
-			}
-		}
-		ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
-	}
 	params := graphql.Params{
-		RootObject:     ro,
 		Schema:         *s.schema,
 		RequestString:  s.sub.Context.Query,
 		VariableValues: s.sub.Context.VariableValues,
@@ -119,11 +108,111 @@ type Handler struct {
 	rootObjectFn handler.RootObjectFn
 }
 
+type requestOptions struct {
+	Query               string                 `json:"query" url:"query" schema:"query"`
+	Variables           map[string]interface{} `json:"variables" url:"variables" schema:"variables"`
+	OperationName       string                 `json:"operationName" url:"operationName" schema:"operationName"`
+	RawSubscription     bool                   `json:"rawSubscription" url:"rawSubscription" schema:"rawSubscription"`
+	SubscriptionPayload string                 `json:"subscriptionPayload" url:"subscriptionPayload" schema:"subscriptionPayload"`
+}
+
+// a workaround for getting`variables` as a JSON string
+type requestOptionsCompatibility struct {
+	Query               string `json:"query" url:"query" schema:"query"`
+	Variables           string `json:"variables" url:"variables" schema:"variables"`
+	OperationName       string `json:"operationName" url:"operationName" schema:"operationName"`
+	RawSubscription     bool   `json:"rawSubscription" url:"rawSubscription" schema:"rawSubscription"`
+	SubscriptionPayload string `json:"subscriptionPayload" url:"subscriptionPayload" schema:"subscriptionPayload"`
+}
+
+func getFromForm(values url.Values) *requestOptions {
+	query := values.Get("query")
+	if query != "" {
+		// get variables map
+		variables := make(map[string]interface{}, len(values))
+		variablesStr := values.Get("variables")
+		json.Unmarshal([]byte(variablesStr), &variables)
+		return &requestOptions{
+			Query:               query,
+			Variables:           variables,
+			OperationName:       values.Get("operationName"),
+			RawSubscription:     values.Has("raw"),
+			SubscriptionPayload: values.Get("subscriptionPayload"),
+		}
+	}
+
+	return nil
+}
+
+func newRequestOptions(r *http.Request) *requestOptions {
+	if reqOpt := getFromForm(r.URL.Query()); reqOpt != nil {
+		return reqOpt
+	}
+
+	if r.Method != http.MethodPost {
+		return &requestOptions{}
+	}
+
+	if r.Body == nil {
+		return &requestOptions{}
+	}
+
+	// TODO: improve Content-Type handling
+	contentTypeStr := r.Header.Get("Content-Type")
+	contentTypeTokens := strings.Split(contentTypeStr, ";")
+	contentType := contentTypeTokens[0]
+
+	switch contentType {
+	case handler.ContentTypeGraphQL:
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return &requestOptions{}
+		}
+		return &requestOptions{
+			Query: string(body),
+		}
+	case handler.ContentTypeFormURLEncoded:
+		if err := r.ParseForm(); err != nil {
+			return &requestOptions{}
+		}
+
+		if reqOpt := getFromForm(r.PostForm); reqOpt != nil {
+			return reqOpt
+		}
+
+		return &requestOptions{}
+
+	case handler.ContentTypeJSON:
+		fallthrough
+	default:
+		var opts requestOptions
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return &opts
+		}
+		err = json.Unmarshal(body, &opts)
+		if err != nil {
+			// Probably `variables` was sent as a string instead of an object.
+			// So, we try to be polite and try to parse that as a JSON string
+			var optsCompatible requestOptionsCompatibility
+			json.Unmarshal(body, &optsCompatible)
+			json.Unmarshal([]byte(optsCompatible.Variables), &opts.Variables)
+		}
+		return &opts
+	}
+}
+
 // ServeHTTP implements http.Handler
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	ctx := req.Context()
 	// get query
-	opts := handler.NewRequestOptions(req)
+	opts := newRequestOptions(req)
+	if opts.RawSubscription {
+		ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
+	}
+	if opts.SubscriptionPayload != "" {
+		ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, opts.SubscriptionPayload)
+	}
 
 	// execute graphql query
 	params := graphql.Params{
@@ -139,8 +228,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 	if h.graphiql && req.Method == http.MethodGet {
 		acceptHeader := req.Header.Get("Accept")
-		_, raw := req.URL.Query()["raw"]
-		if !raw && !strings.Contains(acceptHeader, "application/json") && strings.Contains(acceptHeader, "text/html") {
+		if !opts.RawSubscription && !strings.Contains(acceptHeader, "application/json") && strings.Contains(acceptHeader, "text/html") {
 			if websocket.IsWebSocketUpgrade(req) {
 				http.Error(rw, "websocket not supported with GraphiQL", 400)
 				return
@@ -150,7 +238,10 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	pctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	params.Context = pctx
 	result := graphql.Do(params)
+	cancel()
 	if sub, ok := result.Extensions["subscriptionBlocking"].(router.BlockingSubscriptionPayload); ok && len(result.Errors) == 0 {
 		defer func() {
 			if r := recover(); r != nil {
@@ -166,7 +257,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			pretty:     h.pretty,
 			schema:     h.Schema,
 			sub:        sub,
-			req:        req,
+			ctx:        params.Context,
 			rootObject: params.RootObject,
 		}
 		subHandler.Handle(conn)

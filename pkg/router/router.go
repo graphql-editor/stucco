@@ -282,11 +282,11 @@ func (s *SubscribeExtension) ExecutionDidStart(ctx context.Context) (context.Con
 // ResolveFieldDidStart implements graphql.Extension
 // Hijacks the resolution of root subscription fields
 func (s *SubscribeExtension) ResolveFieldDidStart(ctx context.Context, info *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
+	isSubscription := info.Path.Prev == nil &&
+		s.router.Schema.SubscriptionType().Name() == info.ParentType.Name()
 	rawSubscription, ok := ctx.Value(RawSubscriptionKey).(bool)
 	rawSubscription = ok && rawSubscription
-	if !rawSubscription &&
-		info.Path.Prev == nil &&
-		s.router.Schema.SubscriptionType().Name() == info.ParentType.Name() {
+	if !rawSubscription && isSubscription {
 		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
 		subCtx.IsSubscription = true
 		if subCtx.OperationDefinition == nil && info.Operation != nil {
