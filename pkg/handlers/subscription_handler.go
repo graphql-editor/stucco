@@ -125,6 +125,18 @@ type requestOptionsCompatibility struct {
 	SubscriptionPayload string `json:"subscriptionPayload" url:"subscriptionPayload" schema:"subscriptionPayload"`
 }
 
+func valueBool(v url.Values, k string) bool {
+	p, ok := v[k]
+	if !ok || len(p) == 0 {
+		return ok && len(p) == 0
+	}
+	switch p[0] {
+	case "", "1", "true":
+		return true
+	}
+	return false
+}
+
 func getFromForm(values url.Values) *requestOptions {
 	query := values.Get("query")
 	if query != "" {
@@ -136,7 +148,7 @@ func getFromForm(values url.Values) *requestOptions {
 			Query:               query,
 			Variables:           variables,
 			OperationName:       values.Get("operationName"),
-			RawSubscription:     values.Has("raw"),
+			RawSubscription:     valueBool(values, "raw"),
 			SubscriptionPayload: values.Get("subscriptionPayload"),
 		}
 	}
