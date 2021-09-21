@@ -226,6 +226,7 @@ func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolvePar
 		}
 		isSubscription := params.Info.Path != nil &&
 			params.Info.Path.Prev == nil &&
+			params.Info.Schema.SubscriptionType() != nil &&
 			params.Info.Schema.SubscriptionType().Name() == params.Info.ParentType.Name()
 		if isSubscription {
 			params.Source = params.Context.Value(SubscriptionPayloadKey)
