@@ -331,6 +331,11 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						Nil: true,
 					},
 				},
+				SubscriptionPayload: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
+						Nil: true,
+					},
+				},
 			},
 			ProtoResponse: &protoMessages.FieldResolveResponse{
 				Response: &protoMessages.Value{
@@ -595,6 +600,11 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						Nil: true,
 					},
 				},
+				SubscriptionPayload: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
+						Nil: true,
+					},
+				},
 			},
 			ProtoResponse: &protoMessages.FieldResolveResponse{
 				Response: &protoMessages.Value{
@@ -661,6 +671,11 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 						Nil: true,
 					},
 				},
+				SubscriptionPayload: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
+						Nil: true,
+					},
+				},
 			},
 			ProtoResponse: &protoMessages.FieldResolveResponse{
 				Response: &protoMessages.Value{
@@ -692,6 +707,11 @@ func FieldResolveClientTestData() []FieldResolveClientTest {
 					},
 				},
 				Protocol: &protoMessages.Value{
+					TestValue: &protoMessages.Value_Nil{
+						Nil: true,
+					},
+				},
+				SubscriptionPayload: &protoMessages.Value{
 					TestValue: &protoMessages.Value_Nil{
 						Nil: true,
 					},
