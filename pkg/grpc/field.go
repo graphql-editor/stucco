@@ -54,16 +54,17 @@ func (m *Server) FieldResolve(ctx context.Context, input *protoMessages.FieldRes
 	}()
 	req, err := protodriver.MakeFieldResolveInput(input)
 	if err == nil {
-		f = new(protoMessages.FieldResolveResponse)
 		var resp interface{}
 		resp, err = m.FieldResolveHandler.Handle(req)
 		if err == nil {
-			*f = protodriver.MakeFieldResolveResponse(resp)
+			f = protodriver.MakeFieldResolveResponse(resp)
 		}
 	}
 	if err != nil {
-		f.Error = &protoMessages.Error{
-			Msg: err.Error(),
+		f = &protoMessages.FieldResolveResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
 		}
 	}
 	return

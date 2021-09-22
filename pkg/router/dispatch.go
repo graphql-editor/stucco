@@ -220,16 +220,11 @@ func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolvePar
 		if params.Context != nil {
 			subCtx, ok := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)
 			if ok && subCtx.IsSubscription {
-				fmt.Println(params.Context.Value(SubscriptionPayloadKey))
+				if params.Info.RootValue != nil {
+					subCtx.resolvedTo, _ = graphql.DefaultResolveFn(params)
+				}
 				return nil, nil
 			}
-		}
-		isSubscription := params.Info.Path != nil &&
-			params.Info.Path.Prev == nil &&
-			params.Info.Schema.SubscriptionType() != nil &&
-			params.Info.Schema.SubscriptionType().Name() == params.Info.ParentType.Name()
-		if isSubscription {
-			params.Source = params.Context.Value(SubscriptionPayloadKey)
 		}
 		info := buildFieldInfoParams(params.Info)
 		input := driver.FieldResolveInput{
@@ -237,6 +232,9 @@ func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolvePar
 			Source:    params.Source,
 			Arguments: types.Arguments(params.Args),
 			Info:      info,
+		}
+		if isSubscription(&params.Info) {
+			input.SubscriptionPayload = params.Context.Value(SubscriptionPayloadKey)
 		}
 		if params.Context != nil {
 			input.Protocol = params.Context.Value(ProtocolKey)

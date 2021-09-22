@@ -233,6 +233,7 @@ func NewRouter(c Config) (Router, error) {
 
 // SubscribeContext contains information about subscription execution
 type SubscribeContext struct {
+	Context             context.Context
 	Query               string                          `json:"query,omitempty"`
 	VariableValues      map[string]interface{}          `json:"variableValues,omitempty"`
 	OperationName       string                          `json:"operationName,omitempty"`
@@ -240,6 +241,7 @@ type SubscribeContext struct {
 	IsSubscription      bool                            `json:"-"`
 	Reader              driver.SubscriptionListenReader `json:"-"`
 	info                *graphql.ResolveInfo            `json:"-"`
+	resolvedTo          interface{}                     `json:"-"`
 	formattedErr        []gqlerrors.FormattedError
 	err                 error
 }
@@ -276,6 +278,7 @@ func (s *SubscribeExtension) Init(ctx context.Context, p *graphql.Params) contex
 			Query:          p.RequestString,
 			VariableValues: p.VariableValues,
 			OperationName:  p.OperationName,
+			Context:        ctx,
 		})
 	}
 	return ctx
@@ -337,12 +340,8 @@ func (s *SubscribeExtension) ExecutionDidStart(ctx context.Context) (context.Con
 // ResolveFieldDidStart implements graphql.Extension
 // Hijacks the resolution of root subscription fields
 func (s *SubscribeExtension) ResolveFieldDidStart(ctx context.Context, info *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
-	isSubscription := info.Path != nil &&
-		info.Path.Prev == nil &&
-		info.Operation != nil &&
-		info.Operation.GetOperation() == "subscription"
 	rawSubscription, _ := ctx.Value(RawSubscriptionKey).(bool)
-	if !rawSubscription && isSubscription {
+	if !rawSubscription && isSubscription(info) {
 		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
 		subCtx.IsSubscription = true
 		op, ok := info.Operation.(*ast.OperationDefinition)
@@ -397,6 +396,12 @@ type BlockingSubscriptionPayload struct {
 	Reader  driver.SubscriptionListenReader
 }
 
+// BlockingSubscriptionHandler can be implemented by field returned from root object on API to prepare connection data
+// If SubscriptionConnection returns an error, that error will be returned. If it returns nil error and nil output value, then further execution is attempted. Otherwise value returned by handler is used to prepare extension output.
+type BlockingSubscriptionHandler interface {
+	SubscriptionListen(driver.SubscriptionListenInput) (*driver.SubscriptionListenOutput, error)
+}
+
 // BlockingSubscriptionExtension is a blocking subscription extension
 type BlockingSubscriptionExtension struct {
 	SubscribeExtension
@@ -416,13 +421,25 @@ func (b *BlockingSubscriptionExtension) internalSubscription(ctx *SubscribeConte
 	cfg, err := b.subscriptionConfig(ctx)
 	var out driver.SubscriptionListenOutput
 	if err == nil {
-		out = dri.SubscriptionListen(driver.SubscriptionListenInput{
+		in := driver.SubscriptionListenInput{
 			Function:       cfg.Listen,
 			Query:          ctx.Query,
 			VariableValues: ctx.VariableValues,
 			OperationName:  ctx.OperationName,
 			Operation:      ctx.OperationDefinition,
-		})
+			Protocol:       ctx.Context.Value(ProtocolKey),
+		}
+		var nout *driver.SubscriptionListenOutput
+		if h, ok := ctx.resolvedTo.(BlockingSubscriptionHandler); ok {
+			nout, err = h.SubscriptionListen(in)
+		}
+		if err == nil {
+			if nout != nil {
+				out = *nout
+			} else {
+				out = dri.SubscriptionListen(in)
+			}
+		}
 	}
 	return out, err
 }
@@ -441,6 +458,12 @@ func (b *BlockingSubscriptionExtension) GetResult(ctx context.Context) interface
 		Reader:  tout.Reader,
 		Context: *subCtx,
 	}
+}
+
+// ExternalSubscriptionHandler can be implemented by root object on API to prepare connection data
+// If SubscriptionConnection returns an error, that error will be returned. If it returns nil error and nil output value, then further execution is attempted. Otherwise value returned by handler is used to prepare extension output.
+type ExternalSubscriptionHandler interface {
+	SubscriptionConnection(driver.SubscriptionConnectionInput) (*driver.SubscriptionConnectionOutput, error)
 }
 
 // ExternalSubscriptionExtension is a blocking subscription extension
@@ -465,12 +488,24 @@ func (e *ExternalSubscriptionExtension) externalSubscription(ctx *SubscribeConte
 	}
 	var out driver.SubscriptionConnectionOutput
 	if err == nil {
-		out = dri.SubscriptionConnection(driver.SubscriptionConnectionInput{
+		in := driver.SubscriptionConnectionInput{
 			Function:       cfg.CreateConnection,
 			Query:          ctx.Query,
 			VariableValues: ctx.VariableValues,
 			OperationName:  ctx.OperationName,
-		})
+			Protocol:       ctx.Context.Value(ProtocolKey),
+		}
+		var nout *driver.SubscriptionConnectionOutput
+		if h, ok := ctx.resolvedTo.(ExternalSubscriptionHandler); ok {
+			nout, err = h.SubscriptionConnection(in)
+		}
+		if err == nil {
+			if nout != nil {
+				out = *nout
+			} else {
+				out = dri.SubscriptionConnection(in)
+			}
+		}
 	}
 	return out, err
 }
@@ -511,4 +546,12 @@ func newSubscriptionExtension(cfg SubscriptionConfig, r *Router, dri driver.Driv
 	default:
 		return nil, errors.New("this subscription kind is not implemented yet")
 	}
+}
+
+func isSubscription(info *graphql.ResolveInfo) bool {
+	return info != nil &&
+		info.Path != nil &&
+		info.Path.Prev == nil &&
+		info.Operation != nil &&
+		info.Operation.GetOperation() == ast.OperationTypeSubscription
 }

@@ -35,7 +35,7 @@ func (c *Client) FieldResolve(input driver.FieldResolveInput) driver.FieldResolv
 }
 
 func (h *Handler) fieldResolve(req *http.Request) *protoMessages.FieldResolveResponse {
-	resp := new(protoMessages.FieldResolveResponse)
+	var resp *protoMessages.FieldResolveResponse
 	protoReq := new(protoMessages.FieldResolveRequest)
 	var err error
 	var b []byte
@@ -48,14 +48,16 @@ func (h *Handler) fieldResolve(req *http.Request) *protoMessages.FieldResolveRes
 				var driverResp interface{}
 				driverResp, err = h.FieldResolve(in)
 				if err == nil {
-					*resp = protodriver.MakeFieldResolveResponse(driverResp)
+					resp = protodriver.MakeFieldResolveResponse(driverResp)
 				}
 			}
 		}
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
+		resp = &protoMessages.FieldResolveResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
 		}
 	}
 	return resp

@@ -41,12 +41,15 @@ type subscriptionHandler struct {
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
 	ctx, cancel := context.WithTimeout(s.ctx, time.Second*30)
 	defer cancel()
+	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
+	ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
 	params := graphql.Params{
 		Schema:         *s.schema,
 		RequestString:  s.sub.Context.Query,
 		VariableValues: s.sub.Context.VariableValues,
 		OperationName:  s.sub.Context.OperationName,
 		Context:        ctx,
+		RootObject:     s.rootObject,
 	}
 	return graphql.Do(params)
 }
@@ -269,7 +272,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			pretty:     h.pretty,
 			schema:     h.Schema,
 			sub:        sub,
-			ctx:        params.Context,
+			ctx:        ctx,
 			rootObject: params.RootObject,
 		}
 		subHandler.Handle(conn)

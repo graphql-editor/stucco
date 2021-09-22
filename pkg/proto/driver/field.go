@@ -56,14 +56,19 @@ func MakeFieldResolveRequest(input driver.FieldResolveInput) (r *protoMessages.F
 	if err != nil {
 		return
 	}
+	subscriptionPayload, err := anyToValue(input.SubscriptionPayload)
+	if err != nil {
+		return
+	}
 	r = &protoMessages.FieldResolveRequest{
 		Function: &protoMessages.Function{
 			Name: input.Function.Name,
 		},
-		Source:    source,
-		Info:      info,
-		Arguments: args,
-		Protocol:  protocol,
+		Source:              source,
+		Info:                info,
+		Arguments:           args,
+		Protocol:            protocol,
+		SubscriptionPayload: subscriptionPayload,
 	}
 	return
 }
@@ -120,6 +125,10 @@ func MakeFieldResolveInput(input *protoMessages.FieldResolveRequest) (f driver.F
 	if err != nil {
 		return
 	}
+	subscriptionPayload, err := valueToAny(nil, input.GetSubscriptionPayload())
+	if err != nil {
+		return
+	}
 	info, err := makeDriverFieldResolveInfo(input.GetInfo())
 	if err != nil {
 		return
@@ -132,16 +141,17 @@ func MakeFieldResolveInput(input *protoMessages.FieldResolveRequest) (f driver.F
 		Function: types.Function{
 			Name: input.GetFunction().GetName(),
 		},
-		Source:    source,
-		Info:      info,
-		Arguments: args,
-		Protocol:  protocol,
+		Source:              source,
+		Info:                info,
+		Arguments:           args,
+		Protocol:            protocol,
+		SubscriptionPayload: subscriptionPayload,
 	}
 	return
 }
 
 // MakeFieldResolveResponse creates a protoMessages.FieldResolveResponse from a value
-func MakeFieldResolveResponse(resp interface{}) protoMessages.FieldResolveResponse {
+func MakeFieldResolveResponse(resp interface{}) *protoMessages.FieldResolveResponse {
 	protoResponse := protoMessages.FieldResolveResponse{}
 	v, err := anyToValue(resp)
 	if err == nil {
@@ -151,5 +161,5 @@ func MakeFieldResolveResponse(resp interface{}) protoMessages.FieldResolveRespon
 			Msg: err.Error(),
 		}
 	}
-	return protoResponse
+	return &protoResponse
 }
