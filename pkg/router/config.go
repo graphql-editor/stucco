@@ -91,16 +91,18 @@ type SecretsConfig struct {
 
 // Config is a router configuration mapping defined endpoints with thier runtime config
 type Config struct {
-	Environment   Environment                `json:"environment"`   // Environment is a default config of a router
-	Interfaces    map[string]InterfaceConfig `json:"interfaces"`    // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
-	Resolvers     map[string]ResolverConfig  `json:"resolvers"`     // Resolvers is a map of FaaS function configs used in resolution
-	Scalars       map[string]ScalarConfig    `json:"scalars"`       // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
-	Schema        string                     `json:"schema"`        // String with GraphQL schema or an URL to the schema
-	Unions        map[string]UnionConfig     `json:"unions"`        // Unions is a map of FaaS function configs used in determining concrete type of an union
-	Secrets       SecretsConfig              `json:"secrets"`       // Secrets is a map of references to secrets
-	Subscriptions SubscriptionConfig         `json:"subscriptions"` // Configure subscription behaviour
+	Environment         Environment                   `json:"environment"`         // Environment is a default config of a router
+	Interfaces          map[string]InterfaceConfig    `json:"interfaces"`          // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
+	Resolvers           map[string]ResolverConfig     `json:"resolvers"`           // Resolvers is a map of FaaS function configs used in resolution
+	Scalars             map[string]ScalarConfig       `json:"scalars"`             // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
+	Schema              string                        `json:"schema"`              // String with GraphQL schema or an URL to the schema
+	Unions              map[string]UnionConfig        `json:"unions"`              // Unions is a map of FaaS function configs used in determining concrete type of an union
+	Secrets             SecretsConfig                 `json:"secrets"`             // Secrets is a map of references to secrets
+	Subscriptions       SubscriptionConfig            `json:"subscriptions"`       // Configure subscription behaviour
+	SubscriptionConfigs map[string]SubscriptionConfig `json:"subscriptionConfigs"` // Configure subscription behaviour per field
 }
 
+// AddResolver creates a new resolver mapping in config
 func (c *Config) AddResolver(rsv, fn string) {
 	if c.Resolvers == nil {
 		c.Resolvers = make(map[string]ResolverConfig)
@@ -112,6 +114,7 @@ func (c *Config) AddResolver(rsv, fn string) {
 	}
 }
 
+// AddInterface creates a new interface resolve type mapping in config
 func (c *Config) AddInterface(intrf, fn string) {
 	if c.Interfaces == nil {
 		c.Interfaces = make(map[string]InterfaceConfig)
@@ -123,6 +126,7 @@ func (c *Config) AddInterface(intrf, fn string) {
 	}
 }
 
+// AddScalar creates a new mapping for scalar parse and serialization
 func (c *Config) AddScalar(sclr, parse string, serialize string) {
 	if c.Scalars == nil {
 		c.Scalars = make(map[string]ScalarConfig)
@@ -137,6 +141,7 @@ func (c *Config) AddScalar(sclr, parse string, serialize string) {
 	}
 }
 
+// AddUnion creates a new mapping for union resolve type
 func (c *Config) AddUnion(union, fn string) {
 	if c.Unions == nil {
 		c.Unions = make(map[string]UnionConfig)
@@ -148,6 +153,7 @@ func (c *Config) AddUnion(union, fn string) {
 	}
 }
 
+// AddSchema adds a schema source
 func (c *Config) AddSchema(schema string) {
 	c.Schema = schema
 }

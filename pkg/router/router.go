@@ -15,13 +15,14 @@ import (
 
 // Router dispatches defined functions to a driver that handles them
 type Router struct {
-	Interfaces    map[string]InterfaceConfig // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
-	Resolvers     map[string]ResolverConfig  // Resolvers is a map of FaaS function configs used in resolution
-	Scalars       map[string]ScalarConfig    // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
-	Unions        map[string]UnionConfig     // Unions is a map of FaaS function configs used in determining concrete type of an union
-	Schema        graphql.Schema             // Parsed schema
-	Secrets       SecretsConfig              // Secrets is a map of secret references
-	Subscriptions SubscriptionConfig
+	Interfaces          map[string]InterfaceConfig    // Interfaces is a map of FaaS function configs used in determining concrete type of an interface
+	Resolvers           map[string]ResolverConfig     // Resolvers is a map of FaaS function configs used in resolution
+	Scalars             map[string]ScalarConfig       // Scalars is a map of FaaS function configs used in parsing and serializing custom scalars
+	Unions              map[string]UnionConfig        // Unions is a map of FaaS function configs used in determining concrete type of an union
+	Schema              graphql.Schema                // Parsed schema
+	Secrets             SecretsConfig                 // Secrets is a map of secret references
+	Subscriptions       SubscriptionConfig            // global subscription config
+	SubscriptionConfigs map[string]SubscriptionConfig // subscription config per subscription field
 }
 
 func (r *Router) bindInterfaces(c *parser.Config) error {
@@ -182,10 +183,36 @@ func (r *Router) load(c Config) error {
 		if err != nil {
 			return err
 		}
-		r.Schema.AddExtensions(&SubscribeExtension{
-			router: r,
-			dri:    dri,
-		})
+		ext, err := newSubscriptionExtension(c.Subscriptions, r, dri)
+		if err != nil {
+			return err
+		}
+		r.SubscriptionConfigs = c.SubscriptionConfigs
+		for k, v := range r.SubscriptionConfigs {
+			ext.Exclude(k)
+			fenv := newEnvironment(v.Environment, *env)
+			ndri := dri
+			if fenv.Provider != env.Provider || fenv.Runtime != env.Runtime {
+				ndri, err = r.getDriver(driver.Config{
+					Provider: fenv.Provider,
+					Runtime:  fenv.Runtime,
+				})
+			}
+			if err == nil {
+				var fext subscribeExtension
+				if v.Kind == DefaultSubscription {
+					v.Kind = c.Subscriptions.Kind
+				}
+				if fext, err = newSubscriptionExtension(v, r, ndri); err == nil {
+					fext.Include(k)
+					r.Schema.AddExtensions(fext)
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+		r.Schema.AddExtensions(ext)
 	}
 	return nil
 }
@@ -212,6 +239,7 @@ type SubscribeContext struct {
 	OperationDefinition *types.OperationDefinition      `json:"operationDefinition,omitempty"`
 	IsSubscription      bool                            `json:"-"`
 	Reader              driver.SubscriptionListenReader `json:"-"`
+	info                *graphql.ResolveInfo            `json:"-"`
 	formattedErr        []gqlerrors.FormattedError
 	err                 error
 }
@@ -225,31 +253,53 @@ const subscriptionExtensionKey subscriptionExtensionKeyType = "subscriptionExten
 // but short circuts the execution returning a custom result that should further be
 // processed.
 type SubscribeExtension struct {
-	router *Router
-	dri    driver.Driver
+	router  *Router
+	dri     driver.Driver
+	include []string
+	exclude []string
+}
+
+// Include field in handling
+func (s *SubscribeExtension) Include(f string) {
+	s.include = append(s.include, f)
+}
+
+// Exclude field from handling
+func (s *SubscribeExtension) Exclude(f string) {
+	s.exclude = append(s.exclude, f)
 }
 
 // Init implements graphql.Extension
 func (s *SubscribeExtension) Init(ctx context.Context, p *graphql.Params) context.Context {
-	return context.WithValue(ctx, subscriptionExtensionKey, &SubscribeContext{
-		Query:          p.RequestString,
-		VariableValues: p.VariableValues,
-		OperationName:  p.OperationName,
-	})
+	if ctx.Value(subscriptionExtensionKey) == nil {
+		ctx = context.WithValue(ctx, subscriptionExtensionKey, &SubscribeContext{
+			Query:          p.RequestString,
+			VariableValues: p.VariableValues,
+			OperationName:  p.OperationName,
+		})
+	}
+	return ctx
 }
 
-// Name of the subscription extension
-func (s *SubscribeExtension) Name() string {
-	switch s.router.Subscriptions.Kind {
-	case ExternalSubscription:
-		return "subscriptionExternal"
-	case RedirectSubscription:
-		return "subscriptionRedirect"
-	case DefaultSubscription, BlockingSubscription:
-		fallthrough
-	default:
-		return "subscriptionBlocking"
+func (s *SubscribeExtension) handle(ctx *SubscribeContext) bool {
+	if ctx.err != nil || len(ctx.formattedErr) > 0 {
+		return false
 	}
+	fn := s.fieldName(ctx)
+	if len(s.include) == 0 {
+		for _, v := range s.exclude {
+			if fn == v {
+				return false
+			}
+		}
+		return true
+	}
+	for _, v := range s.include {
+		if fn == v {
+			return true
+		}
+	}
+	return false
 }
 
 // ParseDidStart implements graphql.Extension
@@ -272,9 +322,14 @@ func (s *SubscribeExtension) ValidationDidStart(ctx context.Context) (context.Co
 func (s *SubscribeExtension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
 	return ctx, func(r *graphql.Result) {
 		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-		if subCtx.IsSubscription && subCtx.err == nil && len(subCtx.formattedErr) == 0 {
+		if subCtx.IsSubscription && s.handle(subCtx) {
 			r.Data = nil
 			r.Errors = nil
+			if len(subCtx.formattedErr) != 0 {
+				r.Errors = subCtx.formattedErr
+			} else if subCtx.err != nil {
+				r.Errors = gqlerrors.FormatErrors(graphql.NewLocatedError(subCtx.err, []ast.Node{}))
+			}
 		}
 	}
 }
@@ -282,16 +337,20 @@ func (s *SubscribeExtension) ExecutionDidStart(ctx context.Context) (context.Con
 // ResolveFieldDidStart implements graphql.Extension
 // Hijacks the resolution of root subscription fields
 func (s *SubscribeExtension) ResolveFieldDidStart(ctx context.Context, info *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
-	isSubscription := info.Path.Prev == nil &&
-		s.router.Schema.SubscriptionType().Name() == info.ParentType.Name()
-	rawSubscription, ok := ctx.Value(RawSubscriptionKey).(bool)
-	rawSubscription = ok && rawSubscription
+	isSubscription := info.Path != nil &&
+		info.Path.Prev == nil &&
+		info.Operation != nil &&
+		info.Operation.GetOperation() == "subscription"
+	rawSubscription, _ := ctx.Value(RawSubscriptionKey).(bool)
 	if !rawSubscription && isSubscription {
 		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
 		subCtx.IsSubscription = true
-		if subCtx.OperationDefinition == nil && info.Operation != nil {
-			op := info.Operation.(*ast.OperationDefinition)
-			subCtx.OperationDefinition = makeOperationDefinition(op, info.Fragments)
+		op, ok := info.Operation.(*ast.OperationDefinition)
+		if ok && subCtx.OperationDefinition == nil && info.Operation != nil {
+			subCtx.info = info
+			if s.handle(subCtx) {
+				subCtx.OperationDefinition = makeOperationDefinition(op, info.Fragments)
+			}
 		}
 	}
 	return ctx, func(v interface{}, err error) {}
@@ -300,7 +359,28 @@ func (s *SubscribeExtension) ResolveFieldDidStart(ctx context.Context, info *gra
 // HasResult implements graphql.Extension
 func (s *SubscribeExtension) HasResult(ctx context.Context) bool {
 	subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-	return subCtx.IsSubscription
+	return subCtx.IsSubscription && s.handle(subCtx)
+}
+
+func (s *SubscribeExtension) fieldName(ctx *SubscribeContext) string {
+	op, ok := ctx.info.Operation.(*ast.OperationDefinition)
+	if !ok {
+		return ""
+	}
+	return op.SelectionSet.Selections[0].(*ast.Field).Name.Value
+}
+
+func (s *SubscribeExtension) subscriptionConfig(ctx *SubscribeContext) (SubscriptionConfig, error) {
+	if cfg, ok := s.router.SubscriptionConfigs[s.fieldName(ctx)]; ok {
+		if len(ctx.OperationDefinition.SelectionSet) > 1 {
+			return SubscriptionConfig{}, errors.New("only one field on subscription supported with separate configs")
+		}
+		if cfg.Kind == DefaultSubscription {
+			cfg.Kind = s.router.Subscriptions.Kind
+		}
+		return cfg, nil
+	}
+	return s.router.Subscriptions, nil
 }
 
 type nopCloserWriter struct {
@@ -311,58 +391,124 @@ func (w nopCloserWriter) Close() error {
 	return nil
 }
 
-// BlockingSubscriptionPayload returns data for blocking subscriptions to be handled by external protocol
+// BlockingSubscriptionPayload returns data for blocking subscriptions to be handled by blocking protocol
 type BlockingSubscriptionPayload struct {
 	Context SubscribeContext
 	Reader  driver.SubscriptionListenReader
 }
 
-func (s *SubscribeExtension) internalSubscription(ctx *SubscribeContext) driver.SubscriptionListenOutput {
-	out := s.dri.SubscriptionListen(driver.SubscriptionListenInput{
-		Function:       s.router.Subscriptions.Listen,
-		Query:          ctx.Query,
-		VariableValues: ctx.VariableValues,
-		OperationName:  ctx.OperationName,
-		Operation:      ctx.OperationDefinition,
-	})
-	return out
+// BlockingSubscriptionExtension is a blocking subscription extension
+type BlockingSubscriptionExtension struct {
+	SubscribeExtension
 }
 
-func (s *SubscribeExtension) externalSubscription(ctx *SubscribeContext) driver.SubscriptionConnectionOutput {
-	if s.router.Subscriptions.CreateConnection.Name == "" {
-		panic("connection create function required for external subscription")
+// Name implements graphql.Extension
+func (b *BlockingSubscriptionExtension) Name() string {
+	return "subscriptionBlocking"
+}
+
+func (b *BlockingSubscriptionExtension) kind() SubscriptionKind {
+	return BlockingSubscription
+}
+
+func (b *BlockingSubscriptionExtension) internalSubscription(ctx *SubscribeContext) (driver.SubscriptionListenOutput, error) {
+	dri := b.dri
+	cfg, err := b.subscriptionConfig(ctx)
+	var out driver.SubscriptionListenOutput
+	if err == nil {
+		out = dri.SubscriptionListen(driver.SubscriptionListenInput{
+			Function:       cfg.Listen,
+			Query:          ctx.Query,
+			VariableValues: ctx.VariableValues,
+			OperationName:  ctx.OperationName,
+			Operation:      ctx.OperationDefinition,
+		})
 	}
-	return s.dri.SubscriptionConnection(driver.SubscriptionConnectionInput{
-		Function:       s.router.Subscriptions.CreateConnection,
-		Query:          ctx.Query,
-		VariableValues: ctx.VariableValues,
-		OperationName:  ctx.OperationName,
-	})
+	return out, err
 }
 
 // GetResult implements graphql.Extension
-func (s *SubscribeExtension) GetResult(ctx context.Context) interface{} {
+func (b *BlockingSubscriptionExtension) GetResult(ctx context.Context) interface{} {
 	subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-	switch s.router.Subscriptions.Kind {
-	case DefaultSubscription, BlockingSubscription:
-		out := s.internalSubscription(subCtx)
-		if out.Error != nil {
-			subCtx.err = errors.New(out.Error.Message)
-			panic(out.Error.Message)
+	tout, err := b.internalSubscription(subCtx)
+	if err != nil || tout.Error != nil {
+		if err == nil {
+			err = errors.New(tout.Error.Message)
 		}
-		return BlockingSubscriptionPayload{
-			Context: *subCtx,
-			Reader:  out.Reader,
-		}
-	case ExternalSubscription:
-		out := s.externalSubscription(subCtx)
-		if out.Error != nil {
-			subCtx.err = errors.New(out.Error.Message)
-			panic(out.Error.Message)
-		}
-		return out
-	case RedirectSubscription:
-		panic("redirect subscription not implemented yet")
+		panic(err)
 	}
-	panic("unsupported subscription kind")
+	return BlockingSubscriptionPayload{
+		Reader:  tout.Reader,
+		Context: *subCtx,
+	}
+}
+
+// ExternalSubscriptionExtension is a blocking subscription extension
+type ExternalSubscriptionExtension struct {
+	SubscribeExtension
+}
+
+// Name implements graphql.Extension
+func (e *ExternalSubscriptionExtension) Name() string {
+	return "subscriptionExternal"
+}
+
+func (e *ExternalSubscriptionExtension) kind() SubscriptionKind {
+	return ExternalSubscription
+}
+
+func (e *ExternalSubscriptionExtension) externalSubscription(ctx *SubscribeContext) (driver.SubscriptionConnectionOutput, error) {
+	dri := e.dri
+	cfg, err := e.subscriptionConfig(ctx)
+	if err == nil && cfg.CreateConnection.Name == "" {
+		err = errors.New("connection create function required for external subscription")
+	}
+	var out driver.SubscriptionConnectionOutput
+	if err == nil {
+		out = dri.SubscriptionConnection(driver.SubscriptionConnectionInput{
+			Function:       cfg.CreateConnection,
+			Query:          ctx.Query,
+			VariableValues: ctx.VariableValues,
+			OperationName:  ctx.OperationName,
+		})
+	}
+	return out, err
+}
+
+// GetResult implements graphql.Extension
+func (e *ExternalSubscriptionExtension) GetResult(ctx context.Context) interface{} {
+	subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
+	tout, err := e.externalSubscription(subCtx)
+	if err != nil || tout.Error != nil {
+		if err == nil {
+			err = errors.New(tout.Error.Message)
+		}
+		panic(err)
+	}
+	return tout
+}
+
+type subscribeExtension interface {
+	graphql.Extension
+	Exclude(string)
+	Include(string)
+}
+
+func newSubscriptionExtension(cfg SubscriptionConfig, r *Router, dri driver.Driver) (subscribeExtension, error) {
+	ext := SubscribeExtension{
+		router: r,
+		dri:    dri,
+	}
+	switch cfg.Kind {
+	case DefaultSubscription, BlockingSubscription:
+		return &BlockingSubscriptionExtension{
+			SubscribeExtension: ext,
+		}, nil
+	case ExternalSubscription:
+		return &ExternalSubscriptionExtension{
+			SubscribeExtension: ext,
+		}, nil
+	default:
+		return nil, errors.New("this subscription kind is not implemented yet")
+	}
 }

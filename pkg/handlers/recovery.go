@@ -1,6 +1,9 @@
 package handlers
 
-import "net/http"
+import (
+	"net/http"
+	"runtime/debug"
+)
 
 // ErrorLog used by recovery handler
 type ErrorLog interface {
@@ -15,6 +18,7 @@ func RecoveryHandler(next http.Handler, logger ErrorLog) http.Handler {
 			if err != nil {
 				if logger != nil {
 					logger.Errorf("%v\n", err)
+					logger.Errorf("%s\n", debug.Stack())
 				}
 				rw.Header().Set("Content-Type", "text/plain")
 				rw.WriteHeader(http.StatusInternalServerError)
