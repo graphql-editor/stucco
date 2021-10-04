@@ -78,34 +78,79 @@ func appendRuntimeFiles(files []runtimes.File, w *zip.Writer, projectDir, prefix
 	}
 }
 
+type functionList interface {
+	functions() []types.Function
+}
+
+type interfaceResolveTypeFunctionList map[string]router.InterfaceConfig
+
+func (i interfaceResolveTypeFunctionList) functions() []types.Function {
+	ret := make([]types.Function, len(i))
+	for _, v := range i {
+		ret = append(ret, v.ResolveType)
+	}
+	return ret
+}
+
+type resolveFunctionList map[string]router.ResolverConfig
+
+func (r resolveFunctionList) functions() []types.Function {
+	ret := make([]types.Function, len(r))
+	for _, v := range r {
+		ret = append(ret, v.Resolve)
+	}
+	return ret
+}
+
+type scalarsFunctionList map[string]router.ScalarConfig
+
+func (s scalarsFunctionList) functions() []types.Function {
+	ret := make([]types.Function, len(s))
+	for _, v := range s {
+		ret = append(ret, v.Serialize)
+		ret = append(ret, v.Parse)
+	}
+	return ret
+}
+
+type unionFunctionList map[string]router.UnionConfig
+
+func (u unionFunctionList) functions() []types.Function {
+	ret := make([]types.Function, len(u))
+	for _, v := range u {
+		ret = append(ret, v.ResolveType)
+	}
+	return ret
+}
+
+type subscriptionFunctionList map[string]router.SubscriptionConfig
+
+func (s subscriptionFunctionList) functions() []types.Function {
+	ret := make([]types.Function, len(s))
+	for _, v := range s {
+		ret = append(ret, v.CreateConnection)
+		ret = append(ret, v.Listen)
+	}
+	return ret
+}
+
 func appendAllRuntimeFiles(cfg router.Config, rt runtimeConfig, w *zip.Writer, projectDir, prefix string) {
-	var functions []types.Function
-	skip := func(f types.Function) bool {
-		return f.Name == "" || sort.Search(len(functions), func(i int) bool {
+	functions := interfaceResolveTypeFunctionList(cfg.Interfaces).functions()
+	functions = append(functions, resolveFunctionList(cfg.Resolvers).functions()...)
+	functions = append(functions, scalarsFunctionList(cfg.Scalars).functions()...)
+	functions = append(functions, unionFunctionList(cfg.Unions).functions()...)
+	functions = append(functions, subscriptionFunctionList(map[string]router.SubscriptionConfig{
+		"": cfg.Subscriptions,
+	}).functions()...)
+	functions = append(functions, subscriptionFunctionList(cfg.SubscriptionConfigs).functions()...)
+	for i := 0; i < len(functions); i++ {
+		f := functions[i]
+		// Remove empty functions and repetitions
+		if f.Name == "" || sort.Search(i, func(i int) bool {
 			return f.Name == functions[i].Name
-		}) != len(functions)
-	}
-	for _, v := range cfg.Interfaces {
-		if !skip(v.ResolveType) {
-			functions = append(functions, v.ResolveType)
-		}
-	}
-	for _, v := range cfg.Resolvers {
-		if !skip(v.Resolve) {
-			functions = append(functions, v.Resolve)
-		}
-	}
-	for _, v := range cfg.Scalars {
-		if !skip(v.Parse) {
-			functions = append(functions, v.Parse)
-		}
-		if !skip(v.Serialize) {
-			functions = append(functions, v.Serialize)
-		}
-	}
-	for _, v := range cfg.Unions {
-		if !skip(v.ResolveType) {
-			functions = append(functions, v.ResolveType)
+		}) != i {
+			functions = append(functions[:i], functions[i+1:]...)
+			i--
 		}
 	}
 	globalFiles, err := rt.GlobalFiles()
