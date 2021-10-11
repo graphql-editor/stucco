@@ -5,6 +5,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
+	"github.com/graphql-go/graphql/language/kinds"
 	"github.com/graphql-go/graphql/language/parser"
 )
 
@@ -268,13 +269,32 @@ func (p *Parser) mergeExtensions() (err error) {
 	return
 }
 
+func toRootTypeDefinition(def ast.Definition, op string) *rootOperation {
+	var rt *rootOperation
+	if d, ok := def.(*ast.ObjectDefinition); ok {
+		rt = &rootOperation{
+			Kind:      kinds.OperationTypeDefinition,
+			Operation: op,
+			Type: &ast.Named{
+				Kind: kinds.ObjectDefinition,
+				Loc:  d.Loc,
+				Name: d.Name,
+			},
+			Loc: d.Loc,
+		}
+	}
+	return rt
+}
+
 func (p *Parser) analyzeDocument() (err error) {
 	// first pass, merge extensions
 	if err = p.mergeExtensions(); err == nil {
 		// second pass, gather definitions
+		var schemaDefinition *ast.SchemaDefinition
 		for i := 0; err == nil && i < len(p.document.Definitions); i++ {
 			switch v := p.document.Definitions[i].(type) {
 			case *ast.SchemaDefinition:
+				schemaDefinition = v
 				p.schema = analyzeSchema(v)
 			case namedDefinition:
 				err = p.addDefinition(v.GetName().Value, v)
@@ -282,6 +302,11 @@ func (p *Parser) analyzeDocument() (err error) {
 			if err != nil {
 				return
 			}
+		}
+		if schemaDefinition == nil && len(p.definitions) > 0 {
+			p.schema.Query = toRootTypeDefinition(p.definitions["Query"], "query")
+			p.schema.Mutation = toRootTypeDefinition(p.definitions["Mutation"], "mutation")
+			p.schema.Subscription = toRootTypeDefinition(p.definitions["Subscription"], "subscription")
 		}
 	}
 	return
