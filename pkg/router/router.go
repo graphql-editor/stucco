@@ -23,6 +23,7 @@ type Router struct {
 	Secrets             SecretsConfig                 // Secrets is a map of secret references
 	Subscriptions       SubscriptionConfig            // global subscription config
 	SubscriptionConfigs map[string]SubscriptionConfig // subscription config per subscription field
+	MaxDepth            int                           // allow limiting max depth of GraphQL recursion
 }
 
 func (r *Router) bindInterfaces(c *parser.Config) error {
@@ -54,7 +55,11 @@ func (r *Router) bindResolvers(c *parser.Config) error {
 		if err != nil {
 			return err
 		}
-		c.Resolvers[k] = Dispatch{dri, &r.Schema}.FieldResolve(rs)
+		c.Resolvers[k] = Dispatch{
+			Driver:   dri,
+			TypeMap:  &r.Schema,
+			MaxDepth: r.MaxDepth,
+		}.FieldResolve(rs)
 	}
 	return nil
 }
@@ -226,6 +231,7 @@ func NewRouter(c Config) (Router, error) {
 		Scalars:       make(map[string]ScalarConfig, len(c.Scalars)),
 		Unions:        make(map[string]UnionConfig, len(c.Unions)),
 		Subscriptions: c.Subscriptions,
+		MaxDepth:      c.MaxDepth,
 	}
 	err := r.load(c)
 	return r, err

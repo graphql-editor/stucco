@@ -50,6 +50,7 @@ func (d *DriverKind) UnmarshalJSON(b []byte) (err error) {
 	return
 }
 
+// MarshalJSON implements json.Marshaler
 func (d DriverKind) MarshalJSON() (b []byte, err error) {
 	var s string
 	switch d {
@@ -327,7 +328,7 @@ func (s *Server) ListenAndServe() error {
 		Addr:    s.Addr,
 		Handler: &mux,
 	}
-	c := make(chan os.Signal)
+	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
 	go func() {
 		<-c

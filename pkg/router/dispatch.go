@@ -35,7 +35,8 @@ type TypeMap interface {
 // Dispatch executes a resolution through a driver
 type Dispatch struct {
 	driver.Driver
-	TypeMap TypeMap
+	TypeMap  TypeMap
+	MaxDepth int // Maximum depth for GraphQL recursion
 }
 
 func assertTypeRef(t *types.TypeRef) types.TypeRef {
@@ -213,9 +214,27 @@ func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
 	return info
 }
 
+func (d Dispatch) checkDepth(params graphql.ResolveParams) error {
+	var err error
+	if d.MaxDepth >= 0 {
+		depth := 0
+		path := params.Info.Path
+		for ; path != nil && depth <= d.MaxDepth; depth++ {
+			path = path.Prev
+		}
+		if depth > d.MaxDepth {
+			err = errors.New("maximum recursion depth reached")
+		}
+	}
+	return err
+}
+
 // FieldResolve creates a function that calls implementation of field resolution through driver
 func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
 	return func(params graphql.ResolveParams) (interface{}, error) {
+		if err := d.checkDepth(params); err != nil {
+			return nil, err
+		}
 		// short circuit subscription call
 		if params.Context != nil {
 			subCtx, ok := params.Context.Value(subscriptionExtensionKey).(*SubscribeContext)

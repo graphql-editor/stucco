@@ -100,6 +100,7 @@ type Config struct {
 	Secrets             SecretsConfig                 `json:"secrets"`             // Secrets is a map of references to secrets
 	Subscriptions       SubscriptionConfig            `json:"subscriptions"`       // Configure subscription behaviour
 	SubscriptionConfigs map[string]SubscriptionConfig `json:"subscriptionConfigs"` // Configure subscription behaviour per field
+	MaxDepth            int                           `json:"maxDepth,omitempty"`
 }
 
 // AddResolver creates a new resolver mapping in config
