@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -79,6 +80,7 @@ type azureDefaults struct {
 	schema        string
 	config        string
 	worker        string
+	maxDepth      int
 }
 
 var defaults = func() azureDefaults {
@@ -90,6 +92,14 @@ var defaults = func() azureDefaults {
 	if val, ok := os.LookupEnv("STUCCO_AZURE_WORKER_BASE_URL"); ok {
 		worker = val
 	}
+	maxDepth := int64(0)
+	if maxDepthEnv := os.Getenv("STUCCO_AZURE_WORKER_MAX_DEPTH"); maxDepthEnv != "" {
+		var err error
+		maxDepth, err = strconv.ParseInt(maxDepthEnv, 10, 32)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 	return azureDefaults{
 		listenAddress: ":" + listenPort,
 		storage: storageDefaults{
@@ -98,9 +108,10 @@ var defaults = func() azureDefaults {
 			connectionString: os.Getenv("AzureWebJobsStorage"),
 			stuccoFiles:      os.Getenv("STUCCO_AZURE_CONTAINER"),
 		},
-		schema: os.Getenv("STUCCO_SCHEMA"),
-		config: os.Getenv("STUCCO_CONFIG"),
-		worker: worker,
+		schema:   os.Getenv("STUCCO_SCHEMA"),
+		config:   os.Getenv("STUCCO_CONFIG"),
+		worker:   worker,
+		maxDepth: int(maxDepth),
 	}
 }()
 
@@ -116,6 +127,7 @@ func NewStartCommand() *cobra.Command {
 	var saStuccoFiles string
 	var cert string
 	var key string
+	var maxDepth int
 	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Run azure router",
@@ -133,6 +145,9 @@ func NewStartCommand() *cobra.Command {
 			}
 			if schema != "" {
 				cfg.Schema = schema
+			}
+			if maxDepth != 0 {
+				cfg.MaxDepth = maxDepth
 			}
 			var azureAttribs map[string]interface{}
 			if cert != "" || key != "" {
@@ -164,7 +179,7 @@ func NewStartCommand() *cobra.Command {
 			}
 			srv := server.Server{
 				Handler: h,
-				Addr:    defaults.listenAddress,
+				Addr:    listen,
 			}
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Fatal(err)
@@ -181,5 +196,6 @@ func NewStartCommand() *cobra.Command {
 	startCommand.Flags().StringVar(&saStuccoFiles, "stucco-files-container", defaults.storage.stuccoFiles, "A name of container with stucco files in Azure Storage")
 	startCommand.Flags().StringVar(&cert, "cert", "", "Certficate for client cert auth")
 	startCommand.Flags().StringVar(&key, "key", "", "Key for client cert auth")
+	startCommand.Flags().IntVar(&maxDepth, "max-depth", defaults.maxDepth, "Limit GraphQL recursion")
 	return startCommand
 }
