@@ -30,12 +30,12 @@ import (
 	"encoding/binary"
 	math_rand "math/rand"
 
-	"github.com/graphql-editor/stucco/stucco/cmd"
-	azurecmd "github.com/graphql-editor/stucco/stucco/cmd/azure"
-	localcmd "github.com/graphql-editor/stucco/stucco/cmd/local"
+	"github.com/graphql-editor/stucco/cmd"
+	azurecmd "github.com/graphql-editor/stucco/cmd/azure"
+	localcmd "github.com/graphql-editor/stucco/cmd/local"
 	"github.com/spf13/cobra"
 
-	configcmd "github.com/graphql-editor/stucco/stucco/cmd/config"
+	configcmd "github.com/graphql-editor/stucco/cmd/config"
 )
 
 func seed() {

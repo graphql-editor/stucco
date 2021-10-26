@@ -176,13 +176,6 @@ func versionBump(bumpType versionBumpType) func() error {
 	}
 }
 
-func generateProto() error {
-	if err := os.Chdir("pkg/proto"); err != nil {
-		return err
-	}
-	return gbtb.CommandJob("protoc", "-I", ".", "driver.proto", "--go_out=plugins=grpc:.")()
-}
-
 func testPackages() ([]string, error) {
 	b, err := gbtb.Output("go", "list", "./...")
 	if err != nil {
@@ -284,7 +277,7 @@ func xBuildCommandLine(f flavour, bv string) func() error {
 		if bv != "" {
 			opts = append(opts, ldflags(bv))
 		}
-		opts = append(opts, "./stucco/main.go")
+		opts = append(opts, "./main.go")
 		cmd := exec.Command("go", opts...)
 		cmd.Env = append(cmd.Env, append([]string{
 			"GOARCH=" + f.goarch,
@@ -450,10 +443,6 @@ func main() {
 		&gbtb.Task{
 			Name: "bump-major",
 			Job:  versionBump(major),
-		},
-		&gbtb.Task{
-			Name: "generate-proto",
-			Job:  generateProto,
 		},
 		&gbtb.Task{
 			Name: "test",
