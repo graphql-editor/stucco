@@ -216,7 +216,7 @@ func buildFieldInfoParams(params graphql.ResolveInfo) driver.FieldResolveInfo {
 
 func (d Dispatch) checkDepth(params graphql.ResolveParams) error {
 	var err error
-	if d.MaxDepth >= 0 {
+	if d.MaxDepth > 0 {
 		depth := 0
 		path := params.Info.Path
 		for ; path != nil && depth <= d.MaxDepth; depth++ {
