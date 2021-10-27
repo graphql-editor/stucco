@@ -4,6 +4,7 @@ package vars
 type Release struct {
 	Host       string
 	DevVersion string
+	Version    string
 }
 
 // Vars meta variables relating to stucco itself
