@@ -7,7 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/graphql-editor/stucco/pkg/providers/azure/project"
+	"github.com/graphql-editor/stucco/pkg/providers/azure/vars"
 	"github.com/graphql-editor/stucco/pkg/utils"
+	global_vars "github.com/graphql-editor/stucco/pkg/vars"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 )
@@ -20,6 +22,8 @@ func NewZipRouterCommand() *cobra.Command {
 	var key string
 	var output string
 	var insecure bool
+	var ver string
+	var host string
 	zipRouter := &cobra.Command{
 		Use:   "zip-router",
 		Short: "Create router function zip that can be used in azcli to deploy function",
@@ -51,6 +55,16 @@ func NewZipRouterCommand() *cobra.Command {
 				extraFiles = append(extraFiles, utils.ZipData{Filename: "cert.pem", Data: bytes.NewReader(certData)})
 			}
 			var r project.Router
+			if ver != "" || host != "" {
+				r.Vars = &vars.Vars{
+					Vars: global_vars.Vars{
+						Relase: global_vars.Release{
+							Version: ver,
+							Host:    host,
+						},
+					},
+				}
+			}
 			rc, err := r.Zip(extraFiles)
 			if err != nil {
 				klog.Fatal(err)
@@ -87,6 +101,8 @@ func NewZipRouterCommand() *cobra.Command {
 	zipRouter.Flags().StringVar(&key, "key", "key.pem", "key used in http client cert authentication")
 	zipRouter.Flags().StringVar(&cert, "cert", "cert.pem", "cert used in http client cert authentication")
 	zipRouter.Flags().StringVarP(&output, "out", "o", "dist/router.zip", "Router function archive output")
+	zipRouter.Flags().StringVar(&ver, "zip-version", "", "Use specific version of zip as a base")
+	zipRouter.Flags().StringVar(&host, "zip-host", "", "Override router base zip host")
 	zipRouter.Flags().BoolVarP(&insecure, "insecure", "i", false, "Allow zip without certificate files")
 	return zipRouter
 }
