@@ -26,9 +26,11 @@ func (r *Router) FunctionURL() (*url.URL, error) {
 	if v.AzureFunction != "" {
 		return url.Parse(v.AzureFunction)
 	}
-	ver := version.Version
-	if strings.HasPrefix(ver, "dev-") || ver == "" {
-		ver = v.Relase.DevVersion
+	ver := v.Relase.Version
+	if ver == "" {
+		if ver = version.Version; strings.HasPrefix(ver, "dev-") || ver == "" {
+			ver = v.Relase.DevVersion
+		}
 	}
 	return url.Parse("https://" + v.Relase.Host + "/" + ver + "/azure/function.zip")
 }
