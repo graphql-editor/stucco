@@ -26,9 +26,7 @@ const (
 )
 
 const (
-	cdnURL                       = "https://stucco-release.fra1.digitaloceanspaces.com/v%s/%s/%s/stucco%s"
-	stuccoAzureRouterImage       = "gqleditor/stucco-router-azure-worker"
-	stuccoAzureRouterImageLatest = stuccoAzureRouterImage + ":latest"
+	cdnURL = "https://stucco-release.fra1.digitaloceanspaces.com/v%s/%s/%s/stucco%s"
 )
 
 var (
