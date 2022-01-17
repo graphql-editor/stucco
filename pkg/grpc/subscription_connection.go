@@ -54,16 +54,17 @@ func (m *Server) SubscriptionConnection(ctx context.Context, input *protoMessage
 	}()
 	req, err := protodriver.MakeSubscriptionConnectionInput(input)
 	if err == nil {
-		s = new(protoMessages.SubscriptionConnectionResponse)
 		var resp interface{}
 		resp, err = m.SubscriptionConnectionHandler.Handle(req)
 		if err == nil {
-			*s = protodriver.MakeSubscriptionConnectionResponse(resp)
+			s = protodriver.MakeSubscriptionConnectionResponse(resp)
 		}
 	}
 	if err != nil {
-		s.Error = &protoMessages.Error{
-			Msg: err.Error(),
+		s = &protoMessages.SubscriptionConnectionResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
 		}
 	}
 	return

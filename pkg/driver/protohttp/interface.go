@@ -1,10 +1,9 @@
 package protohttp
 
 import (
-	"io/ioutil"
+	"bytes"
 	"net/http"
 
-	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -13,17 +12,15 @@ import (
 // InterfaceResolveType over http
 func (c *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) driver.InterfaceResolveTypeOutput {
 	var out driver.InterfaceResolveTypeOutput
-	req, err := protodriver.MakeInterfaceResolveTypeRequest(input)
+	var body bytes.Buffer
+	err := protodriver.WriteInterfaceResolveTypeInput(&body, input)
 	if err == nil {
-		resp := new(protoMessages.InterfaceResolveTypeResponse)
-		if err = c.do(message{
-			contentType: interfaceResolveTypeRequestMessage,
-			proto:       req,
-		}, message{
-			contentType: interfaceResolveTypeResponseMessage,
-			proto:       resp,
+		var b []byte
+		if b, err = c.do(message{
+			contentType: fieldResolveRequestMessage,
+			b:           body.Bytes(),
 		}); err == nil {
-			out = protodriver.MakeInterfaceResolveTypeOutput(resp)
+			out, err = protodriver.ReadInterfaceResolveTypeOutput(bytes.NewReader(b))
 		}
 	}
 	if err != nil {
@@ -34,29 +31,25 @@ func (c *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) dr
 	return out
 }
 
-func (h *Handler) interfaceResolveType(req *http.Request) *protoMessages.InterfaceResolveTypeResponse {
-	resp := new(protoMessages.InterfaceResolveTypeResponse)
-	protoReq := new(protoMessages.InterfaceResolveTypeRequest)
-	var err error
-	var b []byte
-	if b, err = ioutil.ReadAll(req.Body); err == nil {
-		defer req.Body.Close()
-		if err = protobuf.Unmarshal(b, protoReq); err == nil {
-			var in driver.InterfaceResolveTypeInput
-			in, err = protodriver.MakeInterfaceResolveTypeInput(protoReq)
+func (h *Handler) interfaceResolveType(req *http.Request, rw http.ResponseWriter) error {
+	rw.Header().Add(contentTypeHeader, interfaceResolveTypeResponseMessage.String())
+	in, err := protodriver.ReadInterfaceResolveTypeInput(req.Body)
+	if err == nil {
+		req.Body.Close()
+		if err == nil {
+			var driverResp string
+			driverResp, err = h.InterfaceResolveType(in)
 			if err == nil {
-				var interfaceType string
-				interfaceType, err = h.InterfaceResolveType(in)
-				if err == nil {
-					*resp = protodriver.MakeInterfaceResolveTypeResponse(interfaceType)
-				}
+				err = protodriver.WriteInterfaceResolveTypeOutput(rw, driverResp)
 			}
 		}
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
-		}
+		err = writeProto(rw, &protoMessages.InterfaceResolveTypeResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
+		})
 	}
-	return resp
+	return err
 }

@@ -2,7 +2,10 @@ package protodriver
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/types"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -116,12 +119,63 @@ func MakeInterfaceResolveTypeInput(input *protoMessages.InterfaceResolveTypeRequ
 }
 
 // MakeInterfaceResolveTypeResponse creates new protoMessages.InterfaceResolveTypeResponse from type string
-func MakeInterfaceResolveTypeResponse(resp string) protoMessages.InterfaceResolveTypeResponse {
-	return protoMessages.InterfaceResolveTypeResponse{
+func MakeInterfaceResolveTypeResponse(resp string) *protoMessages.InterfaceResolveTypeResponse {
+	return &protoMessages.InterfaceResolveTypeResponse{
 		Type: &protoMessages.TypeRef{
 			TestTyperef: &protoMessages.TypeRef_Name{
 				Name: resp,
 			},
 		},
 	}
+}
+
+// ReadInterfaceResolveTypeInput reads io.Reader until io.EOF and returs driver.InterfaceResolveTypeInput
+func ReadInterfaceResolveTypeInput(r io.Reader) (driver.InterfaceResolveTypeInput, error) {
+	var err error
+	var b []byte
+	var out driver.InterfaceResolveTypeInput
+	protoMsg := new(protoMessages.InterfaceResolveTypeRequest)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out, err = MakeInterfaceResolveTypeInput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteInterfaceResolveTypeInput writes InterfaceResolveTypeInput into io.Writer
+func WriteInterfaceResolveTypeInput(w io.Writer, input driver.InterfaceResolveTypeInput) error {
+	req, err := MakeInterfaceResolveTypeRequest(input)
+	if err == nil {
+		var b []byte
+		b, err = protobuf.Marshal(req)
+		if err == nil {
+			_, err = w.Write(b)
+		}
+	}
+	return err
+}
+
+// ReadInterfaceResolveTypeOutput reads io.Reader until io.EOF and returs driver.InterfaceResolveTypeOutput
+func ReadInterfaceResolveTypeOutput(r io.Reader) (driver.InterfaceResolveTypeOutput, error) {
+	var err error
+	var b []byte
+	var out driver.InterfaceResolveTypeOutput
+	protoMsg := new(protoMessages.InterfaceResolveTypeResponse)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out = MakeInterfaceResolveTypeOutput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteInterfaceResolveTypeOutput writes InterfaceResolveTypeOutput into io.Writer
+func WriteInterfaceResolveTypeOutput(w io.Writer, r string) error {
+	req := MakeInterfaceResolveTypeResponse(r)
+	b, err := protobuf.Marshal(req)
+	if err == nil {
+		_, err = w.Write(b)
+	}
+	return err
 }

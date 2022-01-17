@@ -57,13 +57,14 @@ func (m *Server) InterfaceResolveType(ctx context.Context, input *protoMessages.
 	if err == nil {
 		var resp string
 		resp, err = m.InterfaceResolveTypeHandler.Handle(req)
-		f = new(protoMessages.InterfaceResolveTypeResponse)
 		if err == nil {
-			*f = protodriver.MakeInterfaceResolveTypeResponse(resp)
+			f = protodriver.MakeInterfaceResolveTypeResponse(resp)
 		}
 	}
 	if err != nil {
-		f.Error = &protoMessages.Error{Msg: err.Error()}
+		f = &protoMessages.InterfaceResolveTypeResponse{
+			Error: &protoMessages.Error{Msg: err.Error()},
+		}
 	}
 	return
 }

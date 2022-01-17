@@ -2,6 +2,7 @@ package protohttp
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	protobuf "github.com/golang/protobuf/proto"
@@ -72,69 +73,53 @@ func (e internalServerError) Write(rw http.ResponseWriter) {
 	}.Write(rw)
 }
 
-func (h *Handler) serveHTTP(req *http.Request) (
-	b []byte,
-	responseContent protobufMessageContentType,
-	herr httpError,
-) {
+func (h *Handler) serveHTTP(req *http.Request, rw http.ResponseWriter) error {
 	messageType, err := getMessageType(req.Header.Get(contentTypeHeader))
 	if err != nil {
-		herr = &badRequest{
+		br := badRequest{
 			msg:  "invalid content type: %s",
 			args: []interface{}{err.Error()},
 		}
-		return
+		br.Write(rw)
+		return nil
 	}
-	var response protobuf.Message
 	switch messageType {
 	case string(fieldResolveRequestMessage):
-		responseContent = fieldResolveResponseMessage
-		response = h.fieldResolve(req)
+		err = h.fieldResolve(req, rw)
 	case string(interfaceResolveTypeRequestMessage):
-		responseContent = interfaceResolveTypeResponseMessage
-		response = h.interfaceResolveType(req)
+		err = h.interfaceResolveType(req, rw)
 	case string(setSecretsRequestMessage):
-		responseContent = setSecretsResponseMessage
-		response = h.setSecrets(req)
+		err = h.setSecrets(req, rw)
 	case string(scalarParseRequestMessage):
-		responseContent = scalarParseResponseMessage
-		response = h.scalarParse(req)
+		err = h.scalarParse(req, rw)
 	case string(scalarSerializeRequestMessage):
-		responseContent = scalarSerializeResponseMessage
-		response = h.scalarSerialize(req)
+		err = h.scalarSerialize(req, rw)
 	case string(unionResolveTypeRequestMessage):
-		responseContent = unionResolveTypeResponseMessage
-		response = h.unionResolveType(req)
+		err = h.unionResolveType(req, rw)
 	case string(subscriptionConnectionRequestMessage):
-		responseContent = subscriptionConnectionResponseMessage
-		response = h.subscriptionConnection(req)
+		err = h.subscriptionConnection(req, rw)
 	default:
-		herr = &badRequest{
-			msg:  "invalid protobuf message type: %s",
-			args: []interface{}{messageType},
-		}
-		return
-	}
-	b, err = protobuf.Marshal(response)
-	if err != nil {
-		herr = &internalServerError{
-			msg:  "%s",
+		br := badRequest{
+			msg:  "invalid content type: %s",
 			args: []interface{}{err.Error()},
 		}
+		br.Write(rw)
+		return nil
 	}
-	return
+	return err
+}
+
+func writeProto(w io.Writer, p protobuf.Message) error {
+	b, err := protobuf.Marshal(p)
+	if err == nil {
+		_, err = w.Write(b)
+	}
+	return err
 }
 
 // ServeHTTP implements http.Handler interface for Protocol Buffer server
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	response, responseContent, err := h.serveHTTP(req)
-	if err != nil {
-		err.Write(rw)
-		return
-	}
-	rw.Header().Add(contentTypeHeader, responseContent.String())
-	rw.WriteHeader(http.StatusOK)
-	if _, err := rw.Write(response); err != nil && h.ErrorLogger != nil {
+	if err := h.serveHTTP(req, rw); h.ErrorLogger != nil {
 		h.ErrorLogger.Error(err)
 	}
 }

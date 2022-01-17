@@ -1,10 +1,9 @@
 package protohttp
 
 import (
-	"io/ioutil"
+	"bytes"
 	"net/http"
 
-	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -13,17 +12,15 @@ import (
 // ScalarParse over http
 func (c *Client) ScalarParse(input driver.ScalarParseInput) driver.ScalarParseOutput {
 	var out driver.ScalarParseOutput
-	req, err := protodriver.MakeScalarParseRequest(input)
+	var body bytes.Buffer
+	err := protodriver.WriteScalarParseInput(&body, input)
 	if err == nil {
-		resp := new(protoMessages.ScalarParseResponse)
-		if err = c.do(message{
-			contentType: scalarParseRequestMessage,
-			proto:       req,
-		}, message{
-			contentType: scalarParseResponseMessage,
-			proto:       resp,
+		var b []byte
+		if b, err = c.do(message{
+			contentType: fieldResolveRequestMessage,
+			b:           body.Bytes(),
 		}); err == nil {
-			out = protodriver.MakeScalarParseOutput(resp)
+			out, err = protodriver.ReadScalarParseOutput(bytes.NewReader(b))
 		}
 	}
 	if err != nil {
@@ -37,17 +34,15 @@ func (c *Client) ScalarParse(input driver.ScalarParseInput) driver.ScalarParseOu
 // ScalarSerialize over http
 func (c *Client) ScalarSerialize(input driver.ScalarSerializeInput) driver.ScalarSerializeOutput {
 	var out driver.ScalarSerializeOutput
-	req, err := protodriver.MakeScalarSerializeRequest(input)
+	var body bytes.Buffer
+	err := protodriver.WriteScalarSerializeInput(&body, input)
 	if err == nil {
-		resp := new(protoMessages.ScalarSerializeResponse)
-		if err = c.do(message{
-			contentType: scalarSerializeRequestMessage,
-			proto:       req,
-		}, message{
-			contentType: scalarSerializeResponseMessage,
-			proto:       resp,
+		var b []byte
+		if b, err = c.do(message{
+			contentType: fieldResolveRequestMessage,
+			b:           body.Bytes(),
 		}); err == nil {
-			out = protodriver.MakeScalarSerializeOutput(resp)
+			out, err = protodriver.ReadScalarSerializeOutput(bytes.NewReader(b))
 		}
 	}
 	if err != nil {
@@ -58,56 +53,48 @@ func (c *Client) ScalarSerialize(input driver.ScalarSerializeInput) driver.Scala
 	return out
 }
 
-func (h *Handler) scalarParse(req *http.Request) *protoMessages.ScalarParseResponse {
-	resp := new(protoMessages.ScalarParseResponse)
-	protoReq := new(protoMessages.ScalarParseRequest)
-	var err error
-	var b []byte
-	if b, err = ioutil.ReadAll(req.Body); err == nil {
-		defer req.Body.Close()
-		if err = protobuf.Unmarshal(b, protoReq); err == nil {
-			var in driver.ScalarParseInput
-			in, err = protodriver.MakeScalarParseInput(protoReq)
+func (h *Handler) scalarParse(req *http.Request, rw http.ResponseWriter) error {
+	rw.Header().Add(contentTypeHeader, scalarParseResponseMessage.String())
+	in, err := protodriver.ReadScalarParseInput(req.Body)
+	if err == nil {
+		req.Body.Close()
+		if err == nil {
+			var driverResp interface{}
+			driverResp, err = h.ScalarParse(in)
 			if err == nil {
-				var scalar interface{}
-				scalar, err = h.ScalarParse(in)
-				if err == nil {
-					*resp = protodriver.MakeScalarParseResponse(scalar)
-				}
+				err = protodriver.WriteScalarParseOutput(rw, driverResp)
 			}
 		}
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
-		}
+		err = writeProto(rw, &protoMessages.ScalarParseResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
+		})
 	}
-	return resp
+	return err
 }
 
-func (h *Handler) scalarSerialize(req *http.Request) *protoMessages.ScalarSerializeResponse {
-	resp := new(protoMessages.ScalarSerializeResponse)
-	protoReq := new(protoMessages.ScalarSerializeRequest)
-	var err error
-	var b []byte
-	if b, err = ioutil.ReadAll(req.Body); err == nil {
-		defer req.Body.Close()
-		if err = protobuf.Unmarshal(b, protoReq); err == nil {
-			var in driver.ScalarSerializeInput
-			in, err = protodriver.MakeScalarSerializeInput(protoReq)
+func (h *Handler) scalarSerialize(req *http.Request, rw http.ResponseWriter) error {
+	rw.Header().Add(contentTypeHeader, scalarSerializeResponseMessage.String())
+	in, err := protodriver.ReadScalarSerializeInput(req.Body)
+	if err == nil {
+		req.Body.Close()
+		if err == nil {
+			var driverResp interface{}
+			driverResp, err = h.ScalarSerialize(in)
 			if err == nil {
-				var scalar interface{}
-				scalar, err = h.ScalarSerialize(in)
-				if err == nil {
-					*resp = protodriver.MakeScalarSerializeResponse(scalar)
-				}
+				err = protodriver.WriteScalarSerializeOutput(rw, driverResp)
 			}
 		}
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
-		}
+		err = writeProto(rw, &protoMessages.ScalarSerializeResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
+		})
 	}
-	return resp
+	return err
 }

@@ -1,10 +1,9 @@
 package protohttp
 
 import (
-	"io/ioutil"
+	"bytes"
 	"net/http"
 
-	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -13,17 +12,15 @@ import (
 // UnionResolveType over http
 func (c *Client) UnionResolveType(input driver.UnionResolveTypeInput) driver.UnionResolveTypeOutput {
 	var out driver.UnionResolveTypeOutput
-	req, err := protodriver.MakeUnionResolveTypeRequest(input)
+	var body bytes.Buffer
+	err := protodriver.WriteUnionResolveTypeInput(&body, input)
 	if err == nil {
-		resp := new(protoMessages.UnionResolveTypeResponse)
-		if err = c.do(message{
-			contentType: unionResolveTypeRequestMessage,
-			proto:       req,
-		}, message{
-			contentType: unionResolveTypeResponseMessage,
-			proto:       resp,
+		var b []byte
+		if b, err = c.do(message{
+			contentType: fieldResolveRequestMessage,
+			b:           body.Bytes(),
 		}); err == nil {
-			out = protodriver.MakeUnionResolveTypeOutput(resp)
+			out, err = protodriver.ReadUnionResolveTypeOutput(bytes.NewReader(b))
 		}
 	}
 	if err != nil {
@@ -34,29 +31,25 @@ func (c *Client) UnionResolveType(input driver.UnionResolveTypeInput) driver.Uni
 	return out
 }
 
-func (h *Handler) unionResolveType(req *http.Request) *protoMessages.UnionResolveTypeResponse {
-	resp := new(protoMessages.UnionResolveTypeResponse)
-	protoReq := new(protoMessages.UnionResolveTypeRequest)
-	var err error
-	var b []byte
-	if b, err = ioutil.ReadAll(req.Body); err == nil {
-		defer req.Body.Close()
-		if err = protobuf.Unmarshal(b, protoReq); err == nil {
-			var in driver.UnionResolveTypeInput
-			in, err = protodriver.MakeUnionResolveTypeInput(protoReq)
+func (h *Handler) unionResolveType(req *http.Request, rw http.ResponseWriter) error {
+	rw.Header().Add(contentTypeHeader, interfaceResolveTypeResponseMessage.String())
+	in, err := protodriver.ReadUnionResolveTypeInput(req.Body)
+	if err == nil {
+		req.Body.Close()
+		if err == nil {
+			var driverResp string
+			driverResp, err = h.UnionResolveType(in)
 			if err == nil {
-				var unionType string
-				unionType, err = h.UnionResolveType(in)
-				if err == nil {
-					*resp = protodriver.MakeUnionResolveTypeResponse(unionType)
-				}
+				err = protodriver.WriteUnionResolveTypeOutput(rw, driverResp)
 			}
 		}
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
-		}
+		err = writeProto(rw, &protoMessages.UnionResolveTypeResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
+		})
 	}
-	return resp
+	return err
 }

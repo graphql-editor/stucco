@@ -74,11 +74,13 @@ func (m *Server) ScalarParse(ctx context.Context, input *protoMessages.ScalarPar
 		var resp interface{}
 		resp, err = m.ScalarParseHandler.Handle(v)
 		if err == nil {
-			*s = protodriver.MakeScalarParseResponse(resp)
+			s = protodriver.MakeScalarParseResponse(resp)
 		}
 	}
 	if err != nil {
-		s.Error = &protoMessages.Error{Msg: err.Error()}
+		s = &protoMessages.ScalarParseResponse{
+			Error: &protoMessages.Error{Msg: err.Error()},
+		}
 	}
 	return
 }
@@ -109,17 +111,18 @@ func (m *Server) ScalarSerialize(ctx context.Context, input *protoMessages.Scala
 			}
 		}
 	}()
-	s = new(protoMessages.ScalarSerializeResponse)
 	val, err := protodriver.MakeScalarSerializeInput(input)
 	if err == nil {
 		var resp interface{}
 		resp, err = m.ScalarSerializeHandler.Handle(val)
 		if err == nil {
-			*s = protodriver.MakeScalarSerializeResponse(resp)
+			s = protodriver.MakeScalarSerializeResponse(resp)
 		}
 	}
 	if err != nil {
-		s.Error = &protoMessages.Error{Msg: err.Error()}
+		s = &protoMessages.ScalarSerializeResponse{
+			Error: &protoMessages.Error{Msg: err.Error()},
+		}
 	}
 	return
 }

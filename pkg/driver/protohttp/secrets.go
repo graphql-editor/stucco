@@ -1,10 +1,9 @@
 package protohttp
 
 import (
-	"io/ioutil"
+	"bytes"
 	"net/http"
 
-	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -13,17 +12,16 @@ import (
 // SetSecrets using http
 func (c *Client) SetSecrets(input driver.SetSecretsInput) driver.SetSecretsOutput {
 	var out driver.SetSecretsOutput
-	req := protodriver.MakeSetSecretsRequest(input)
-	resp := new(protoMessages.SetSecretsResponse)
-	var err error
-	if err = c.do(message{
-		contentType: setSecretsRequestMessage,
-		proto:       req,
-	}, message{
-		contentType: setSecretsResponseMessage,
-		proto:       resp,
-	}); err == nil {
-		out = protodriver.MakeSetSecretsOutput(resp)
+	var body bytes.Buffer
+	err := protodriver.WriteSetSecretsInput(&body, input)
+	if err == nil {
+		var b []byte
+		if b, err = c.do(message{
+			contentType: fieldResolveRequestMessage,
+			b:           body.Bytes(),
+		}); err == nil {
+			out, err = protodriver.ReadSetSecretsOutput(bytes.NewReader(b))
+		}
 	}
 	if err != nil {
 		out.Error = &driver.Error{
@@ -33,21 +31,19 @@ func (c *Client) SetSecrets(input driver.SetSecretsInput) driver.SetSecretsOutpu
 	return out
 }
 
-func (h *Handler) setSecrets(req *http.Request) *protoMessages.SetSecretsResponse {
-	resp := new(protoMessages.SetSecretsResponse)
-	protoReq := new(protoMessages.SetSecretsRequest)
-	var err error
-	var b []byte
-	if b, err = ioutil.ReadAll(req.Body); err == nil {
-		defer req.Body.Close()
-		if err = protobuf.Unmarshal(b, protoReq); err == nil {
-			err = h.SetSecrets(protodriver.MakeSetSecretsInput(protoReq))
-		}
+func (h *Handler) setSecrets(req *http.Request, rw http.ResponseWriter) error {
+	rw.Header().Add(contentTypeHeader, setSecretsResponseMessage.String())
+	in, err := protodriver.ReadSetSecretsInput(req.Body)
+	if err == nil {
+		req.Body.Close()
+		err = protodriver.WriteFieldResolveOutput(rw, h.SetSecrets(in))
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
-		}
+		err = writeProto(rw, &protoMessages.SetSecretsResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
+		})
 	}
-	return resp
+	return err
 }
