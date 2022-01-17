@@ -2,7 +2,10 @@ package protodriver
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
 
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/types"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -116,12 +119,63 @@ func MakeUnionResolveTypeInput(input *protoMessages.UnionResolveTypeRequest) (i 
 }
 
 // MakeUnionResolveTypeResponse creates new protoMessages.UnionResolveTypeResponse from type string
-func MakeUnionResolveTypeResponse(resp string) protoMessages.UnionResolveTypeResponse {
-	return protoMessages.UnionResolveTypeResponse{
+func MakeUnionResolveTypeResponse(resp string) *protoMessages.UnionResolveTypeResponse {
+	return &protoMessages.UnionResolveTypeResponse{
 		Type: &protoMessages.TypeRef{
 			TestTyperef: &protoMessages.TypeRef_Name{
 				Name: resp,
 			},
 		},
 	}
+}
+
+// ReadUnionResolveTypeInput reads io.Reader until io.EOF and returs driver.UnionResolveTypeInput
+func ReadUnionResolveTypeInput(r io.Reader) (driver.UnionResolveTypeInput, error) {
+	var err error
+	var b []byte
+	var out driver.UnionResolveTypeInput
+	protoMsg := new(protoMessages.UnionResolveTypeRequest)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out, err = MakeUnionResolveTypeInput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteUnionResolveTypeInput writes UnionResolveTypeInput into io.Writer
+func WriteUnionResolveTypeInput(w io.Writer, input driver.UnionResolveTypeInput) error {
+	req, err := MakeUnionResolveTypeRequest(input)
+	if err == nil {
+		var b []byte
+		b, err = protobuf.Marshal(req)
+		if err == nil {
+			_, err = w.Write(b)
+		}
+	}
+	return err
+}
+
+// ReadUnionResolveTypeOutput reads io.Reader until io.EOF and returs driver.UnionResolveTypeOutput
+func ReadUnionResolveTypeOutput(r io.Reader) (driver.UnionResolveTypeOutput, error) {
+	var err error
+	var b []byte
+	var out driver.UnionResolveTypeOutput
+	protoMsg := new(protoMessages.UnionResolveTypeResponse)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out = MakeUnionResolveTypeOutput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteUnionResolveTypeOutput writes UnionResolveTypeOutput into io.Writer
+func WriteUnionResolveTypeOutput(w io.Writer, r string) error {
+	req := MakeUnionResolveTypeResponse(r)
+	b, err := protobuf.Marshal(req)
+	if err == nil {
+		_, err = w.Write(b)
+	}
+	return err
 }

@@ -9,6 +9,7 @@ import (
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
 )
 
+// UnionResolveType Implements driver.Driver
 func (m *Client) UnionResolveType(input driver.UnionResolveTypeInput) (f driver.UnionResolveTypeOutput) {
 	req, err := protodriver.MakeUnionResolveTypeRequest(input)
 	if err == nil {
@@ -55,13 +56,14 @@ func (m *Server) UnionResolveType(ctx context.Context, input *protoMessages.Unio
 	if err == nil {
 		var resp string
 		resp, err = m.UnionResolveTypeHandler.Handle(req)
-		f = new(protoMessages.UnionResolveTypeResponse)
 		if err == nil {
-			*f = protodriver.MakeUnionResolveTypeResponse(resp)
+			f = protodriver.MakeUnionResolveTypeResponse(resp)
 		}
 	}
 	if err != nil {
-		f.Error = &protoMessages.Error{Msg: err.Error()}
+		f = &protoMessages.UnionResolveTypeResponse{
+			Error: &protoMessages.Error{Msg: err.Error()},
+		}
 	}
 	return
 }

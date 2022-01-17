@@ -1,10 +1,9 @@
 package protohttp
 
 import (
-	"io/ioutil"
+	"bytes"
 	"net/http"
 
-	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	protodriver "github.com/graphql-editor/stucco/pkg/proto/driver"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -13,17 +12,15 @@ import (
 // SubscriptionConnection implements driver.SubscriptionConnection over HTTP
 func (c *Client) SubscriptionConnection(input driver.SubscriptionConnectionInput) driver.SubscriptionConnectionOutput {
 	var out driver.SubscriptionConnectionOutput
-	req, err := protodriver.MakeSubscriptionConnectionRequest(input)
+	var body bytes.Buffer
+	err := protodriver.WriteSubscriptionConnectionInput(&body, input)
 	if err == nil {
-		resp := new(protoMessages.SubscriptionConnectionResponse)
-		if err = c.do(message{
-			contentType: subscriptionConnectionRequestMessage,
-			proto:       req,
-		}, message{
-			contentType: subscriptionConnectionResponseMessage,
-			proto:       resp,
+		var b []byte
+		if b, err = c.do(message{
+			contentType: fieldResolveRequestMessage,
+			b:           body.Bytes(),
 		}); err == nil {
-			out = protodriver.MakeSubscriptionConnectionOutput(resp)
+			out, err = protodriver.ReadSubscriptionConnectionOutput(bytes.NewReader(b))
 		}
 	}
 	if err != nil {
@@ -34,29 +31,25 @@ func (c *Client) SubscriptionConnection(input driver.SubscriptionConnectionInput
 	return out
 }
 
-func (h *Handler) subscriptionConnection(req *http.Request) *protoMessages.SubscriptionConnectionResponse {
-	resp := new(protoMessages.SubscriptionConnectionResponse)
-	protoReq := new(protoMessages.SubscriptionConnectionRequest)
-	var err error
-	var b []byte
-	if b, err = ioutil.ReadAll(req.Body); err == nil {
-		defer req.Body.Close()
-		if err = protobuf.Unmarshal(b, protoReq); err == nil {
-			var in driver.SubscriptionConnectionInput
-			in, err = protodriver.MakeSubscriptionConnectionInput(protoReq)
+func (h *Handler) subscriptionConnection(req *http.Request, rw http.ResponseWriter) error {
+	rw.Header().Add(contentTypeHeader, subscriptionConnectionResponseMessage.String())
+	in, err := protodriver.ReadSubscriptionConnectionInput(req.Body)
+	if err == nil {
+		req.Body.Close()
+		if err == nil {
+			var driverResp interface{}
+			driverResp, err = h.SubscriptionConnection(in)
 			if err == nil {
-				var driverResp interface{}
-				driverResp, err = h.SubscriptionConnection(in)
-				if err == nil {
-					*resp = protodriver.MakeSubscriptionConnectionResponse(driverResp)
-				}
+				err = protodriver.WriteSubscriptionConnectionOutput(rw, driverResp)
 			}
 		}
 	}
 	if err != nil {
-		resp.Error = &protoMessages.Error{
-			Msg: err.Error(),
-		}
+		err = writeProto(rw, &protoMessages.SubscriptionConnectionResponse{
+			Error: &protoMessages.Error{
+				Msg: err.Error(),
+			},
+		})
 	}
-	return resp
+	return err
 }

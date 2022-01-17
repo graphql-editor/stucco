@@ -2,7 +2,10 @@ package protodriver
 
 import (
 	"context"
+	"io"
+	"io/ioutil"
 
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/types"
 	protoDriverService "github.com/graphql-editor/stucco_proto/go/driver_service"
@@ -132,4 +135,31 @@ func MakeSubscriptionListenInput(input *protoMessages.SubscriptionListenRequest)
 		f.Protocol, err = valueToAny(nil, pr)
 	}
 	return
+}
+
+// ReadSubscriptionListenInput reads io.Reader until io.EOF and returs driver.SubscriptionListenInput
+func ReadSubscriptionListenInput(r io.Reader) (driver.SubscriptionListenInput, error) {
+	var err error
+	var b []byte
+	var out driver.SubscriptionListenInput
+	protoMsg := new(protoMessages.SubscriptionListenRequest)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out, err = MakeSubscriptionListenInput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteSubscriptionListenInput writes SubscriptionListenInput into io.Writer
+func WriteSubscriptionListenInput(w io.Writer, input driver.SubscriptionListenInput) error {
+	req, err := MakeSubscriptionListenRequest(input)
+	if err == nil {
+		var b []byte
+		b, err = protobuf.Marshal(req)
+		if err == nil {
+			_, err = w.Write(b)
+		}
+	}
+	return err
 }

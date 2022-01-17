@@ -1,6 +1,10 @@
 package protodriver
 
 import (
+	"io"
+	"io/ioutil"
+
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/types"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -73,7 +77,7 @@ func MakeFieldResolveRequest(input driver.FieldResolveInput) (r *protoMessages.F
 	return
 }
 
-// MakeFieldResolveResponse creates new driver.FieldResolveOutput from proto response
+// MakeFieldResolveOutput creates new driver.FieldResolveOutput from proto response
 func MakeFieldResolveOutput(resp *protoMessages.FieldResolveResponse) (out driver.FieldResolveOutput) {
 	var err error
 	out.Response, err = valueToAny(nil, resp.GetResponse())
@@ -162,4 +166,55 @@ func MakeFieldResolveResponse(resp interface{}) *protoMessages.FieldResolveRespo
 		}
 	}
 	return &protoResponse
+}
+
+// ReadFieldResolveInput reads io.Reader until io.EOF and returs driver.FieldResolveInput
+func ReadFieldResolveInput(r io.Reader) (driver.FieldResolveInput, error) {
+	var err error
+	var b []byte
+	var out driver.FieldResolveInput
+	protoMsg := new(protoMessages.FieldResolveRequest)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out, err = MakeFieldResolveInput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteFieldResolveInput writes FieldResolveInput into io.Writer
+func WriteFieldResolveInput(w io.Writer, input driver.FieldResolveInput) error {
+	req, err := MakeFieldResolveRequest(input)
+	if err == nil {
+		var b []byte
+		b, err = protobuf.Marshal(req)
+		if err == nil {
+			_, err = w.Write(b)
+		}
+	}
+	return err
+}
+
+// ReadFieldResolveOutput reads io.Reader until io.EOF and returs driver.FieldResolveOutput
+func ReadFieldResolveOutput(r io.Reader) (driver.FieldResolveOutput, error) {
+	var err error
+	var b []byte
+	var out driver.FieldResolveOutput
+	protoMsg := new(protoMessages.FieldResolveResponse)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out = MakeFieldResolveOutput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteFieldResolveOutput writes FieldResolveOutput into io.Writer
+func WriteFieldResolveOutput(w io.Writer, r interface{}) error {
+	req := MakeFieldResolveResponse(r)
+	b, err := protobuf.Marshal(req)
+	if err == nil {
+		_, err = w.Write(b)
+	}
+	return err
 }

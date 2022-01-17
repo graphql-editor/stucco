@@ -7,11 +7,6 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
-	"strings"
-
-	"github.com/golang/protobuf/proto"
-	protobuf "github.com/golang/protobuf/proto"
-	"github.com/pkg/errors"
 )
 
 // HTTPClient for protocol buffer
@@ -44,21 +39,30 @@ func NewClient(config Config) Client {
 }
 
 type message struct {
-	contentType protobufMessageContentType
-	proto       proto.Message
+	contentType         protobufMessageContentType
+	responseContentType protobufMessageContentType
+	b                   []byte
 }
 
-func (c *Client) do(in, out message) error {
-	b, err := proto.Marshal(in.proto)
+func (c *Client) do(in message) ([]byte, error) {
+	resp, err := c.Post(c.URL, in.contentType.String(), bytes.NewReader(in.b))
 	if err == nil {
-		var resp *http.Response
-		resp, err = c.Post(c.URL, in.contentType.String(), bytes.NewReader(b))
-		if err == nil {
-			defer resp.Body.Close()
-			err = unmarshalFromHTTP(resp, out)
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			b, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = fmt.Errorf(`status_code=%d message="%s"`, resp.StatusCode, string(b))
+			}
 		}
 	}
-	return err
+	if err == nil {
+		err = in.responseContentType.checkContentType(resp.Header.Get(contentTypeHeader))
+	}
+	var b []byte
+	if err == nil {
+		b, err = ioutil.ReadAll(resp.Body)
+	}
+	return b, err
 }
 
 func getMessageType(contentType string) (string, error) {
@@ -70,29 +74,4 @@ func getMessageType(contentType string) (string, error) {
 		return "", fmt.Errorf("%s is not supported, only %s", mediaType, protobufContentType)
 	}
 	return params["message"], nil
-}
-
-func unmarshalFromHTTP(
-	resp *http.Response,
-	out message,
-) error {
-	if resp.StatusCode != http.StatusOK {
-		b, err := ioutil.ReadAll(resp.Body)
-		if err == nil {
-			err = fmt.Errorf(`status_code=%d message="%s"`, resp.StatusCode, string(b))
-		}
-		return errors.Wrap(err, "worker request error")
-	}
-	messageType, err := getMessageType(resp.Header.Get(contentTypeHeader))
-	if err != nil {
-		return err
-	}
-	if !strings.EqualFold(string(out.contentType), messageType) {
-		return fmt.Errorf("cannot unmarshal %s to %s", messageType, string(out.contentType))
-	}
-	body, err := ioutil.ReadAll(resp.Body)
-	if err == nil {
-		err = protobuf.Unmarshal(body, out.proto)
-	}
-	return err
 }

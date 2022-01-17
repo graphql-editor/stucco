@@ -1,6 +1,10 @@
 package protodriver
 
 import (
+	"io"
+	"io/ioutil"
+
+	protobuf "github.com/golang/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/types"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
@@ -70,7 +74,7 @@ func MakeSubscriptionConnectionInput(input *protoMessages.SubscriptionConnection
 }
 
 // MakeSubscriptionConnectionResponse creates a protoMessages.SubscriptionConnectionRespone from a value
-func MakeSubscriptionConnectionResponse(resp interface{}) protoMessages.SubscriptionConnectionResponse {
+func MakeSubscriptionConnectionResponse(resp interface{}) *protoMessages.SubscriptionConnectionResponse {
 	protoResponse := protoMessages.SubscriptionConnectionResponse{}
 	v, err := anyToValue(resp)
 	if err == nil {
@@ -80,5 +84,56 @@ func MakeSubscriptionConnectionResponse(resp interface{}) protoMessages.Subscrip
 			Msg: err.Error(),
 		}
 	}
-	return protoResponse
+	return &protoResponse
+}
+
+// ReadSubscriptionConnectionInput reads io.Reader until io.EOF and returs driver.SubscriptionConnectionInput
+func ReadSubscriptionConnectionInput(r io.Reader) (driver.SubscriptionConnectionInput, error) {
+	var err error
+	var b []byte
+	var out driver.SubscriptionConnectionInput
+	protoMsg := new(protoMessages.SubscriptionConnectionRequest)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out, err = MakeSubscriptionConnectionInput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteSubscriptionConnectionInput writes SubscriptionConnectionInput into io.Writer
+func WriteSubscriptionConnectionInput(w io.Writer, input driver.SubscriptionConnectionInput) error {
+	req, err := MakeSubscriptionConnectionRequest(input)
+	if err == nil {
+		var b []byte
+		b, err = protobuf.Marshal(req)
+		if err == nil {
+			_, err = w.Write(b)
+		}
+	}
+	return err
+}
+
+// ReadSubscriptionConnectionOutput reads io.Reader until io.EOF and returs driver.SubscriptionConnectionOutput
+func ReadSubscriptionConnectionOutput(r io.Reader) (driver.SubscriptionConnectionOutput, error) {
+	var err error
+	var b []byte
+	var out driver.SubscriptionConnectionOutput
+	protoMsg := new(protoMessages.SubscriptionConnectionResponse)
+	if b, err = ioutil.ReadAll(r); err == nil {
+		if err = protobuf.Unmarshal(b, protoMsg); err == nil {
+			out = MakeSubscriptionConnectionOutput(protoMsg)
+		}
+	}
+	return out, err
+}
+
+// WriteSubscriptionConnectionOutput writes SubscriptionConnectionOutput into io.Writer
+func WriteSubscriptionConnectionOutput(w io.Writer, r interface{}) error {
+	req := MakeSubscriptionConnectionResponse(r)
+	b, err := protobuf.Marshal(req)
+	if err == nil {
+		_, err = w.Write(b)
+	}
+	return err
 }

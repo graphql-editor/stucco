@@ -1,5 +1,10 @@
 package protohttp
 
+import (
+	"fmt"
+	"strings"
+)
+
 type protobufMessageContentType string
 
 const (
@@ -22,4 +27,12 @@ const (
 
 func (p protobufMessageContentType) String() string {
 	return protobufContentType + "; message=" + string(p)
+}
+
+func (p protobufMessageContentType) checkContentType(contentType string) error {
+	messageType, err := getMessageType(contentType)
+	if err == nil && !strings.EqualFold(string(p), messageType) {
+		err = fmt.Errorf("cannot unmarshal %s to %s", messageType, string(p))
+	}
+	return err
 }

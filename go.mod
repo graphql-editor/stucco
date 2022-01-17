@@ -12,6 +12,7 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/golang/protobuf v1.5.0
 	github.com/gorilla/websocket v1.4.2
+	github.com/graphql-editor/streammux v0.0.0-20220113163427-fffd9f0428ef
 	github.com/graphql-editor/stucco_proto v0.7.12
 	github.com/graphql-go/graphql v0.7.9
 	github.com/graphql-go/handler v0.2.3
@@ -29,7 +30,7 @@ require (
 	github.com/rs/cors v1.8.0
 	github.com/sabhiram/go-gitignore v0.0.0-20201211210132-54b8a0bf510f
 	github.com/spf13/cobra v1.0.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect
 	golang.org/x/sys v0.0.0-20200805065543-0cf7623e9dbd // indirect
 	golang.org/x/text v0.3.3 // indirect
