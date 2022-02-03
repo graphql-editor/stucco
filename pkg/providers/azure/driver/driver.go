@@ -129,6 +129,17 @@ func (d *Driver) functionClient(f types.Function) (client driver.Driver, derr *d
 	return
 }
 
+// Authorize implements driver.Driver
+func (d *Driver) Authorize(in driver.AuthorizeInput) driver.AuthorizeOutput {
+	client, err := d.functionClient(in.Function)
+	if err != nil {
+		return driver.AuthorizeOutput{
+			Error: err,
+		}
+	}
+	return client.Authorize(in)
+}
+
 // FieldResolve implements driver.Driver
 func (d *Driver) FieldResolve(in driver.FieldResolveInput) driver.FieldResolveOutput {
 	client, err := d.functionClient(in.Function)

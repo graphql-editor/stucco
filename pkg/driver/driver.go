@@ -6,6 +6,8 @@ package driver
 // Driver is an interface that must be defined by an implementation
 // for of specific runner.
 type Driver interface {
+	// Authorize runs a custom auth code on function
+	Authorize(AuthorizeInput) AuthorizeOutput
 	// SetSecrets defined by user, it's runner's responsibility to pass them
 	// to runtime.
 	SetSecrets(SetSecretsInput) SetSecretsOutput

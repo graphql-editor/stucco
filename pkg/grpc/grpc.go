@@ -40,6 +40,7 @@ type SubscriptionListenHandler interface {
 // Server for github.com/graphql-editor/stucco/pkg/proto
 type Server struct {
 	protoDriverService.DriverServer
+	AuthorizeHandler              AuthorizeHandler
 	FieldResolveHandler           FieldResolveHandler
 	InterfaceResolveTypeHandler   InterfaceResolveTypeHandler
 	ScalarParseHandler            ScalarParseHandler

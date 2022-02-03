@@ -12,6 +12,7 @@ import (
 // GRPC implement GRPCPlugin interface fro go-plugin
 type GRPC struct {
 	plugin.Plugin
+	Authorize                     grpc.AuthorizeHandler
 	FieldResolveHandler           grpc.FieldResolveHandler
 	InterfaceResolveTypeHandler   grpc.InterfaceResolveTypeHandler
 	ScalarParseHandler            grpc.ScalarParseHandler
@@ -31,6 +32,7 @@ var RegisterDriverServer = protoDriverService.RegisterDriverServer
 // GRPCServer returns a server implementation for go-plugin
 func (g *GRPC) GRPCServer(broker *plugin.GRPCBroker, s *googlegrpc.Server) error {
 	RegisterDriverServer(s, &grpc.Server{
+		AuthorizeHandler:              g.Authorize,
 		FieldResolveHandler:           g.FieldResolveHandler,
 		InterfaceResolveTypeHandler:   g.InterfaceResolveTypeHandler,
 		ScalarParseHandler:            g.ScalarParseHandler,

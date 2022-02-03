@@ -21,6 +21,7 @@ import (
 const defaultRunnersCount = 16
 
 type driverShim interface {
+	Authorize(driver.AuthorizeInput) driver.AuthorizeOutput
 	FieldResolve(driver.FieldResolveInput) driver.FieldResolveOutput
 	InterfaceResolveType(driver.InterfaceResolveTypeInput) driver.InterfaceResolveTypeOutput
 	ScalarParse(driver.ScalarParseInput) driver.ScalarParseOutput
@@ -83,6 +84,8 @@ func (r pluginRunner) do(p *Plugin, payload *pluginPayload) {
 	}
 	var resp interface{}
 	switch data := payload.data.(type) {
+	case driver.AuthorizeInput:
+		resp = dri.Authorize(data)
 	case driver.FieldResolveInput:
 		resp = dri.FieldResolve(data)
 	case driver.InterfaceResolveTypeInput:
@@ -373,6 +376,19 @@ func (p *Plugin) SubscriptionListen(in driver.SubscriptionListenInput) driver.Su
 		}
 	}
 	return resp.(driver.SubscriptionListenOutput)
+}
+
+// Authorize uses plugin to authorize request
+func (p *Plugin) Authorize(in driver.AuthorizeInput) driver.AuthorizeOutput {
+	resp, err := p.do(in)
+	if err != nil {
+		return driver.AuthorizeOutput{
+			Error: &driver.Error{
+				Message: err.Error(),
+			},
+		}
+	}
+	return resp.(driver.AuthorizeOutput)
 }
 
 // Close plugin and stop all runners
