@@ -229,9 +229,32 @@ func (d Dispatch) checkDepth(params graphql.ResolveParams) error {
 	return err
 }
 
+// Authorize creates a function that calls implementation of field resolution through driver
+func (d Dispatch) Authorize(auth AuthorizeConfig) func(params *graphql.Params) (bool, error) {
+	return func(params *graphql.Params) (bool, error) {
+		if auth.Authorize.Name == "" {
+			return true, nil
+		}
+		out := d.Driver.Authorize(driver.AuthorizeInput{
+			Function: types.Function{
+				Name: auth.Authorize.Name,
+			},
+			Query:          params.RequestString,
+			VariableValues: params.VariableValues,
+			OperationName:  params.OperationName,
+			Protocol:       params.Context.Value(ProtocolKey),
+		})
+		if out.Error != nil {
+			return false, errors.New(out.Error.Message)
+		}
+		return out.Response, nil
+	}
+}
+
 // FieldResolve creates a function that calls implementation of field resolution through driver
 func (d Dispatch) FieldResolve(rs ResolverConfig) func(params graphql.ResolveParams) (interface{}, error) {
 	return func(params graphql.ResolveParams) (interface{}, error) {
+		assertRouterOk(params.Context)
 		if err := d.checkDepth(params); err != nil {
 			return nil, err
 		}
@@ -295,6 +318,7 @@ func buildInterfaceInfoParams(params graphql.ResolveInfo) driver.InterfaceResolv
 // InterfaceResolveType creates a function that calls implementation of interface type resolution
 func (d Dispatch) InterfaceResolveType(i InterfaceConfig) func(params graphql.ResolveTypeParams) *graphql.Object {
 	return func(params graphql.ResolveTypeParams) *graphql.Object {
+		assertRouterOk(params.Context)
 		input := driver.InterfaceResolveTypeInput{
 			Function: i.ResolveType,
 			Value:    params.Value,
@@ -384,6 +408,7 @@ func buildUnionInfoParams(params graphql.ResolveInfo) driver.UnionResolveTypeInf
 // UnionResolveType creates a function that calls union resolution using driver
 func (d Dispatch) UnionResolveType(u UnionConfig) func(params graphql.ResolveTypeParams) *graphql.Object {
 	return func(params graphql.ResolveTypeParams) *graphql.Object {
+		assertRouterOk(params.Context)
 		input := driver.UnionResolveTypeInput{
 			Function: u.ResolveType,
 			Value:    params.Value,

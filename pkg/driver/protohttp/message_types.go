@@ -9,6 +9,8 @@ type protobufMessageContentType string
 
 const (
 	protobufContentType                                              = "application/x-protobuf"
+	authorizeRequestMessage               protobufMessageContentType = "AuthorizeRequest"
+	authorizeResponseMessage              protobufMessageContentType = "AuthorizeResponse"
 	fieldResolveRequestMessage            protobufMessageContentType = "FieldResolveRequest"
 	fieldResolveResponseMessage           protobufMessageContentType = "FieldResolveResponse"
 	interfaceResolveTypeRequestMessage    protobufMessageContentType = "InterfaceResolveTypeRequest"

@@ -12,8 +12,7 @@ require (
 	github.com/fatih/color v1.9.0 // indirect
 	github.com/golang/protobuf v1.5.0
 	github.com/gorilla/websocket v1.4.2
-	github.com/graphql-editor/streammux v0.0.0-20220113163427-fffd9f0428ef
-	github.com/graphql-editor/stucco_proto v0.7.12
+	github.com/graphql-editor/stucco_proto v0.7.21
 	github.com/graphql-go/graphql v0.7.9
 	github.com/graphql-go/handler v0.2.3
 	github.com/hashicorp/go-hclog v0.14.1

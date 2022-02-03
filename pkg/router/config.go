@@ -89,6 +89,12 @@ type SecretsConfig struct {
 	Secrets map[string]string `json:"secrets,omitempty"`
 }
 
+// AuthorizeConfig is an authorize function config
+type AuthorizeConfig struct {
+	Environment *Environment   `json:"environment,omitempty"`
+	Authorize   types.Function `json:"authorize"`
+}
+
 // Config is a router configuration mapping defined endpoints with thier runtime config
 type Config struct {
 	Environment         Environment                   `json:"environment"`         // Environment is a default config of a router
@@ -101,6 +107,7 @@ type Config struct {
 	Subscriptions       SubscriptionConfig            `json:"subscriptions"`       // Configure subscription behaviour
 	SubscriptionConfigs map[string]SubscriptionConfig `json:"subscriptionConfigs"` // Configure subscription behaviour per field
 	MaxDepth            int                           `json:"maxDepth,omitempty"`
+	Authorize           *AuthorizeConfig              `json:"authorize,omitempty"` // Authorize configures optional authorization function before any resolver is ran
 }
 
 // AddResolver creates a new resolver mapping in config

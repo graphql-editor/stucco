@@ -9,7 +9,6 @@ import (
 	"github.com/graphql-editor/stucco/pkg/parser"
 	"github.com/graphql-editor/stucco/pkg/types"
 	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/gqlerrors"
 	"github.com/graphql-go/graphql/language/ast"
 )
 
@@ -178,6 +177,25 @@ func (r *Router) load(c Config) error {
 	if err := r.parseSchema(c); err != nil {
 		return err
 	}
+	extensions := []graphql.Extension{
+		routerStartContext{},
+	}
+	if c.Authorize != nil && c.Authorize.Authorize.Name != "" {
+		env := newEnvironment(c.Authorize.Environment, c.Environment)
+		dri, err := r.getDriver(driver.Config{
+			Provider: env.Provider,
+			Runtime:  env.Runtime,
+		})
+		if err != nil {
+			return err
+		}
+		dispatch := Dispatch{
+			Driver: dri,
+		}
+		extensions = append(extensions, authorizeExtension{
+			authorizeHandler: dispatch.Authorize(*c.Authorize),
+		})
+	}
 	if r.Schema.SubscriptionType() != nil {
 		env := newEnvironment(r.Subscriptions.Environment, c.Environment)
 		r.Subscriptions.Environment = env
@@ -217,8 +235,10 @@ func (r *Router) load(c Config) error {
 				return err
 			}
 		}
-		r.Schema.AddExtensions(ext)
+		extensions = append(extensions, ext)
 	}
+	extensions = append(extensions, routerFinishContext{})
+	r.Schema.AddExtensions(extensions...)
 	return nil
 }
 
@@ -248,8 +268,6 @@ type SubscribeContext struct {
 	Reader              driver.SubscriptionListenReader `json:"-"`
 	info                *graphql.ResolveInfo            `json:"-"`
 	resolvedTo          interface{}                     `json:"-"`
-	formattedErr        []gqlerrors.FormattedError
-	err                 error
 }
 
 type subscriptionExtensionKeyType string
@@ -261,6 +279,7 @@ const subscriptionExtensionKey subscriptionExtensionKeyType = "subscriptionExten
 // but short circuts the execution returning a custom result that should further be
 // processed.
 type SubscribeExtension struct {
+	baseExtension
 	router  *Router
 	dri     driver.Driver
 	include []string
@@ -291,9 +310,6 @@ func (s *SubscribeExtension) Init(ctx context.Context, p *graphql.Params) contex
 }
 
 func (s *SubscribeExtension) handle(ctx *SubscribeContext) bool {
-	if ctx.err != nil || len(ctx.formattedErr) > 0 {
-		return false
-	}
 	fn := s.fieldName(ctx)
 	if len(s.include) == 0 {
 		for _, v := range s.exclude {
@@ -311,33 +327,14 @@ func (s *SubscribeExtension) handle(ctx *SubscribeContext) bool {
 	return false
 }
 
-// ParseDidStart implements graphql.Extension
-func (s *SubscribeExtension) ParseDidStart(ctx context.Context) (context.Context, graphql.ParseFinishFunc) {
-	return ctx, func(err error) {
-		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-		subCtx.err = err
-	}
-}
-
-// ValidationDidStart implements graphql.Extension
-func (s *SubscribeExtension) ValidationDidStart(ctx context.Context) (context.Context, graphql.ValidationFinishFunc) {
-	return ctx, func(err []gqlerrors.FormattedError) {
-		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-		subCtx.formattedErr = err
-	}
-}
-
 // ExecutionDidStart implements graphql.Extension
 func (s *SubscribeExtension) ExecutionDidStart(ctx context.Context) (context.Context, graphql.ExecutionFinishFunc) {
 	return ctx, func(r *graphql.Result) {
-		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-		if subCtx.IsSubscription && s.handle(subCtx) {
-			r.Data = nil
-			r.Errors = nil
-			if len(subCtx.formattedErr) != 0 {
-				r.Errors = subCtx.formattedErr
-			} else if subCtx.err != nil {
-				r.Errors = gqlerrors.FormatErrors(graphql.NewLocatedError(subCtx.err, []ast.Node{}))
+		if getRouterError(ctx) == nil {
+			subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
+			if subCtx.IsSubscription && s.handle(subCtx) {
+				r.Data = nil
+				r.Errors = nil
 			}
 		}
 	}
@@ -346,15 +343,17 @@ func (s *SubscribeExtension) ExecutionDidStart(ctx context.Context) (context.Con
 // ResolveFieldDidStart implements graphql.Extension
 // Hijacks the resolution of root subscription fields
 func (s *SubscribeExtension) ResolveFieldDidStart(ctx context.Context, info *graphql.ResolveInfo) (context.Context, graphql.ResolveFieldFinishFunc) {
-	rawSubscription, _ := ctx.Value(RawSubscriptionKey).(bool)
-	if !rawSubscription && isSubscription(info) {
-		subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
-		subCtx.IsSubscription = true
-		op, ok := info.Operation.(*ast.OperationDefinition)
-		if ok && subCtx.OperationDefinition == nil && info.Operation != nil {
-			subCtx.info = info
-			if s.handle(subCtx) {
-				subCtx.OperationDefinition = makeOperationDefinition(op, info.Fragments)
+	if getRouterError(ctx) == nil {
+		rawSubscription, _ := ctx.Value(RawSubscriptionKey).(bool)
+		if !rawSubscription && isSubscription(info) {
+			subCtx := ctx.Value(subscriptionExtensionKey).(*SubscribeContext)
+			subCtx.IsSubscription = true
+			op, ok := info.Operation.(*ast.OperationDefinition)
+			if ok && subCtx.OperationDefinition == nil && info.Operation != nil {
+				subCtx.info = info
+				if s.handle(subCtx) {
+					subCtx.OperationDefinition = makeOperationDefinition(op, info.Fragments)
+				}
 			}
 		}
 	}
@@ -458,7 +457,8 @@ func (b *BlockingSubscriptionExtension) GetResult(ctx context.Context) interface
 		if err == nil {
 			err = errors.New(tout.Error.Message)
 		}
-		panic(err)
+		routerError(ctx, err)
+		return nil
 	}
 	return BlockingSubscriptionPayload{
 		Reader:  tout.Reader,
@@ -524,7 +524,8 @@ func (e *ExternalSubscriptionExtension) GetResult(ctx context.Context) interface
 		if err == nil {
 			err = errors.New(tout.Error.Message)
 		}
-		panic(err)
+		routerError(ctx, err)
+		return nil
 	}
 	return tout
 }

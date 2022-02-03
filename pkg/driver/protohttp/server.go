@@ -11,6 +11,7 @@ import (
 
 // Muxer for Protocol Buffer handler
 type Muxer interface {
+	Authorize(driver.AuthorizeInput) (bool, error)
 	FieldResolve(driver.FieldResolveInput) (interface{}, error)
 	InterfaceResolveType(driver.InterfaceResolveTypeInput) (string, error)
 	SetSecrets(driver.SetSecretsInput) error
@@ -84,6 +85,8 @@ func (h *Handler) serveHTTP(req *http.Request, rw http.ResponseWriter) error {
 		return nil
 	}
 	switch messageType {
+	case string(authorizeRequestMessage):
+		err = h.authorize(req, rw)
 	case string(fieldResolveRequestMessage):
 		err = h.fieldResolve(req, rw)
 	case string(interfaceResolveTypeRequestMessage):
