@@ -17,8 +17,9 @@ func (c *Client) SetSecrets(input driver.SetSecretsInput) driver.SetSecretsOutpu
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         setSecretsRequestMessage,
+			responseContentType: setSecretsResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadSetSecretsOutput(bytes.NewReader(b))
 		}

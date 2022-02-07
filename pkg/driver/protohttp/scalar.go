@@ -17,8 +17,9 @@ func (c *Client) ScalarParse(input driver.ScalarParseInput) driver.ScalarParseOu
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         scalarParseRequestMessage,
+			responseContentType: scalarParseResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadScalarParseOutput(bytes.NewReader(b))
 		}
@@ -39,8 +40,9 @@ func (c *Client) ScalarSerialize(input driver.ScalarSerializeInput) driver.Scala
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         scalarSerializeRequestMessage,
+			responseContentType: scalarSerializeResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadScalarSerializeOutput(bytes.NewReader(b))
 		}
