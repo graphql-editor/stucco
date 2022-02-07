@@ -17,8 +17,9 @@ func (c *Client) SubscriptionConnection(input driver.SubscriptionConnectionInput
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         subscriptionConnectionRequestMessage,
+			responseContentType: subscriptionConnectionResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadSubscriptionConnectionOutput(bytes.NewReader(b))
 		}

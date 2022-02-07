@@ -17,8 +17,9 @@ func (c *Client) UnionResolveType(input driver.UnionResolveTypeInput) driver.Uni
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         unionResolveTypeRequestMessage,
+			responseContentType: unionResolveTypeResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadUnionResolveTypeOutput(bytes.NewReader(b))
 		}

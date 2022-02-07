@@ -17,8 +17,9 @@ func (c *Client) InterfaceResolveType(input driver.InterfaceResolveTypeInput) dr
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         interfaceResolveTypeRequestMessage,
+			responseContentType: interfaceResolveTypeResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadInterfaceResolveTypeOutput(bytes.NewReader(b))
 		}

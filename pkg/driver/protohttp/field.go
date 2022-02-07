@@ -17,8 +17,9 @@ func (c *Client) FieldResolve(input driver.FieldResolveInput) driver.FieldResolv
 	if err == nil {
 		var b []byte
 		if b, err = c.do(message{
-			contentType: fieldResolveRequestMessage,
-			b:           body.Bytes(),
+			contentType:         fieldResolveRequestMessage,
+			responseContentType: fieldResolveResponseMessage,
+			b:                   body.Bytes(),
 		}); err == nil {
 			out, err = protodriver.ReadFieldResolveOutput(bytes.NewReader(b))
 		}
