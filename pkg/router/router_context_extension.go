@@ -74,12 +74,15 @@ func (r routerFinishContext) ExecutionDidStart(ctx context.Context) (context.Con
 }
 
 func getRouterContext(ctx context.Context) *Context {
+	if ctx == nil {
+		return nil
+	}
 	return ctx.Value(ContextKey).(*Context)
 }
 
 func getRouterError(ctx context.Context) error {
 	var err error
-	if rtContext := getRouterContext(ctx); rtContext.Error != nil {
+	if rtContext := getRouterContext(ctx); rtContext != nil && rtContext.Error != nil {
 		err = rtContext.Error
 	}
 	return err

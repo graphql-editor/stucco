@@ -9,6 +9,11 @@ type mockMuxer struct {
 	mock.Mock
 }
 
+func (m *mockMuxer) Authorize(in driver.AuthorizeInput) (bool, error) {
+	called := m.Called(in)
+	return called.Bool(0), called.Error(1)
+}
+
 func (m *mockMuxer) FieldResolve(in driver.FieldResolveInput) (interface{}, error) {
 	called := m.Called(in)
 	return called.Get(0), called.Error(1)
