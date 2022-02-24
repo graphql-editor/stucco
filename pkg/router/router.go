@@ -45,6 +45,16 @@ func (r *Router) bindInterfaces(c *parser.Config) error {
 	return nil
 }
 
+var empty = make(map[string]interface{})
+
+func passthroughFieldResolver(params graphql.ResolveParams) (interface{}, error) {
+	ret := params.Source
+	if ret == nil {
+		ret = empty
+	}
+	return ret, nil
+}
+
 func (r *Router) bindResolvers(c *parser.Config) error {
 	for k, rs := range r.Resolvers {
 		dri, err := r.getDriver(driver.Config{
@@ -54,11 +64,16 @@ func (r *Router) bindResolvers(c *parser.Config) error {
 		if err != nil {
 			return err
 		}
-		c.Resolvers[k] = Dispatch{
-			Driver:   dri,
-			TypeMap:  &r.Schema,
-			MaxDepth: r.MaxDepth,
-		}.FieldResolve(rs)
+		switch rs.Resolve.Name {
+		case "":
+			c.Resolvers[k] = passthroughFieldResolver
+		default:
+			c.Resolvers[k] = Dispatch{
+				Driver:   dri,
+				TypeMap:  &r.Schema,
+				MaxDepth: r.MaxDepth,
+			}.FieldResolve(rs)
+		}
 	}
 	return nil
 }
