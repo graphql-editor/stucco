@@ -63,6 +63,7 @@ func newEnvironment(base *Environment, defaultEnv Environment) *Environment {
 type ResolverConfig struct {
 	Environment *Environment   `json:"environment,omitempty"`
 	Resolve     types.Function `json:"resolve"`
+	Skip        bool           `json:"skip"`
 }
 
 // ScalarConfig defines parse and serialize function configurations for scalar

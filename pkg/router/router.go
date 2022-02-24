@@ -64,8 +64,8 @@ func (r *Router) bindResolvers(c *parser.Config) error {
 		if err != nil {
 			return err
 		}
-		switch rs.Resolve.Name {
-		case "":
+		switch rs.Skip {
+		case true:
 			c.Resolvers[k] = passthroughFieldResolver
 		default:
 			c.Resolvers[k] = Dispatch{
