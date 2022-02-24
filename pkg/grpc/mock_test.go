@@ -14,12 +14,30 @@ type driverClientMock struct {
 	mock.Mock
 }
 
-func (m *driverClientMock) FieldResolve(ctx context.Context, in *protoMessages.FieldResolveRequest, opts ...googlegrpc.CallOption) (*protoMessages.FieldResolveResponse, error) {
-	i := []interface{}{ctx, in}
+func concatOpts(ctx context.Context, v interface{}, opts ...googlegrpc.CallOption) []interface{} {
+	i := []interface{}{ctx, v}
 	for _, opt := range opts {
 		i = append(i, opt)
 	}
-	called := m.Called(i...)
+	return i
+}
+
+func (m *driverClientMock) Authorize(ctx context.Context, in *protoMessages.AuthorizeRequest, opts ...googlegrpc.CallOption) (*protoMessages.AuthorizeResponse, error) {
+	called := m.Called(concatOpts(ctx, in, opts...)...)
+	resp := called.Get(0)
+	if resp == nil {
+		return nil, called.Error(1)
+	}
+	return resp.(*protoMessages.AuthorizeResponse), called.Error(1)
+}
+
+// TODO: not implemented
+func (m *driverClientMock) Config(ctx context.Context, in *protoMessages.ConfigRequest, opts ...googlegrpc.CallOption) (*protoMessages.ConfigResponse, error) {
+	return nil, nil
+}
+
+func (m *driverClientMock) FieldResolve(ctx context.Context, in *protoMessages.FieldResolveRequest, opts ...googlegrpc.CallOption) (*protoMessages.FieldResolveResponse, error) {
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -28,11 +46,7 @@ func (m *driverClientMock) FieldResolve(ctx context.Context, in *protoMessages.F
 }
 
 func (m *driverClientMock) InterfaceResolveType(ctx context.Context, in *protoMessages.InterfaceResolveTypeRequest, opts ...googlegrpc.CallOption) (*protoMessages.InterfaceResolveTypeResponse, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -41,11 +55,7 @@ func (m *driverClientMock) InterfaceResolveType(ctx context.Context, in *protoMe
 }
 
 func (m *driverClientMock) ScalarParse(ctx context.Context, in *protoMessages.ScalarParseRequest, opts ...googlegrpc.CallOption) (*protoMessages.ScalarParseResponse, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -54,11 +64,7 @@ func (m *driverClientMock) ScalarParse(ctx context.Context, in *protoMessages.Sc
 }
 
 func (m *driverClientMock) ScalarSerialize(ctx context.Context, in *protoMessages.ScalarSerializeRequest, opts ...googlegrpc.CallOption) (*protoMessages.ScalarSerializeResponse, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -67,11 +73,7 @@ func (m *driverClientMock) ScalarSerialize(ctx context.Context, in *protoMessage
 }
 
 func (m *driverClientMock) SetSecrets(ctx context.Context, in *protoMessages.SetSecretsRequest, opts ...googlegrpc.CallOption) (*protoMessages.SetSecretsResponse, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -80,11 +82,7 @@ func (m *driverClientMock) SetSecrets(ctx context.Context, in *protoMessages.Set
 }
 
 func (m *driverClientMock) UnionResolveType(ctx context.Context, in *protoMessages.UnionResolveTypeRequest, opts ...googlegrpc.CallOption) (*protoMessages.UnionResolveTypeResponse, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -92,11 +90,7 @@ func (m *driverClientMock) UnionResolveType(ctx context.Context, in *protoMessag
 	return resp.(*protoMessages.UnionResolveTypeResponse), called.Error(1)
 }
 func (m *driverClientMock) Stream(ctx context.Context, in *protoMessages.StreamRequest, opts ...googlegrpc.CallOption) (protoDriverService.Driver_StreamClient, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -105,11 +99,7 @@ func (m *driverClientMock) Stream(ctx context.Context, in *protoMessages.StreamR
 }
 
 func (m *driverClientMock) Stdout(ctx context.Context, in *protoMessages.ByteStreamRequest, opts ...googlegrpc.CallOption) (protoDriverService.Driver_StdoutClient, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -118,11 +108,7 @@ func (m *driverClientMock) Stdout(ctx context.Context, in *protoMessages.ByteStr
 }
 
 func (m *driverClientMock) Stderr(ctx context.Context, in *protoMessages.ByteStreamRequest, opts ...googlegrpc.CallOption) (protoDriverService.Driver_StderrClient, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -131,11 +117,7 @@ func (m *driverClientMock) Stderr(ctx context.Context, in *protoMessages.ByteStr
 }
 
 func (m *driverClientMock) SubscriptionConnection(ctx context.Context, in *protoMessages.SubscriptionConnectionRequest, opts ...googlegrpc.CallOption) (*protoMessages.SubscriptionConnectionResponse, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)
@@ -144,11 +126,7 @@ func (m *driverClientMock) SubscriptionConnection(ctx context.Context, in *proto
 }
 
 func (m *driverClientMock) SubscriptionListen(ctx context.Context, in *protoMessages.SubscriptionListenRequest, opts ...googlegrpc.CallOption) (protoDriverService.Driver_SubscriptionListenClient, error) {
-	i := []interface{}{ctx, in}
-	for _, opt := range opts {
-		i = append(i, opt)
-	}
-	called := m.Called(i...)
+	called := m.Called(concatOpts(ctx, in, opts...)...)
 	resp := called.Get(0)
 	if resp == nil {
 		return nil, called.Error(1)

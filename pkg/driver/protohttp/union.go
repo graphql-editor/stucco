@@ -33,7 +33,7 @@ func (c *Client) UnionResolveType(input driver.UnionResolveTypeInput) driver.Uni
 }
 
 func (h *Handler) unionResolveType(req *http.Request, rw http.ResponseWriter) error {
-	rw.Header().Add(contentTypeHeader, interfaceResolveTypeResponseMessage.String())
+	rw.Header().Add(contentTypeHeader, unionResolveTypeResponseMessage.String())
 	in, err := protodriver.ReadUnionResolveTypeInput(req.Body)
 	if err == nil {
 		req.Body.Close()

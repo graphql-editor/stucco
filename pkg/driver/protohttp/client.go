@@ -49,7 +49,8 @@ func (c *Client) do(in message) ([]byte, error) {
 	if err == nil {
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			b, err := ioutil.ReadAll(resp.Body)
+			var b []byte
+			b, err = ioutil.ReadAll(resp.Body)
 			if err == nil {
 				err = fmt.Errorf(`status_code=%d message="%s"`, resp.StatusCode, string(b))
 			}
