@@ -90,17 +90,17 @@ func (d *Driver) UnmarshalJSON(b []byte) error {
 }
 
 // Close implements io.Closer
-func (d Driver) Close() (err error) {
+func (d *Driver) Close() (err error) {
 	if d.closer != nil {
 		err = d.closer.Close()
 	}
 	return
 }
 
-func (d Driver) pluginLoad() (Driver, error) {
+func (d *Driver) pluginLoad() error {
 	cleanup := plugin.LoadDriverPlugins(plugin.Config{})
 	d.closer = closeNoErrFn(cleanup)
-	return d, nil
+	return nil
 }
 
 type azureClient struct {
@@ -118,7 +118,7 @@ func (a azureClient) New(u, f string) driver.Driver {
 	return a.ProtobufClient.New(u, f)
 }
 
-func (d Driver) azureLoad() (Driver, error) {
+func (d *Driver) azureLoad() error {
 	var worker string
 	var cert string
 	var key string
@@ -148,23 +148,23 @@ func (d Driver) azureLoad() (Driver, error) {
 		}
 		rt, err := auth.RoundTripper()
 		if err != nil {
-			return Driver{}, err
+			return err
 		}
 		cli.rt = rt
 	}
 	driver.Register(d.Config, dri)
-	return d, nil
+	return nil
 }
 
 // Load loads a known driver type with config
-func (d Driver) Load() (Driver, error) {
+func (d *Driver) Load() error {
 	switch d.Type {
 	case Plugin:
 		return d.pluginLoad()
 	case Azure:
 		return d.azureLoad()
 	}
-	return Driver{}, errors.New("unsupported DriverKind")
+	return errors.New("unsupported DriverKind")
 }
 
 // DriversCloseError is a list of errors
@@ -181,38 +181,20 @@ func (d DriversCloseError) Error() string {
 // Drivers is a list of supported by router
 type Drivers []Driver
 
-func (d *Drivers) addDriver(dri Driver, err error) error {
-	if err == nil {
-		*d = append(*d, dri)
-	}
-	return err
-}
-
 // Load loads known drivers with their configuration
-func (d *Drivers) Load() (io.Closer, error) {
-	newDrivers := make(Drivers, 0, len(*d))
-	for _, dri := range *d {
-		var err error
-		switch dri.Type {
-		case Plugin:
-			err = d.addDriver(dri.pluginLoad())
-		case Azure:
-			err = d.addDriver(dri.azureLoad())
-		default:
-			err = errors.New("unsupported DriverKind")
-		}
-		if err != nil {
-			defer newDrivers.Close()
-			return nil, err
+func (d *Drivers) Load() error {
+	for i := range *d {
+		if err := (*d)[i].pluginLoad(); err != nil {
+			return err
 		}
 	}
-	return newDrivers, nil
+	return nil
 }
 
 // Close implements io.Closer
-func (d Drivers) Close() (err error) {
+func (d *Drivers) Close() (err error) {
 	var errs DriversCloseError
-	for _, dr := range d {
+	for _, dr := range *d {
 		if err := dr.Close(); err != nil {
 			errs = append(errs, err)
 		}
@@ -220,18 +202,21 @@ func (d Drivers) Close() (err error) {
 	return errs
 }
 
-var defaultDrivers = Drivers{
-	{Type: Plugin},
-	{
-		Config: driver.Config{
-			Provider: "azure",
-			Runtime:  "function",
+// NewDefaultDrivers returns default drivers which include local and azure driver for localhost
+func NewDefaultDrivers() Drivers {
+	return Drivers{
+		{Type: Plugin},
+		{
+			Config: driver.Config{
+				Provider: "azure",
+				Runtime:  "function",
+			},
+			Type: Azure,
+			Attributes: map[string]interface{}{
+				"worker": "http://localhost",
+			},
 		},
-		Type: Azure,
-		Attributes: map[string]interface{}{
-			"worker": "http://localhost",
-		},
-	},
+	}
 }
 
 type closeNoErrFn func()
@@ -253,7 +238,6 @@ type Config struct {
 	router.Config
 	Pretty             *bool              `json:"pretty"`
 	GraphiQL           *bool              `json:"graphiql"`
-	Drivers            Drivers            `json:"drivers"`
 	DefaultEnvironment router.Environment `json:"defaultEnvironment"`
 }
 
@@ -277,13 +261,7 @@ func (c *Config) UnmarshalYAML(unmarshal func(interface{}) error) error {
 
 // New returns new handler for graphql server
 func New(c Config) (httpHandler http.Handler, err error) {
-	drivers := c.Drivers
-	if len(drivers) == 0 {
-		drivers = defaultDrivers
-	}
-	driversCleanup, err := drivers.Load()
 	if err == nil {
-		defer driversCleanup.Close()
 		if c.DefaultEnvironment.Provider != "" || c.DefaultEnvironment.Runtime != "" {
 			router.SetDefaultEnvironment(c.DefaultEnvironment)
 		}
