@@ -156,19 +156,24 @@ func NewStartCommand() *cobra.Command {
 					"key":  key,
 				}
 			}
+
+			dri := &server.Drivers{
+				{Type: server.Plugin},
+				{
+					Config: driver.Config{
+						Provider: "azure",
+						Runtime:  "function",
+					},
+					Type:       server.Azure,
+					Attributes: azureAttribs,
+				},
+			}
+			if err := dri.Load(); err != nil {
+				log.Fatal(err)
+			}
+			defer dri.Close()
 			h, err := server.New(server.Config{
 				Config: cfg.Config,
-				Drivers: server.Drivers{
-					{Type: server.Plugin},
-					{
-						Config: driver.Config{
-							Provider: "azure",
-							Runtime:  "function",
-						},
-						Type:       server.Azure,
-						Attributes: azureAttribs,
-					},
-				},
 				DefaultEnvironment: router.Environment{
 					Provider: "azure",
 					Runtime:  "function",

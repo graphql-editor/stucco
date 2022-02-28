@@ -50,6 +50,11 @@ func NewStartCommand() *cobra.Command {
 			if schema != "" {
 				cfg.Schema = schema
 			}
+			dri := server.NewDefaultDrivers()
+			if err := dri.Load(); err != nil {
+				klog.Fatal(err)
+			}
+			defer dri.Close()
 			h, err := server.New(cfg)
 			if err != nil {
 				klog.Fatal(err)
