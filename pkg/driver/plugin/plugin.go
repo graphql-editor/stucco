@@ -123,6 +123,7 @@ type Plugin struct {
 	runnersCount uint8
 	lock         sync.RWMutex
 	secrets      driver.Secrets
+	cmdRef       *exec.Cmd
 }
 
 func (p *Plugin) getRunnersCount() uint8 {
@@ -179,10 +180,15 @@ func (p *Plugin) getDriver() (driver.Driver, error) {
 // ExecCommand creates new plugin command
 var ExecCommand = exec.Command
 
-func (p *Plugin) start() error {
+func (p *Plugin) getRunners() []pluginRunner {
 	p.lock.RLock()
-	if p.runners == nil {
-		p.lock.RUnlock()
+	runners := p.runners
+	p.lock.RUnlock()
+	return runners
+}
+
+func (p *Plugin) start() error {
+	if p.getRunners() == nil {
 		p.lock.Lock()
 		defer p.lock.Unlock()
 		if p.runners == nil {
@@ -201,8 +207,13 @@ func (p *Plugin) start() error {
 			})
 			d, err := p.getClientShim()
 			if err != nil {
+				if cmd.Process != nil {
+					cmd.Process.Kill()
+					cmd.Process.Wait()
+				}
 				return err
 			}
+			p.cmdRef = cmd
 			ctx := context.Background()
 			go func() {
 				if err := d.Stdout(ctx, "plugin."+filepath.Base(cmd.Path)); err != nil {
@@ -223,14 +234,13 @@ func (p *Plugin) start() error {
 						err = rpcClient.Ping()
 					}
 					if err != nil {
-						klog.Fatal(errors.Wrap(err, "plugin error, quitting: "))
+						klog.Error(errors.Wrap(err, "plugin error, quitting: "))
+						return
 					}
 				}
 			}()
 			p.createRunners()
 		}
-	} else {
-		p.lock.RUnlock()
 	}
 	return nil
 }
@@ -411,9 +421,10 @@ func (p *Plugin) Close() (err error) {
 	case <-clean:
 		t.Stop()
 	case <-t.C:
-		err = fmt.Errorf("could not finish all tasks")
+		klog.Error("could not finish all tasks")
 	}
 	p.client.Kill()
+	p.cmdRef.Process.Wait()
 	return
 }
 
