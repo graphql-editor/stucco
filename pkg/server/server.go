@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
@@ -21,6 +21,7 @@ import (
 	azuredriver "github.com/graphql-editor/stucco/pkg/providers/azure/driver"
 	"github.com/graphql-editor/stucco/pkg/router"
 	"github.com/graphql-editor/stucco/pkg/security"
+	"k8s.io/klog"
 )
 
 // DriverKind represents one of implemented drivers for handling functions
@@ -307,17 +308,18 @@ func (s *Server) ListenAndServe() error {
 		Handler: &mux,
 	}
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-c
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatal(err)
+			klog.Error(err)
 		}
 	}()
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
+	err := srv.ListenAndServe()
+	if err == http.ErrServerClosed {
+		err = nil
 	}
-	return nil
+	return err
 }

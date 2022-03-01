@@ -42,22 +42,22 @@ func NewStartCommand() *cobra.Command {
 	startCommand := &cobra.Command{
 		Use:   "start",
 		Short: "Start local runner",
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			var cfg server.Config
 			if err := utils.LoadConfigFile(startConfig, &cfg); err != nil {
-				klog.Fatal(err)
+				return err
 			}
 			if schema != "" {
 				cfg.Schema = schema
 			}
 			dri := server.NewDefaultDrivers()
 			if err := dri.Load(); err != nil {
-				klog.Fatal(err)
+				return err
 			}
 			defer dri.Close()
 			h, err := server.New(cfg)
 			if err != nil {
-				klog.Fatal(err)
+				return err
 			}
 			h = handlers.RecoveryHandler(
 				httplog.WithLogging(
@@ -84,9 +84,7 @@ func NewStartCommand() *cobra.Command {
 				Handler: h,
 				Addr:    ":8080",
 			}
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				klog.Fatal(err)
-			}
+			return srv.ListenAndServe()
 		},
 	}
 	klogFlagSet := flag.NewFlagSet("klog", flag.ExitOnError)
