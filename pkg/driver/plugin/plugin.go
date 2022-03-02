@@ -124,6 +124,7 @@ type Plugin struct {
 	lock         sync.RWMutex
 	secrets      driver.Secrets
 	cmdRef       *exec.Cmd
+	done         chan struct{}
 }
 
 func (p *Plugin) getRunnersCount() uint8 {
@@ -209,7 +210,6 @@ func (p *Plugin) start() error {
 			if err != nil {
 				if cmd.Process != nil {
 					cmd.Process.Kill()
-					cmd.Process.Wait()
 				}
 				return err
 			}
@@ -225,20 +225,27 @@ func (p *Plugin) start() error {
 					klog.Error(err)
 				}
 			}()
+			done := make(chan struct{})
 			go func() {
 				ticker := time.NewTicker(time.Second * 5)
 				defer ticker.Stop()
-				for range ticker.C {
-					rpcClient, err := p.client.Client()
-					if err == nil {
-						err = rpcClient.Ping()
-					}
-					if err != nil {
-						klog.Error(errors.Wrap(err, "plugin error, quitting: "))
+				for {
+					select {
+					case <-ticker.C:
+						rpcClient, err := p.client.Client()
+						if err == nil {
+							err = rpcClient.Ping()
+						}
+						if err != nil {
+							klog.Error(errors.Wrap(err, "plugin error, quitting: "))
+							return
+						}
+					case <-done:
 						return
 					}
 				}
 			}()
+			p.done = done
 			p.createRunners()
 		}
 	}
@@ -423,8 +430,10 @@ func (p *Plugin) Close() (err error) {
 	case <-t.C:
 		klog.Error("could not finish all tasks")
 	}
+	if p.done != nil {
+		close(p.done)
+	}
 	p.client.Kill()
-	p.cmdRef.Process.Wait()
 	return
 }
 
