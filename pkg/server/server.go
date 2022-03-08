@@ -76,6 +76,7 @@ type Driver struct {
 	driver.Config
 	Type       DriverKind             `json:"type"`
 	Attributes map[string]interface{} `json:"-"`
+	Optional   bool                   `json:"optional"`
 	closer     io.Closer
 }
 
@@ -185,7 +186,7 @@ type Drivers []Driver
 // Load loads known drivers with their configuration
 func (d *Drivers) Load() error {
 	for i := range *d {
-		if err := (*d)[i].pluginLoad(); err != nil {
+		if err := (*d)[i].pluginLoad(); err != nil && !(*d)[i].Optional {
 			return err
 		}
 	}

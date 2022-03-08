@@ -158,7 +158,10 @@ func NewStartCommand() *cobra.Command {
 			}
 
 			dri := &server.Drivers{
-				{Type: server.Plugin},
+				{
+					Type:     server.Plugin,
+					Optional: true,
+				},
 				{
 					Config: driver.Config{
 						Provider: "azure",
