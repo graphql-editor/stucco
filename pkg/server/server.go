@@ -186,8 +186,11 @@ type Drivers []Driver
 // Load loads known drivers with their configuration
 func (d *Drivers) Load() error {
 	for i := range *d {
-		if err := (*d)[i].pluginLoad(); err != nil && !(*d)[i].Optional {
-			return err
+		if err := (*d)[i].Load(); err != nil {
+			if !(*d)[i].Optional {
+				return err
+			}
+			klog.Infof("plugin not loaded: %v", err)
 		}
 	}
 	return nil
