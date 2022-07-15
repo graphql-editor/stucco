@@ -4,7 +4,7 @@ import (
 	"io"
 	"io/ioutil"
 
-	protobuf "github.com/golang/protobuf/proto"
+	protobuf "google.golang.org/protobuf/proto"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"

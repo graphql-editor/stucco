@@ -53,9 +53,9 @@ type TypeResolver interface {
 
 func unionDefinition(p *Parser, u *ast.UnionDefinition) (t *graphql.Union, err error) {
 	uCfg := graphql.UnionConfig{
-		Name:  u.Name.Value,
-		Types: make([]*graphql.Object, 0, len(u.Types)),
+		Name: u.Name.Value,
 	}
+	types := make([]*graphql.Object, 0, len(u.Types))
 	setDescription(&uCfg.Description, u)
 	t = graphql.NewUnion(uCfg)
 	p.gqlTypeMap[t.Name()] = t
@@ -67,12 +67,15 @@ func unionDefinition(p *Parser, u *ast.UnionDefinition) (t *graphql.Union, err e
 		// Invariant, according to spec
 		// only object are allowed in union
 		ot := gt.(*graphql.Object)
-		uCfg.Types = append(uCfg.Types, ot)
+		types = append(types, ot)
 	}
 	if fn, ok := p.Unions[u.Name.Value]; ok {
 		uCfg.ResolveType = fn
 	} else {
-		uCfg.ResolveType = defaultResolveFunc(uCfg.Types)
+		uCfg.ResolveType = defaultResolveFunc(types)
+	}
+	if len(types) >= 0 {
+		uCfg.Types = types
 	}
 	*t = *graphql.NewUnion(uCfg)
 	return t, nil

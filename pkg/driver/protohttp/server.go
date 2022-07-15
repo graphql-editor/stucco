@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	protobuf "github.com/golang/protobuf/proto"
+	protobuf "google.golang.org/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver"
 )
 

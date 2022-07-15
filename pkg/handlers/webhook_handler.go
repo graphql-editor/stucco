@@ -41,7 +41,7 @@ func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
 		pathParts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(r.URL.Path, "/"), "/"), "/")
 		op := strings.ToLower(pathParts[1])
 		if len(pathParts) != 3 || (op != "query" && op != "mutation") || len(pathParts) == 0 {
-			http.Error(rw, "Invalid webhook path, must be /webhook/<query|mutation>/<field>", http.StatusBadRequest)
+			http.Error(rw, "Invalid webhook path, must be /webhook/<query|mutation>/<field>", http.StatusNotFound)
 			return
 		}
 		r.Body = io.NopCloser(strings.NewReader(`{ "query": "` + op + `{` + pathParts[2] + `}" }`))
