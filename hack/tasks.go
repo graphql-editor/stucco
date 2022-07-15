@@ -124,6 +124,8 @@ func writeChangelog(from, to semver.Version) error {
 	fmt.Fprintf(&b, "| linux | [%s](%s) |\n", linuxAmd64URL, linuxAmd64URL)
 	darwinAmd64URL := fmt.Sprintf(cdnURL, to.String(), "darwin", "amd64", "")
 	fmt.Fprintf(&b, "| macOS | [%s](%s) |\n", darwinAmd64URL, darwinAmd64URL)
+	darwinArm64URL := fmt.Sprintf(cdnURL, to.String(), "darwin", "arm64", "")
+	fmt.Fprintf(&b, "| macOS | [%s](%s) |\n", darwinArm64URL, darwinArm64URL)
 	windowsAmd64URL := fmt.Sprintf(cdnURL, to.String(), "windows", "amd64", "")
 	fmt.Fprintf(&b, "| windows | [%s](%s) |\n", windowsAmd64URL, windowsAmd64URL)
 	fmt.Fprintln(&b, "")
@@ -347,6 +349,7 @@ func makeAzureFunctionZip(flavours []flavour) func() error {
 		files := []zipData{}
 		for _, funcFile := range []string{
 			filepath.Join("graphql", "function.json"),
+			filepath.Join("webhook", "function.json"),
 			"host.json",
 			"run.js",
 		} {
@@ -457,10 +460,13 @@ func main() {
 	}
 	cliFlavours := []flavour{
 		{goos: "linux", goarch: "amd64", azureFunction: true},
-		{goos: "darwin", goarch: "amd64"},
-		{goos: "windows", goarch: "amd64", ext: ".exe", azureFunction: true},
 		{goos: "linux", goarch: "386", azureFunction: true},
+		{goos: "linux", goarch: "arm64", azureFunction: true},
+		{goos: "darwin", goarch: "amd64"},
+		{goos: "darwin", goarch: "arm64"},
+		{goos: "windows", goarch: "amd64", ext: ".exe", azureFunction: true},
 		{goos: "windows", goarch: "386", ext: ".exe", azureFunction: true},
+		{goos: "windows", goarch: "arm64", ext: ".exe", azureFunction: true},
 	}
 	for i, f := range cliFlavours {
 		cliFlavours[i].out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))

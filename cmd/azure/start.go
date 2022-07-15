@@ -185,9 +185,14 @@ func NewStartCommand() *cobra.Command {
 			if err != nil {
 				log.Fatal(err)
 			}
+			webhookHandler, err := server.NewWebhookHandler(cfg)
+			if err != nil {
+				log.Fatal(err)
+			}
 			srv := server.Server{
-				Handler: h,
-				Addr:    listen,
+				Handler:        h,
+				WebhookHandler: webhookHandler,
+				Addr:           listen,
 			}
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Fatal(err)
