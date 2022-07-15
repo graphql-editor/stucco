@@ -65,6 +65,11 @@
 				"name": "function.createReview"
 			}
 		},
+		"Mutation.webhook": {
+			"resolve": {
+				"name": "function.webhook"
+			}
+		},
 		"Subscription.randomGreet": {
 			"resolve": {
 				"name": "function.randomGreet"

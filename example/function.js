@@ -150,6 +150,12 @@ module.exports = {
 		return input.arguments.review
 	},
 
+	// Mutation.webhook
+	webhook: input => {
+		console.log(JSON.stringify(input.protocol));
+		return 'OK'
+	},
+
 	// Human/Droid.friends
 	friends: input => friends(input.source.friends),
 

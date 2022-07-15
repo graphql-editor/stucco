@@ -59,30 +59,37 @@ func NewStartCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			h = handlers.RecoveryHandler(
-				httplog.WithLogging(
-					cors.New(cors.Options{
-						AllowedOrigins: []string{"*"},
-						AllowedMethods: []string{
-							http.MethodHead,
-							http.MethodGet,
-							http.MethodPost,
-							http.MethodPut,
-							http.MethodPatch,
-							http.MethodDelete,
-						},
-						AllowedHeaders:   []string{"*"},
-						AllowCredentials: true,
-					}).Handler(
-						handlers.WithProtocolInContext(h),
+			webhookHandler, err := server.NewWebhookHandler(cfg)
+			if err != nil {
+				return err
+			}
+			middleware := func(next http.Handler) http.Handler {
+				return handlers.RecoveryHandler(
+					httplog.WithLogging(
+						cors.New(cors.Options{
+							AllowedOrigins: []string{"*"},
+							AllowedMethods: []string{
+								http.MethodHead,
+								http.MethodGet,
+								http.MethodPost,
+								http.MethodPut,
+								http.MethodPatch,
+								http.MethodDelete,
+							},
+							AllowedHeaders:   []string{"*"},
+							AllowCredentials: true,
+						}).Handler(next),
+						httplog.DefaultStacktracePred,
 					),
-					httplog.DefaultStacktracePred,
-				),
-				klogErrorf{},
-			)
+					klogErrorf{},
+				)
+			}
+			h = middleware(h)
+			webhookHandler = middleware(webhookHandler)
 			srv := server.Server{
-				Handler: h,
-				Addr:    ":8080",
+				Handler:        h,
+				WebhookHandler: webhookHandler,
+				Addr:           ":8080",
 			}
 			return srv.ListenAndServe()
 		},
