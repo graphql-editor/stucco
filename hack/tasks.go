@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/Dennor/gbtb"
@@ -290,8 +291,12 @@ func xBuildCommandLine(f flavour, bv string) func() error {
 		cmd.Env = append(cmd.Env, append([]string{
 			"GOARCH=" + f.goarch,
 			"GOOS=" + f.goos,
-			"CGO_ENABLED=0",
 		})...)
+		if f.goos != "darwin" {
+			cmd.Env = append(cmd.Env, "CGO_ENABLED=0")
+		} else {
+			cmd.Env = append(cmd.Env, "CGO_ENABLED=1")
+		}
 		return gbtb.PipeCommands(cmd)
 	}
 }
@@ -466,15 +471,23 @@ func main() {
 			Job:  coverage,
 		},
 	}
-	cliFlavours := []flavour{
+	functionFlavours := []flavour{
 		{goos: "linux", goarch: "amd64", azureFunction: true},
 		{goos: "linux", goarch: "386", azureFunction: true},
 		{goos: "linux", goarch: "arm64", azureFunction: true},
-		{goos: "darwin", goarch: "amd64"},
-		{goos: "darwin", goarch: "arm64"},
 		{goos: "windows", goarch: "amd64", ext: ".exe", azureFunction: true},
 		{goos: "windows", goarch: "386", ext: ".exe", azureFunction: true},
 		{goos: "windows", goarch: "arm64", ext: ".exe", azureFunction: true},
+	}
+	cliFlavours := append([]flavour{}, functionFlavours...)
+	if runtime.GOOS == "darwin" {
+		cliFlavours = append(cliFlavours, []flavour{
+			{goos: "darwin", goarch: "amd64"},
+			{goos: "darwin", goarch: "arm64"},
+		}...)
+	}
+	for i, f := range functionFlavours {
+		functionFlavours[i].out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))
 	}
 	for i, f := range cliFlavours {
 		cliFlavours[i].out = out(filepath.Join("cli", f.goos, f.goarch, "stucco"+f.ext))
@@ -498,7 +511,7 @@ func main() {
 		&gbtb.Task{
 			Name:         "build_azure_function",
 			Dependencies: cliDeps,
-			Job:          makeAzureFunctionZip(cliFlavours),
+			Job:          makeAzureFunctionZip(functionFlavours),
 		},
 		&gbtb.Task{
 			Name: "help",
