@@ -1,3 +1,23 @@
+# Version v0.10.7
+
+## Download
+
+|   | amd64 |
+|---|----|
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/linux/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/linux/amd64/stucco) |
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/linux/386/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/linux/386/stucco) |
+| linux | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/linux/arm64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/linux/arm64/stucco) |
+| macOS | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/darwin/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/darwin/amd64/stucco) |
+| macOS | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/darwin/arm64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/darwin/arm64/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/windows/amd64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/windows/amd64/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/windows/386/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/windows/386/stucco) |
+| windows | [https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/windows/arm64/stucco](https://stucco-release.fra1.digitaloceanspaces.com/v0.10.7/windows/arm64/stucco) |
+
+## Changes
+
+```
+```
+
 # Version v0.10.6
 
 ## Download
