@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	protobuf "github.com/golang/protobuf/proto"
+	protobuf "google.golang.org/protobuf/proto"
 	"github.com/graphql-editor/stucco/pkg/driver/protohttp"
 	"github.com/graphql-editor/stucco/pkg/proto/prototest"
 	protoMessages "github.com/graphql-editor/stucco_proto/go/messages"
