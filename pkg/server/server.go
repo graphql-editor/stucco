@@ -328,16 +328,15 @@ func (s *Server) handler(rw http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/graphql":
 		s.Handler.ServeHTTP(rw, r)
-		return
 	case "/health":
 		s.health(rw, r)
-		return
+	default:
+		if s.WebhookHandler != nil && strings.HasPrefix(r.URL.Path, "/webhook/") {
+			s.WebhookHandler.ServeHTTP(rw, r)
+			return
+		}
+		http.NotFound(rw, r)
 	}
-	if s.WebhookHandler != nil && strings.HasPrefix(r.URL.Path, "/webhook/") {
-		s.WebhookHandler.ServeHTTP(rw, r)
-		return
-	}
-	http.Error(rw, "404 - not found", http.StatusNotFound)
 }
 
 // ListenAndServe is a simple wrapper around http.Server.ListenAndServe with two endpoints. It is blocking
