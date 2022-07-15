@@ -285,13 +285,35 @@ func New(c Config) (httpHandler http.Handler, err error) {
 	return
 }
 
+// NewWebhookHandler returns new handler for webhook to graphql server
+func NewWebhookHandler(c Config) (httpHandler http.Handler, err error) {
+	if err == nil {
+		if c.DefaultEnvironment.Provider != "" || c.DefaultEnvironment.Runtime != "" {
+			router.SetDefaultEnvironment(c.DefaultEnvironment)
+		}
+	}
+	var rt router.Router
+	if err == nil {
+		rt, err = router.NewRouter(c.Config)
+	}
+	if err == nil {
+		cfg := gqlhandler.Config{
+			Schema: &rt.Schema,
+			Pretty: checkPointerBoolDefaultTrue(c.Pretty),
+		}
+		httpHandler = gqlhandler.NewWebhookHandler(cfg, gqlhandler.New(cfg))
+	}
+	return
+}
+
 // Server default simple server that has two endpoints. /graphql which uses Handler as a handler
 // and /health that uses Health as a handler or just returns 200.
 // It handles SIGTERM.
 type Server struct {
-	Handler http.Handler
-	Health  http.Handler
-	Addr    string
+	Handler        http.Handler
+	WebhookHandler http.Handler
+	Health         http.Handler
+	Addr           string
 }
 
 func (s *Server) health(rw http.ResponseWriter, req *http.Request) {
@@ -302,14 +324,27 @@ func (s *Server) health(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, "OK")
 }
 
+func (s *Server) handler(rw http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/graphql":
+		s.Handler.ServeHTTP(rw, r)
+		return
+	case "/health":
+		s.health(rw, r)
+		return
+	}
+	if s.WebhookHandler != nil && strings.HasPrefix(r.URL.Path, "/webhook/") {
+		s.WebhookHandler.ServeHTTP(rw, r)
+		return
+	}
+	http.Error(rw, "404 - not found", http.StatusNotFound)
+}
+
 // ListenAndServe is a simple wrapper around http.Server.ListenAndServe with two endpoints. It is blocking
 func (s *Server) ListenAndServe() error {
-	mux := http.ServeMux{}
-	mux.Handle("/graphql", s.Handler)
-	mux.HandleFunc("/health", s.health)
 	srv := http.Server{
 		Addr:    s.Addr,
-		Handler: &mux,
+		Handler: http.HandlerFunc(s.handler),
 	}
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)

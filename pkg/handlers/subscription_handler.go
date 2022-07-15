@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io/ioutil"
@@ -288,6 +289,20 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		buff, _ = json.Marshal(result)
 	}
 	rw.Write(buff)
+}
+
+type webhookResponseWrapper struct {
+	bytes.Buffer
+	http.ResponseWriter
+	status int
+}
+
+func (w *webhookResponseWrapper) Write(b []byte) (int, error) {
+	return w.Buffer.Write(b)
+}
+
+func (w *webhookResponseWrapper) WriteHeader(status int) {
+	w.status = status
 }
 
 // New returns new handler
