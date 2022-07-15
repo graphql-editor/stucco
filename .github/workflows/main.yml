@@ -17,34 +17,18 @@ jobs:
       matrix:
         go-version: [1.18.x]
         platform: [ubuntu-latest, macos-latest, windows-latest]
+        goarch: [amd64, 386, arm64]
         include:
           - platform: ubuntu-latest
             goos: linux
-            goarch: amd64
-          - platform: ubuntu-latest
-            goos: linux
-            goarch: 386
-          - platform: ubuntu-latest
-            goos: linux
-            goarch: arm64
           - platform: macos-latest
             goos: darwin
-            goarch: amd64
-          - platform: macos-latest
-            goos: darwin
-            goarch: arm64
           - platform: windows-latest
             goos: windows
-            goarch: amd64
             ext: '.exe'
-          - platform: windows-latest
-            goos: windows
-            goarch: 386
-            ext: '.exe'
-          - platform: windows-latest
-            goos: windows
-            goarch: arm64
-            ext: '.exe'
+        exclude:
+        - platform: macos-latest
+          goarch: 386
     runs-on: ${{ matrix.platform }}
     steps:
     - name: setup go
