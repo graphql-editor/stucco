@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 
 	"github.com/graphql-editor/stucco/pkg/providers/azure/project/runtimes"
 	"github.com/graphql-editor/stucco/pkg/router"
@@ -134,6 +133,15 @@ func (s subscriptionFunctionList) functions() []types.Function {
 	return ret
 }
 
+func search(n int, s func(i int) bool) int {
+	for i := 0; i < n; i++ {
+		if s(i) {
+			return i
+		}
+	}
+	return n
+}
+
 func appendAllRuntimeFiles(cfg router.Config, rt runtimeConfig, w *zip.Writer, projectDir, prefix string) {
 	functions := interfaceResolveTypeFunctionList(cfg.Interfaces).functions()
 	functions = append(functions, resolveFunctionList(cfg.Resolvers).functions()...)
@@ -146,7 +154,7 @@ func appendAllRuntimeFiles(cfg router.Config, rt runtimeConfig, w *zip.Writer, p
 	for i := 0; i < len(functions); i++ {
 		f := functions[i]
 		// Remove empty functions and repetitions
-		if f.Name == "" || sort.Search(i, func(i int) bool {
+		if f.Name == "" || search(i, func(i int) bool {
 			return f.Name == functions[i].Name
 		}) != i {
 			functions = append(functions[:i], functions[i+1:]...)
