@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -518,5 +519,7 @@ func main() {
 			Job:  helpTask(&tasks),
 		},
 	)
-	tasks.Do(flag.Args()...)
+	if err := tasks.Do(flag.Args()...); err != nil {
+		log.Fatalln(err)
+	}
 }
