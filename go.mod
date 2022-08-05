@@ -50,5 +50,3 @@ require (
 )
 
 replace github.com/graphql-go/graphql => github.com/graphql-editor/graphql v0.7.10-0.20220715103515-dd2af00bb70d
-
-replace github.com/hashicorp/go-plugin => ../go-plugin

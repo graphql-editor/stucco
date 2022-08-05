@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
@@ -197,6 +198,7 @@ func (p *Plugin) start() error {
 			for k, v := range p.secrets {
 				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, v))
 			}
+			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			p.client = NewPluginClient(&plugin.ClientConfig{
 				HandshakeConfig: p.handshake(),
 				Plugins: map[string]plugin.Plugin{
@@ -433,7 +435,23 @@ func (p *Plugin) Close() (err error) {
 	if p.done != nil {
 		close(p.done)
 	}
-	p.client.Kill()
+	pgid, err := syscall.Getpgid(p.cmdRef.Process.Pid)
+	clean = make(chan struct{})
+	go func() {
+		defer close(clean)
+		p.client.Kill()
+	}()
+	t.Reset(5 * time.Second)
+	select {
+	case <-clean:
+		t.Stop()
+	case <-t.C:
+		if err == nil {
+			if err := syscall.Kill(-pgid, syscall.SIGKILL); err != nil {
+				klog.Error("could not kill all processes in group")
+			}
+		}
+	}
 	return
 }
 
