@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"io/ioutil"
@@ -35,7 +36,7 @@ func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
 			}
 			r.Body.Close()
 			if len(body) > 0 {
-				protocolData["body"] = body
+				protocolData["body"] = base64.StdEncoding.EncodeToString(body)
 			}
 		}
 		pathParts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(r.URL.Path, "/"), "/"), "/")
