@@ -298,8 +298,9 @@ func NewWebhookHandler(c Config) (httpHandler http.Handler, err error) {
 	}
 	if err == nil {
 		cfg := gqlhandler.Config{
-			Schema: &rt.Schema,
-			Pretty: checkPointerBoolDefaultTrue(c.Pretty),
+			RouterConfig: c.Config,
+			Schema:       &rt.Schema,
+			Pretty:       checkPointerBoolDefaultTrue(c.Pretty),
 		}
 		httpHandler = gqlhandler.NewWebhookHandler(cfg, gqlhandler.New(cfg))
 	}

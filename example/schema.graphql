@@ -12,6 +12,7 @@ type Query {
 type Mutation {
     createReview(episode: Episode!, review: ReviewInput!): Review
     webhook: String
+    patternWebhook(field: String!): String
 }
 """The subscription type, represents all subscriptions we can make"""
 type Subscription {

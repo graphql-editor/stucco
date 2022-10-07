@@ -59,11 +59,17 @@ func newEnvironment(base *Environment, defaultEnv Environment) *Environment {
 	return dst
 }
 
+type WebhookConfig struct {
+	Pattern      string            `json:"pattern,omitempty"`
+	BodyBindings map[string]string `json:"bodyBindings,omitempty"`
+}
+
 // ResolverConfig defines function configuration for field resolver
 type ResolverConfig struct {
 	Environment *Environment   `json:"environment,omitempty"`
 	Resolve     types.Function `json:"resolve"`
 	Skip        bool           `json:"skip"`
+	Webhook     *WebhookConfig `json:"webhook,omitempty"`
 }
 
 // ScalarConfig defines parse and serialize function configurations for scalar
@@ -75,8 +81,9 @@ type ScalarConfig struct {
 
 // InterfaceConfig defines function configuration for interface type resolution
 type InterfaceConfig struct {
-	Environment *Environment   `json:"environment,omitempty"`
-	ResolveType types.Function `json:"resolveType"`
+	Environment *Environment             `json:"environment,omitempty"`
+	ResolveType types.Function           `json:"resolveType"`
+	Webhooks    map[string]WebhookConfig `json:"webhooks,omitempty"`
 }
 
 // UnionConfig defines function configuration for union type resolution
