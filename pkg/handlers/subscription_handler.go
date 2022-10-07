@@ -23,6 +23,7 @@ type ResultCallbackFn func(ctx context.Context, params *graphql.Params, result *
 
 // Config new handler
 type Config struct {
+	RouterConfig router.Config
 	Schema       *graphql.Schema
 	Pretty       bool
 	GraphiQL     bool

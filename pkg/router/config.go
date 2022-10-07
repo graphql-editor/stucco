@@ -61,9 +61,10 @@ func newEnvironment(base *Environment, defaultEnv Environment) *Environment {
 
 // ResolverConfig defines function configuration for field resolver
 type ResolverConfig struct {
-	Environment *Environment   `json:"environment,omitempty"`
-	Resolve     types.Function `json:"resolve"`
-	Skip        bool           `json:"skip"`
+	Environment    *Environment   `json:"environment,omitempty"`
+	Resolve        types.Function `json:"resolve"`
+	Skip           bool           `json:"skip"`
+	WebhookPattern string         `json:"webhookPattern,omitempty"`
 }
 
 // ScalarConfig defines parse and serialize function configurations for scalar

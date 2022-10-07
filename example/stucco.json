@@ -70,6 +70,12 @@
 				"name": "function.webhook"
 			}
 		},
+		"Mutation.patternWebhook": {
+			"resolve": {
+				"name": "function.patternWebhook"
+			},
+			"webhookPattern": "/{field}"
+		},
 		"Subscription.randomGreet": {
 			"resolve": {
 				"name": "function.randomGreet"
