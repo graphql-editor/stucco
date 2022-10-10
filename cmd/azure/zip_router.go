@@ -2,7 +2,6 @@ package azurecmd
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -71,7 +70,6 @@ func NewZipRouterCommand() *cobra.Command {
 			if err := utils.LoadConfigFile(config, &cfg); err != nil {
 				klog.Fatal(err)
 			}
-			fmt.Println(cfg.AzureOpts)
 			extraFiles := []utils.ZipData{
 				{Filename: "stucco.json", Data: bytes.NewReader(configData)},
 				{Filename: "schema.graphql", Data: bytes.NewReader(schemaData)},
