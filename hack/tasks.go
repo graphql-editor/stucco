@@ -363,7 +363,6 @@ func makeAzureFunctionZip(flavours []flavour) func() error {
 		files := []zipData{}
 		for _, funcFile := range []string{
 			filepath.Join("graphql", "function.json"),
-			filepath.Join("webhook", "function.json"),
 			"host.json",
 			"run.js",
 		} {
