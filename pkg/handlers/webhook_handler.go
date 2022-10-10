@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -189,6 +190,10 @@ func CreateQuery(c Config, r *http.Request) (string, string, error) {
 	return q, op, err
 }
 
+type apiQuery struct {
+	Query string `json:"query"`
+}
+
 func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		protocolData := map[string]interface{}{
@@ -219,7 +224,15 @@ func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
-		r.Body = io.NopCloser(strings.NewReader(`{"query":"` + q + `"}`))
+		var buf bytes.Buffer
+		enc := json.NewEncoder(&buf)
+		if err := enc.Encode(apiQuery{
+			Query: q,
+		}); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		r.Body = io.NopCloser(&buf)
 		r.Method = "POST"
 		r.Header.Set("content-type", "application/json")
 		r = r.WithContext(context.WithValue(r.Context(), router.ProtocolKey, protocolData))
