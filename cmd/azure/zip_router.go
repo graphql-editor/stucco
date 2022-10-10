@@ -2,9 +2,12 @@ package azurecmd
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/graphql-editor/stucco/pkg/providers/azure/project"
 	"github.com/graphql-editor/stucco/pkg/providers/azure/vars"
@@ -13,6 +16,26 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 )
+
+func webhookJSON(whPattern string) io.Reader {
+	return strings.NewReader(`{
+  "bindings": [
+    {
+      "authLevel": "Anonymous",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get", "post"],
+	 "route": "` + whPattern + `"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    }
+  ]
+}`)
+}
 
 // NewZipRouterCommand returns new zip-router command
 func NewZipRouterCommand() *cobra.Command {
@@ -44,9 +67,20 @@ func NewZipRouterCommand() *cobra.Command {
 			if err != nil && !insecure {
 				klog.Fatal(err)
 			}
+			var cfg project.Config
+			if err := utils.LoadConfigFile(config, &cfg); err != nil {
+				klog.Fatal(err)
+			}
+			fmt.Println(cfg.AzureOpts)
 			extraFiles := []utils.ZipData{
 				{Filename: "stucco.json", Data: bytes.NewReader(configData)},
 				{Filename: "schema.graphql", Data: bytes.NewReader(schemaData)},
+			}
+			for i, wh := range cfg.AzureOpts.Webhooks {
+				extraFiles = append(extraFiles, utils.ZipData{
+					Filename: "webhook" + strconv.FormatInt(int64(i), 10) + "/function.json",
+					Data:     webhookJSON(wh),
+				})
 			}
 			if keyData != nil {
 				extraFiles = append(extraFiles, utils.ZipData{Filename: "key.pem", Data: bytes.NewReader(keyData)})
