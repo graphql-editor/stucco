@@ -166,11 +166,11 @@ func pathToPattern(config Config, tp withFields, pathParts []string) (fieldPath 
 }
 
 // CreateQuery from handler config and request
-func CreateQuery(c Config, r *http.Request) (string, error) {
+func CreateQuery(c Config, r *http.Request) (string, string, error) {
 	pathParts := strings.Split(strings.TrimPrefix(strings.TrimSuffix(r.URL.Path, "/"), "/"), "/")
 	op := strings.ToLower(pathParts[1])
 	if len(pathParts) < 3 {
-		return "", errors.New("Invalid webhook path, must be /webhook/<query|mutation>/<field>[/rest]")
+		return "", "", errors.New("Invalid webhook path, must be /webhook/<query|mutation>/<field>[/rest]")
 	}
 	var tp *graphql.Object
 	switch op {
@@ -179,14 +179,14 @@ func CreateQuery(c Config, r *http.Request) (string, error) {
 	case "mutation":
 		tp = c.Schema.MutationType()
 	default:
-		return "", errors.New(op + " is not a valid operation")
+		return "", "", errors.New(op + " is not a valid operation")
 	}
 	var q string
 	path, args, err := pathToPattern(c, tp, pathParts[2:])
 	if err == nil {
 		q = build(op, path, args)
 	}
-	return q, err
+	return q, op, err
 }
 
 func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
@@ -214,12 +214,12 @@ func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
 				protocolData["body"] = base64.StdEncoding.EncodeToString(body)
 			}
 		}
-		q, err := CreateQuery(c, r)
+		q, _, err := CreateQuery(c, r)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 			return
 		}
-		r.Body = io.NopCloser(strings.NewReader(q))
+		r.Body = io.NopCloser(strings.NewReader(`{"query":"` + q + `"}`))
 		r.Method = "POST"
 		r.Header.Set("content-type", "application/json")
 		r = r.WithContext(context.WithValue(r.Context(), router.ProtocolKey, protocolData))

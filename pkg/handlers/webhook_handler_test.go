@@ -61,23 +61,25 @@ func TestCreateQuery(t *testing.T) {
 		},
 	}
 	require.NoError(t, err)
-	q, err := handlers.CreateQuery(cfg, &http.Request{
+	q, op, err := handlers.CreateQuery(cfg, &http.Request{
 		URL: &url.URL{
 			Path: "/webhook/query/field",
 		},
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "query{field}", q)
+	assert.Equal(t, "query", op)
 
-	q, err = handlers.CreateQuery(cfg, &http.Request{
+	q, op, err = handlers.CreateQuery(cfg, &http.Request{
 		URL: &url.URL{
 			Path: "/webhook/query/testType1Field1/field",
 		},
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "query{testType1Field1{field}}", q)
+	assert.Equal(t, "query", op)
 
-	q, err = handlers.CreateQuery(cfg, &http.Request{
+	q, op, err = handlers.CreateQuery(cfg, &http.Request{
 		URL: &url.URL{
 			Path: "/webhook/query/testType1Field2/1/abc/field",
 		},
