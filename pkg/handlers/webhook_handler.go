@@ -196,18 +196,7 @@ type apiQuery struct {
 
 func NewWebhookHandler(c Config, gqlHandler http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		protocolData := map[string]interface{}{
-			"method": r.Method,
-			"url": map[string]string{
-				"path":  r.URL.Path,
-				"host":  r.URL.Host,
-				"query": r.URL.RawQuery,
-			},
-			"host":          r.Host,
-			"remoteAddress": r.RemoteAddr,
-			"proto":         r.Proto,
-			"headers":       r.Header.Clone(),
-		}
+		protocolData := protocolFromRequest(r)
 		if r.Body != nil {
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
