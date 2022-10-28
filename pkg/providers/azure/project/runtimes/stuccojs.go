@@ -84,7 +84,7 @@ func (s StuccoJS) GlobalFiles() ([]File, error) {
 				  },
 				  "extensionBundle": {
 					"id": "Microsoft.Azure.Functions.ExtensionBundle",
-					"version": "[1.*, 2.0.0)"
+					"version": "[3.*, 4.0.0)"
 				  },
 				  "customHandler": {
 					"description": {
