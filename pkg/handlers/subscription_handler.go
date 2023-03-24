@@ -310,7 +310,11 @@ func (w *webhookResponseWrapper) WriteHeader(status int) {
 
 // New returns new handler
 func New(cfg Config) *Handler {
-	rt, _ := router.NewRouter(cfg.RouterConfig)
+	var requestTimeout int64
+	if requestTimeout = cfg.RouterConfig.RequestTimeout; cfg.RouterConfig.RequestTimeout <= 0 {
+		requestTimeout =
+			int64(^uint(0) >> 1)
+	}
 	h := Handler{
 		Schema:   cfg.Schema,
 		graphiql: cfg.GraphiQL,
@@ -321,7 +325,7 @@ func New(cfg Config) *Handler {
 			EnableCompression: true,
 		},
 		rootObjectFn:   cfg.RootObjectFn,
-		requestTimeout: rt.RequestTimeout,
+		requestTimeout: time.Duration(requestTimeout),
 	}
 	if cfg.CheckOrigin != nil {
 		h.upgrader.CheckOrigin = cfg.CheckOrigin
