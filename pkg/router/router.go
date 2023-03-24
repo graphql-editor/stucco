@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"time"
 
 	"github.com/graphql-editor/stucco/pkg/driver"
 	"github.com/graphql-editor/stucco/pkg/parser"
@@ -23,6 +24,7 @@ type Router struct {
 	Subscriptions       SubscriptionConfig            // global subscription config
 	SubscriptionConfigs map[string]SubscriptionConfig // subscription config per subscription field
 	MaxDepth            int                           // allow limiting max depth of GraphQL recursion
+	RequestTimeout      time.Duration
 }
 
 func (r *Router) bindInterfaces(c *parser.Config) error {
@@ -261,12 +263,13 @@ func (r *Router) load(c Config) error {
 func NewRouter(c Config) (Router, error) {
 	c.Environment.Merge(DefaultEnvironment())
 	r := Router{
-		Interfaces:    make(map[string]InterfaceConfig, len(c.Interfaces)),
-		Resolvers:     make(map[string]ResolverConfig, len(c.Resolvers)),
-		Scalars:       make(map[string]ScalarConfig, len(c.Scalars)),
-		Unions:        make(map[string]UnionConfig, len(c.Unions)),
-		Subscriptions: c.Subscriptions,
-		MaxDepth:      c.MaxDepth,
+		Interfaces:     make(map[string]InterfaceConfig, len(c.Interfaces)),
+		Resolvers:      make(map[string]ResolverConfig, len(c.Resolvers)),
+		Scalars:        make(map[string]ScalarConfig, len(c.Scalars)),
+		Unions:         make(map[string]UnionConfig, len(c.Unions)),
+		Subscriptions:  c.Subscriptions,
+		MaxDepth:       c.MaxDepth,
+		RequestTimeout: time.Duration(c.RequestTimeout),
 	}
 	err := r.load(c)
 	return r, err

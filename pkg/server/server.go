@@ -277,9 +277,10 @@ func New(c Config) (httpHandler http.Handler, err error) {
 	}
 	if err == nil {
 		httpHandler = handlers.WithProtocolInContext(gqlhandler.New(gqlhandler.Config{
-			Schema:   &rt.Schema,
-			Pretty:   checkPointerBoolDefaultTrue(c.Pretty),
-			GraphiQL: checkPointerBoolDefaultTrue(c.GraphiQL),
+			RouterConfig: c.Config,
+			Schema:       &rt.Schema,
+			Pretty:       checkPointerBoolDefaultTrue(c.Pretty),
+			GraphiQL:     checkPointerBoolDefaultTrue(c.GraphiQL),
 		}))
 	}
 	return
