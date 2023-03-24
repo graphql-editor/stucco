@@ -38,11 +38,11 @@ type subscriptionHandler struct {
 	sub            router.BlockingSubscriptionPayload
 	ctx            context.Context
 	rootObject     map[string]interface{}
-	requestTimeout time.Duration
+	requestTimeout int64
 }
 
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
-	ctx, cancel := context.WithTimeout(s.ctx, time.Second*s.requestTimeout|30)
+	ctx, cancel := context.WithTimeout(s.ctx, time.Duration(s.requestTimeout*int64(time.Second)))
 	defer cancel()
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
 	ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
@@ -112,7 +112,7 @@ type Handler struct {
 	pretty         bool
 	upgrader       websocket.Upgrader
 	rootObjectFn   handler.RootObjectFn
-	requestTimeout time.Duration
+	requestTimeout int64
 }
 
 type requestOptions struct {
@@ -256,7 +256,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	pctx, cancel := context.WithTimeout(ctx, time.Second*h.requestTimeout|30)
+	pctx, cancel := context.WithTimeout(ctx, time.Duration(h.requestTimeout*int64(time.Second)))
 	params.Context = pctx
 	result := graphql.Do(params)
 	cancel()
@@ -313,7 +313,7 @@ func New(cfg Config) *Handler {
 	var requestTimeout int64
 	if requestTimeout = cfg.RouterConfig.RequestTimeout; cfg.RouterConfig.RequestTimeout <= 0 {
 		requestTimeout =
-			int64(^uint(0) >> 1)
+			int64(^uint32(0) >> 1)
 	}
 	h := Handler{
 		Schema:   cfg.Schema,
@@ -325,7 +325,7 @@ func New(cfg Config) *Handler {
 			EnableCompression: true,
 		},
 		rootObjectFn:   cfg.RootObjectFn,
-		requestTimeout: time.Duration(requestTimeout),
+		requestTimeout: requestTimeout,
 	}
 	if cfg.CheckOrigin != nil {
 		h.upgrader.CheckOrigin = cfg.CheckOrigin
