@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -38,11 +39,11 @@ type subscriptionHandler struct {
 	sub            router.BlockingSubscriptionPayload
 	ctx            context.Context
 	rootObject     map[string]interface{}
-	requestTimeout int64
+	requestTimeout time.Duration
 }
 
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
-	ctx, cancel := context.WithTimeout(s.ctx, time.Duration(s.requestTimeout*int64(time.Second)))
+	ctx, cancel := context.WithTimeout(s.ctx, time.Duration(s.requestTimeout))
 	defer cancel()
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
 	ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
@@ -112,7 +113,7 @@ type Handler struct {
 	pretty         bool
 	upgrader       websocket.Upgrader
 	rootObjectFn   handler.RootObjectFn
-	requestTimeout int64
+	requestTimeout time.Duration
 }
 
 type requestOptions struct {
@@ -256,7 +257,8 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	pctx, cancel := context.WithTimeout(ctx, time.Duration(h.requestTimeout*int64(time.Second)))
+	fmt.Println("h request: " + h.requestTimeout.String())
+	pctx, cancel := context.WithTimeout(ctx, time.Duration(h.requestTimeout))
 	params.Context = pctx
 	result := graphql.Do(params)
 	cancel()
@@ -310,11 +312,7 @@ func (w *webhookResponseWrapper) WriteHeader(status int) {
 
 // New returns new handler
 func New(cfg Config) *Handler {
-	var requestTimeout int64
-	if requestTimeout = cfg.RouterConfig.RequestTimeout; cfg.RouterConfig.RequestTimeout <= 0 {
-		requestTimeout =
-			int64(^uint32(0) >> 1)
-	}
+	fmt.Println(cfg.RouterConfig.RequestTimeout)
 	h := Handler{
 		Schema:   cfg.Schema,
 		graphiql: cfg.GraphiQL,
@@ -324,11 +322,18 @@ func New(cfg Config) *Handler {
 			WriteBufferSize:   1024,
 			EnableCompression: true,
 		},
-		rootObjectFn:   cfg.RootObjectFn,
-		requestTimeout: requestTimeout,
+		rootObjectFn: cfg.RootObjectFn,
 	}
-	if cfg.CheckOrigin != nil {
-		h.upgrader.CheckOrigin = cfg.CheckOrigin
+	switch requestTimeout := cfg.RouterConfig.RequestTimeout; {
+	case requestTimeout == 0:
+		h.requestTimeout = time.Duration(time.Second * 30)
+	case requestTimeout <= 0:
+		h.requestTimeout = time.Duration(time.Hour * 24)
+	default:
+		h.requestTimeout = time.Duration(requestTimeout * int64(time.Second))
+		if cfg.CheckOrigin != nil {
+			h.upgrader.CheckOrigin = cfg.CheckOrigin
+		}
 	}
 	return &h
 }

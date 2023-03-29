@@ -24,7 +24,7 @@ type Router struct {
 	Subscriptions       SubscriptionConfig            // global subscription config
 	SubscriptionConfigs map[string]SubscriptionConfig // subscription config per subscription field
 	MaxDepth            int                           // allow limiting max depth of GraphQL recursion
-	RequestTimeout      time.Duration
+	RequestTimeout      *time.Duration
 }
 
 func (r *Router) bindInterfaces(c *parser.Config) error {
@@ -262,6 +262,7 @@ func (r *Router) load(c Config) error {
 // NewRouter creates new function router
 func NewRouter(c Config) (Router, error) {
 	c.Environment.Merge(DefaultEnvironment())
+	t := time.Duration(c.RequestTimeout)
 	r := Router{
 		Interfaces:     make(map[string]InterfaceConfig, len(c.Interfaces)),
 		Resolvers:      make(map[string]ResolverConfig, len(c.Resolvers)),
@@ -269,7 +270,7 @@ func NewRouter(c Config) (Router, error) {
 		Unions:         make(map[string]UnionConfig, len(c.Unions)),
 		Subscriptions:  c.Subscriptions,
 		MaxDepth:       c.MaxDepth,
-		RequestTimeout: time.Duration(c.RequestTimeout),
+		RequestTimeout: &t,
 	}
 	err := r.load(c)
 	return r, err
