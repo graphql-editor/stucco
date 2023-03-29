@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -43,7 +42,7 @@ type subscriptionHandler struct {
 }
 
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
-	ctx, cancel := context.WithTimeout(s.ctx, time.Duration(s.requestTimeout))
+	ctx, cancel := context.WithTimeout(s.ctx, s.requestTimeout)
 	defer cancel()
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
 	ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
@@ -257,8 +256,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-	fmt.Println("h request: " + h.requestTimeout.String())
-	pctx, cancel := context.WithTimeout(ctx, time.Duration(h.requestTimeout))
+	pctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	params.Context = pctx
 	result := graphql.Do(params)
 	cancel()
@@ -312,7 +310,6 @@ func (w *webhookResponseWrapper) WriteHeader(status int) {
 
 // New returns new handler
 func New(cfg Config) *Handler {
-	fmt.Println(cfg.RouterConfig.RequestTimeout)
 	h := Handler{
 		Schema:   cfg.Schema,
 		graphiql: cfg.GraphiQL,
