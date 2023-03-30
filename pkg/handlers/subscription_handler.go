@@ -33,15 +33,16 @@ type Config struct {
 
 // subscriptionHandler is a websocket handler
 type subscriptionHandler struct {
-	pretty     bool
-	schema     *graphql.Schema
-	sub        router.BlockingSubscriptionPayload
-	ctx        context.Context
-	rootObject map[string]interface{}
+	pretty         bool
+	schema         *graphql.Schema
+	sub            router.BlockingSubscriptionPayload
+	ctx            context.Context
+	rootObject     map[string]interface{}
+	requestTimeout time.Duration
 }
 
 func (s subscriptionHandler) do(v interface{}) *graphql.Result {
-	ctx, cancel := context.WithTimeout(s.ctx, time.Second*30)
+	ctx, cancel := context.WithTimeout(s.ctx, s.requestTimeout)
 	defer cancel()
 	ctx = context.WithValue(ctx, router.RawSubscriptionKey, true)
 	ctx = context.WithValue(ctx, router.SubscriptionPayloadKey, v)
@@ -106,11 +107,12 @@ func (s subscriptionHandler) Handle(ws *websocket.Conn) {
 
 // Handler implements http.Handler for GraphQL
 type Handler struct {
-	Schema       *graphql.Schema
-	graphiql     bool
-	pretty       bool
-	upgrader     websocket.Upgrader
-	rootObjectFn handler.RootObjectFn
+	Schema         *graphql.Schema
+	graphiql       bool
+	pretty         bool
+	upgrader       websocket.Upgrader
+	rootObjectFn   handler.RootObjectFn
+	requestTimeout time.Duration
 }
 
 type requestOptions struct {
@@ -254,8 +256,7 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 	}
-
-	pctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	pctx, cancel := context.WithTimeout(ctx, h.requestTimeout)
 	params.Context = pctx
 	result := graphql.Do(params)
 	cancel()
@@ -271,11 +272,12 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			return
 		}
 		subHandler := subscriptionHandler{
-			pretty:     h.pretty,
-			schema:     h.Schema,
-			sub:        sub,
-			ctx:        ctx,
-			rootObject: params.RootObject,
+			pretty:         h.pretty,
+			schema:         h.Schema,
+			sub:            sub,
+			ctx:            ctx,
+			rootObject:     params.RootObject,
+			requestTimeout: h.requestTimeout,
 		}
 		subHandler.Handle(conn)
 		return
@@ -319,8 +321,16 @@ func New(cfg Config) *Handler {
 		},
 		rootObjectFn: cfg.RootObjectFn,
 	}
-	if cfg.CheckOrigin != nil {
-		h.upgrader.CheckOrigin = cfg.CheckOrigin
+	switch requestTimeout := cfg.RouterConfig.RequestTimeout; {
+	case requestTimeout == 0:
+		h.requestTimeout = time.Duration(time.Second * 30)
+	case requestTimeout <= 0:
+		h.requestTimeout = time.Duration(time.Hour * 24)
+	default:
+		h.requestTimeout = time.Duration(requestTimeout * int64(time.Second))
+		if cfg.CheckOrigin != nil {
+			h.upgrader.CheckOrigin = cfg.CheckOrigin
+		}
 	}
 	return &h
 }

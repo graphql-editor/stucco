@@ -116,6 +116,7 @@ type Config struct {
 	SubscriptionConfigs map[string]SubscriptionConfig `json:"subscriptionConfigs"` // Configure subscription behaviour per field
 	MaxDepth            int                           `json:"maxDepth,omitempty"`
 	Authorize           *AuthorizeConfig              `json:"authorize,omitempty"` // Authorize configures optional authorization function before any resolver is ran
+	RequestTimeout      int64                         `json:"requestTimeout,omitempty"`
 }
 
 // AddResolver creates a new resolver mapping in config
