@@ -18,7 +18,9 @@ package localcmd
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/graphql-editor/stucco/pkg/handlers"
 	"github.com/graphql-editor/stucco/pkg/server"
@@ -35,8 +37,19 @@ func (klogErrorf) Errorf(msg string, args ...interface{}) {
 	klog.Errorf(msg, args...)
 }
 
+func getEnv(key, defaultValue string) (value string) {
+	if value = os.Getenv(key); value == "" {
+		return defaultValue
+	}
+	if value[0] != ':' {
+		return ":" + value
+	}
+	return value
+}
+
 // NewStartCommand creates a start command
 func NewStartCommand() *cobra.Command {
+	fmt.Println("new start comand")
 	var startConfig string
 	var schema string
 	startCommand := &cobra.Command{
@@ -85,11 +98,12 @@ func NewStartCommand() *cobra.Command {
 				)
 			}
 			h = middleware(h)
+			fmt.Println(getEnv("STUCCO_PORT", ":8081"))
 			webhookHandler = middleware(webhookHandler)
 			srv := server.Server{
 				Handler:        h,
 				WebhookHandler: webhookHandler,
-				Addr:           ":8080",
+				Addr:           getEnv("STUCCO_PORT", ":8081"),
 			}
 			return srv.ListenAndServe()
 		},
