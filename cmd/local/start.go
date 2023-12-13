@@ -18,8 +18,10 @@ package localcmd
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
 
+	crs "github.com/graphql-editor/stucco/pkg/cors"
 	"github.com/graphql-editor/stucco/pkg/handlers"
 	"github.com/graphql-editor/stucco/pkg/server"
 	"github.com/graphql-editor/stucco/pkg/utils"
@@ -63,21 +65,16 @@ func NewStartCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			corsOptions := crs.NewCors()
+			fmt.Println(corsOptions.AllowedOrigins)
 			middleware := func(next http.Handler) http.Handler {
 				return handlers.RecoveryHandler(
 					httplog.WithLogging(
 						cors.New(cors.Options{
-							AllowedOrigins: []string{"*"},
-							AllowedMethods: []string{
-								http.MethodHead,
-								http.MethodGet,
-								http.MethodPost,
-								http.MethodPut,
-								http.MethodPatch,
-								http.MethodDelete,
-							},
-							AllowedHeaders:   []string{"*"},
-							AllowCredentials: true,
+							AllowedOrigins:   corsOptions.AllowedOrigins,
+							AllowedMethods:   corsOptions.AllowedMethods,
+							AllowedHeaders:   corsOptions.AllowedHeaders,
+							AllowCredentials: corsOptions.AllowedCredentials,
 						}).Handler(next),
 						httplog.DefaultStacktracePred,
 					),
