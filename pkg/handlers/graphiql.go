@@ -24,11 +24,11 @@ var graphiql = []byte(`<html>
 
 		<script
 	  crossorigin
-	  src="https://unpkg.com/react/umd/react.production.min.js"
+	  src="https://unpkg.com/react@18.0.0/umd/react.production.min.js"
    ></script>
 		<script
 	  crossorigin
-	  src="https://unpkg.com/react-dom/umd/react-dom.production.min.js"
+	  src="https://unpkg.com/react-dom@18.0.0/umd/react-dom.production.min.js"
    ></script>
 		<script
 	  crossorigin
